@@ -1,0 +1,11 @@
+{
+    "rates": [
+        {
+            "id": "0",
+            "decoderate": "22"
+        }
+    ],
+    "type": "rates",
+    "instanceId": "",
+    "instanceKey": ""
+}

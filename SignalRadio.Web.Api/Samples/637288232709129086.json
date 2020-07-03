@@ -1,0 +1,121 @@
+{
+    "calls": [
+        {
+            "id": "0_13003_1593226448",
+            "freq": "172075000",
+            "sysNum": "0",
+            "shortName": "DaneCom",
+            "talkgroup": "13003",
+            "talkgrouptag": "DALAW3",
+            "elasped": "22",
+            "length": "15.119999999999999",
+            "state": "1",
+            "phase2": "false",
+            "conventional": "false",
+            "encrypted": "false",
+            "emergency": "false",
+            "startTime": "1593226448",
+            "stopTime": "1593226448",
+            "sourceList": [
+                {
+                    "source": "1316616",
+                    "position": "0",
+                    "time": "1593226448",
+                    "signal_system": "p25",
+                    "emergency": "false",
+                    "tag": ""
+                },
+                {
+                    "source": "1389160",
+                    "position": "2.3399999999999999",
+                    "time": "1593226453",
+                    "signal_system": "p25",
+                    "emergency": "false",
+                    "tag": ""
+                },
+                {
+                    "source": "1316616",
+                    "position": "4.3200000000000003",
+                    "time": "1593226456",
+                    "signal_system": "p25",
+                    "emergency": "false",
+                    "tag": ""
+                },
+                {
+                    "source": "1389160",
+                    "position": "12.06",
+                    "time": "1593226465",
+                    "signal_system": "p25",
+                    "emergency": "false",
+                    "tag": ""
+                }
+            ],
+            "freqList": [
+                {
+                    "freq": "172075000",
+                    "time": "1593226448",
+                    "spikes": "0",
+                    "errors": "0",
+                    "position": "0",
+                    "length": "0"
+                }
+            ],
+            "recNum": "0",
+            "srcNum": "0",
+            "recState": "3",
+            "analog": "false",
+            "sigmffilename": "\/app\/trunk-recorder\/audio\/DaneCom\/2020\/6\/27\/13003-1593226448_172075000.raw",
+            "debugfilename": "\/app\/trunk-recorder\/audio\/DaneCom\/2020\/6\/27\/13003-1593226448_172075000.debug",
+            "filename": "\/app\/trunk-recorder\/audio\/DaneCom\/2020\/6\/27\/13003-1593226448_172075000.wav",
+            "statusfilename": "\/app\/trunk-recorder\/audio\/DaneCom\/2020\/6\/27\/13003-1593226448_172075000.json"
+        },
+        {
+            "id": "0_13001_1593226470",
+            "freq": "172075000",
+            "sysNum": "0",
+            "shortName": "DaneCom",
+            "talkgroup": "13001",
+            "talkgrouptag": "DALAW1",
+            "elasped": "0",
+            "length": "0",
+            "state": "1",
+            "phase2": "false",
+            "conventional": "false",
+            "encrypted": "false",
+            "emergency": "false",
+            "startTime": "1593226470",
+            "stopTime": "1593226470",
+            "sourceList": [
+                {
+                    "source": "1304299",
+                    "position": "0",
+                    "time": "1593226470",
+                    "signal_system": "p25",
+                    "emergency": "false",
+                    "tag": ""
+                }
+            ],
+            "freqList": [
+                {
+                    "freq": "172075000",
+                    "time": "1593226470",
+                    "spikes": "0",
+                    "errors": "0",
+                    "position": "0",
+                    "length": "0"
+                }
+            ],
+            "recNum": "1",
+            "srcNum": "0",
+            "recState": "3",
+            "analog": "false",
+            "sigmffilename": "\/app\/trunk-recorder\/audio\/DaneCom\/2020\/6\/27\/13001-1593226470_172075000.raw",
+            "debugfilename": "\/app\/trunk-recorder\/audio\/DaneCom\/2020\/6\/27\/13001-1593226470_172075000.debug",
+            "filename": "\/app\/trunk-recorder\/audio\/DaneCom\/2020\/6\/27\/13001-1593226470_172075000.wav",
+            "statusfilename": "\/app\/trunk-recorder\/audio\/DaneCom\/2020\/6\/27\/13001-1593226470_172075000.json"
+        }
+    ],
+    "type": "calls_active",
+    "instanceId": "",
+    "instanceKey": ""
+}

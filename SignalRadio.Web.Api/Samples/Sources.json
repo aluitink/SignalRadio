@@ -1,0 +1,80 @@
+{
+    "sources": [
+        {
+            "source_num": "0",
+            "antenna": "",
+            "qpsk": "true",
+            "silence_frames": "0",
+            "analog_levels": "8",
+            "digital_levels": "1",
+            "min_hz": "171040000",
+            "max_hz": "172960000",
+            "center": "172000000",
+            "rate": "2048000",
+            "driver": "osmosdr",
+            "device": "rtl=0",
+            "error": "0",
+            "mix_gain": "19",
+            "lna_gain": "19",
+            "vga1_gain": "19",
+            "vga2_gain": "19",
+            "bb_gain": "-373771584",
+            "gain": "20",
+            "if_gain": "0",
+            "squelch_db": "0",
+            "analog_recorders": "0",
+            "digital_recorders": "8",
+            "debug_recorders": "0",
+            "sigmf_recorders": "0"
+        },
+        {
+            "source_num": "1",
+            "antenna": "",
+            "qpsk": "true",
+            "silence_frames": "0",
+            "analog_levels": "8",
+            "digital_levels": "1",
+            "min_hz": "154012500",
+            "max_hz": "155932500",
+            "center": "154972500",
+            "rate": "2048000",
+            "driver": "osmosdr",
+            "device": "rtl=1",
+            "error": "0",
+            "mix_gain": "19",
+            "lna_gain": "19",
+            "vga1_gain": "19",
+            "vga2_gain": "19",
+            "bb_gain": "0",
+            "gain": "20",
+            "if_gain": "0",
+            "squelch_db": "0",
+            "analog_recorders": "0",
+            "digital_recorders": "8",
+            "debug_recorders": "0",
+            "sigmf_recorders": "0"
+        }
+    ],
+    "systems": [
+        {
+            "audioArchive": "true",
+            "systemType": "p25",
+            "shortName": "DaneCom",
+            "sysNum": "0",
+            "uploadScript": "",
+            "recordUnkown": "true",
+            "callLog": "true",
+            "talkgroupsFile": "\/app\/trunk-recorder\/config\/danecom-talkgroups.priorities.csv",
+            "channels": [
+                "172500000"
+            ]
+        }
+    ],
+    "captureDir": "\/app\/trunk-recorder\/audio",
+    "uploadServer": "",
+    "callTimeout": "3",
+    "logFile": "false",
+    "instanceId": "",
+    "instanceKey": "",
+    "type": "config"
+}
