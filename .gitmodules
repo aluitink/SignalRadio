@@ -1,6 +1,6 @@
 [submodule "SignalRadio.Containers/docker-icecast"]
-	path = SignalRadio.Containers/docker-icecast
+	path = SignalRadio.Modules/docker-icecast
 	url = git@github.com:aluitink/docker-icecast.git
 [submodule "SignalRadio.Containers/docker-trunk-recorder"]
-	path = SignalRadio.Containers/docker-trunk-recorder
+	path = SignalRadio.Modules/docker-trunk-recorder
 	url = git@github.com:aluitink/trunk-recorder.git
