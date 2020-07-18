@@ -1,0 +1,9 @@
+# directories
+**/bin/
+**/obj/
+**/out/
+**/SignalRadio.Modules/
+**/node_modules/
+# files
+**/Dockerfile*
+**/*.md

@@ -11,7 +11,7 @@ RUN groupadd --gid $USER_GID $USERNAME \
     && useradd --uid $USER_UID --gid $USER_GID -m $USERNAME 
     
 RUN apt-get update \
-    && apt-get -y install sudo nodejs npm \
+    && apt-get -y install sudo nodejs npm liquidsoap \
     && echo $USERNAME ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/$USERNAME \
     && chmod 0440 /etc/sudoers.d/$USERNAME \
     && npm i npm@latest -g \

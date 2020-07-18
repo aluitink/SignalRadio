@@ -1,3 +1,4 @@
+*.sock
 *.swp
 *.*~
 project.lock.json

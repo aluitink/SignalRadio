@@ -1,0 +1,119 @@
+version: "3.7"
+
+services:
+#   nginx-proxy:
+#     image: jwilder/nginx-proxy:alpine
+#     restart: "always" # Always restart container
+#     ports:
+#      - "80:80" # Port mappings in format host:container
+#      - "443:443"
+#     networks:
+#      - nginx-proxy # Name of the etwork these two containers will share
+#     labels:
+#      - "com.github.jrcs.letsencrypt_nginx_proxy_companion.nginx_proxy" # Label needed for Let's Encrypt companion container
+#     volumes: # Volumes needed for container to configure proixes and access certificates genereated by Let's Encrypt companion container
+#      - /var/run/docker.sock:/tmp/docker.sock:ro
+#      - "nginx-conf:/etc/nginx/conf.d"
+#      - "nginx-vhost:/etc/nginx/vhost.d"
+#      - "html:/usr/share/nginx/html"
+#      - "certs:/etc/nginx/certs:ro"
+# letsencrypt-nginx-proxy-companion:
+#     image: jrcs/letsencrypt-nginx-proxy-companion
+#     restart: always
+#     container_name: letsencrypt-nginx-proxy-companion
+#     volumes:
+#      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+#      - "nginx-conf:/etc/nginx/conf.d"
+#      - "nginx-vhost:/etc/nginx/vhost.d"
+#      - "html:/usr/share/nginx/html"
+#      - "certs:/etc/nginx/certs:rw"
+#     depends_on: # Make sure we start nginx proxy container first
+#         - nginx-proxy
+
+  sr-icecast:
+    build:
+      context: ../
+      dockerfile: .dockerfiles/docker-sr/Dockerfile
+      target: icecast
+    restart: unless-stopped
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - sr-icecast:/app/icecast
+  #- logs:/var/log/icecast2
+    environment:
+      - ICECAST_SOURCE_PASSWORD=Password1
+      - ICECAST_ADMIN_PASSWORD=Password1
+      - ICECAST_PASSWORD=Password1
+      - ICECAST_RELAY_PASSWORD=Password1
+    ports:
+      - 8000:8000
+  sr-trunk-recorder:
+    build:
+      context: ../
+      dockerfile: .dockerfiles/docker-sr/Dockerfile
+      target: trunk-recorder
+    restart: unless-stopped
+    privileged: true
+    volumes:
+      - sr-audio:/app/trunk-recorder/audio
+      - sr-config:/app/trunk-recorder/config
+      - sr-liquid-bridge:/app/liquid-bridge/config
+      - /dev/bus/usb:/dev/bus/usb
+    links:
+      - sr-icecast:icecast
+      - sr-web-api
+  sr-web-api:
+    build:
+      context: ../
+      dockerfile: .dockerfiles/docker-sr/Dockerfile
+      target: api
+    restart: unless-stopped
+    privileged: true
+    ports:
+      - 44312:44302
+      - 8012:8002
+  sr-web-ui:
+    build:
+      context: ../
+      dockerfile: .dockerfiles/docker-sr/Dockerfile
+      target: ui
+    restart: unless-stopped
+    privileged: true
+    depends_on: 
+      - sr-web-api
+    ports:
+      - 44311:44301
+      - 8011:8001
+# networks:
+#  nginx-proxy: # Name of our shared network that containers will use
+volumes:
+  sr-icecast:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: /var/zzz/docker/volumes/sr-icecast
+  sr-liquidsoap:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: /var/zzz/docker/volumes/sr-liquidsoap
+  sr-audio:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: /var/zzz/docker/volumes/sr-trunk-recorder/audio
+  sr-config:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: /var/zzz/docker/volumes/sr-trunk-recorder/config
+  sr-liquid-bridge:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: /var/zzz/docker/volumes/sr-liquid-bridge/config

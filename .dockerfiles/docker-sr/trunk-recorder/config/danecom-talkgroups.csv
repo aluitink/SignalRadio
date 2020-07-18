@@ -1,0 +1,290 @@
+13226,belleville|ems-talk,D,DABLEMS 1,Belleville EMS 1,EMS-Talk,Belleville,1
+13227,belleville|ems-talk,D,DABLEMS 2,Belleville EMS 2,EMS-Talk,Belleville,1
+13224,belleville|fire-talk,D,DABLFD,Belleville FD,Fire-Talk,Belleville,1
+13221,belleville|law-talk|city-law,D,DABLPD 1,Belleville PD 1,Law Talk,Belleville,1
+13222,belleville|law-talk|city-law,D,DABLPD 2,Belleville PD 2,Law Talk,Belleville,1
+13220,belleville|multi-talk,D,DABLALL,Belleville All,Multi-Talk,Belleville,1
+13228,belleville|public-works,D,DABLDPW,Belleville DPW,Public Works,Belleville,1
+13234,black-earth|fire-talk,D,DABEFD,Black Earth FD,Fire-Talk,Black Earth,1
+13231,black-earth|law-talk|city-law,D,DABEPD,Black Earth PD,Law Talk,Black Earth,1
+13238,black-earth|public-works,D,DABEDPW1,Black Earth DPW 1,Public Works,Black Earth,1
+13239,black-earth|public-works,D,DABEDPW2,Black Earth DPW 2,Public Works,Black Earth,1
+13412,town-earth|public-works,D,DABKDPW,Town of Black Earth DPW,Public Works,Black Earth,1
+13415,blooming-grove|multi-talk,D,DABGALL,Blooming Grove All,Multi-Talk,Blooming Grove,1
+13419,blooming-grove|public-works,D,DABGDPW,Blooming Grove DPW,Public Works,Blooming Grove,1
+13421,blooming-grove|public-works,D,DABGDPW2,Blooming Grove DPW 2,Public Works,Blooming Grove,1
+13241,blue-mounds|law-talk|city-law,D,DABMPD,Blue Mounds PD,Law Talk,Blue Mounds,1
+13254,brooklyn|emergency-ops,D,DABRLG,Brooklyn Local Gov.,Emergency Ops,Brooklyn,1
+13256,brooklyn|ems-talk,D,DABREMS,Brooklyn EMS,EMS-Talk,Brooklyn,1
+13253,brooklyn|fire-talk,D,DABRFD,Brooklyn FD,Fire-Talk,Brooklyn,1
+13251,brooklyn|law-talk,D,DABRPD,Brooklyn PD,Law Talk,Brooklyn,1
+13258,brooklyn|public-works,D,DABRDPW,Brooklyn DPW,Public Works,Brooklyn,1
+13266,cambridge|ems-talk,D,DACMEMS,Cambridge EMS,EMS-Talk,Cambridge,1
+13264,cambridge|fire-talk,D,DACMFD,Cambridge FD,Fire-Talk,Cambridge,1
+13261,cambridge|law-talk,D,DACMPD,Cambridge PD,Law Talk,Cambridge,1
+13268,cambridge|public-works,D,DACMDPW,Cambridge DPW,Public Works,Cambridge,1
+13442,cottage-grove|fire-talk,D,DACGFD,Cottage Grove FD,Fire-Talk,Cottage Grove,1
+13441,cottage-grove|law-talk,D,DACGPD,Cottage Grove PD,Law Talk,Cottage Grove,1
+13440,cottage-grove|multi-talk,D,DACGALL,Cottage Grove All,Multi-Talk,Cottage Grove,1
+13443,cottage-grove|public-works,D,DACGDPW,Cottage Grove DPW,Public Works,Cottage Grove,1
+13010,county-common|interop,D,DASCAN,Dane County Scan,Interop,County Common,1
+13050,county-common|interop,D,VCALL10,VCALL10,Interop,County Common,1
+13052,county-common|interop,D,VTAC12,VTAC12,Interop,County Common,1
+13054,county-common|interop,D,VLAW31,VLAW31,Interop,County Common,1
+13011,county-common|multi-talk,D,DACOM,Dane County Common/Call,Multi-Talk,County Common,1
+13012,county-common|multi-talk|travel,D,DATRVL,Dane County Travel,Multi-Talk,County Common,1
+13031,county-common|multi-talk|event,D,DAEVENTV,Dane County Event V,Multi-Talk,County Common,1
+13032,county-common|multi-talk|event,D,DAEVENTW,Dane County Event W,Multi-Talk,County Common,1
+13033,county-common|multi-talk|event,D,DAEVENTX,Dane County Event X,Multi-Talk,County Common,1
+13035,county-common|multi-talk|event,D,DAEVENTZ,Dane County Event Z,Multi-Talk,County Common,1
+13065,county-fire|ems-dispatch|county-ems,D,DA EDWARD,E Edward,EMS Dispatch,County Fire/EMS,1
+13801,county-fire|ems-dispatch|county-ems,D,RyanBrosAmb,Ryan Brothers Ambulance,EMS Dispatch,County Fire/EMS,1
+13066,county-fire|ems-tac|county-ems,D,DA FRANK,F Frank (Primary ALS Intercepts),EMS-Tac,County Fire/EMS,1
+13067,county-fire|ems-tac|county-ems,D,DA GEORGE,G George (Secondary EMS/Operations/ALS Intercept),EMS-Tac,County Fire/EMS,1
+13068,county-fire|ems-tac|county-ems,D,DA HENRY,H Henry,EMS-Tac,County Fire/EMS,1
+13069,county-fire|ems-tac|county-ems,D,DA IDA,I Ida,EMS-Tac,County Fire/EMS,1
+13061,county-fire|fire-dispatch|county-ems,D,DA ADAM,A Adam,Fire Dispatch,County Fire/EMS,1
+13062,county-fire|fire-tac|county-ems,D,DA BAKER,B Baker,Fire-Tac,County Fire/EMS,1
+13063,county-fire|fire-tac|county-ems,D,DA CHARLIE,C Charlie,Fire-Tac,County Fire/EMS,1
+13064,county-fire|fire-tac|county-ems,D,DA DAVID,D David,Fire-Tac,County Fire/EMS,1
+13070,county-fire|fire-tac|county-ems,D,DA JOHN,J John (Joint Response Channel),Fire-Tac,County Fire/EMS,1
+13085,county-fire|fire-tac|county-ems,T,DANETAC1,Dane County Analog Tactical Channel 1,Fire-Tac,County Fire/EMS,1
+13086,county-fire|fire-tac|county-ems,T,DANETAC2,Dane County Analog Tactical Channel 2,Fire-Tac,County Fire/EMS,1
+13799,county-fire|fire-talk|county-ems,D,DATXFD,Airport/Truax Fire,Fire-Talk,County Fire/EMS,1
+13098,county-fire|hospital|county-ems,D,EMS B,EMS B Patch,Hospital,County Fire/EMS,1
+13096,county-fire|interop|county-ems,T,DAIFERN,IFERN Patch,Interop,County Fire/EMS,1
+13005,county-fire|multi-dispatch|county-ems,D,DAPAGE,Dane County Paging,Multi-Dispatch,County Fire/EMS,1
+13700,county-highway|public-works|announcement,D,DAHYATG,Highway Announcement,Public Works,County Highway Dept,1
+13701,county-highway|public-works,D,DAHWY1,Highway 1,Public Works,County Highway Dept,1
+13702,county-highway|public-works,D,DAHWY2,Highway 2,Public Works,County Highway Dept,1
+13705,county-highway|public-works,D,DAFLAG1,Highway Flaggers 1,Public Works,County Highway Dept,1
+13706,county-highway|public-works,D,DAFLAG2,Highway Flaggers 2,Public Works,County Highway Dept,1
+13707,county-highway|public-works,D,DAPAINT,Painting Crew,Public Works,County Highway Dept,1
+13708,county-highway|public-works,D,DAHYEAST1,Highway East 1,Public Works,County Highway Dept,1
+13709,county-highway|public-works,D,DAHYEAST2,Highway East 2,Public Works,County Highway Dept,1
+13710,county-highway|public-works,D,DAHYWEST1,Highway West 1,Public Works,County Highway Dept,1
+13711,county-highway|public-works,D,DAHYWEST2,Highway West 2,Public Works,County Highway Dept,1
+13712,county-highway|public-works,D,DAHWYCREW18,Highway Crew 18,Public Works,County Highway Dept,1
+13713,county-highway|public-works,D,DAHWYCREW19,Highway Crew 19,Public Works,County Highway Dept,1
+13714,county-highway|public-works,D,DAHWYCREW20,Highway Crew 20,Public Works,County Highway Dept,1
+13001,county-law|law-dispatch|sheriff,D,DALAW1,Dane County Sheriff Law 1,Law Dispatch,County Law,1
+13013,county-law|law-tac,D,DALTAC 13,Dane County Law Tactical 13,Law Tac,County Law,1
+13014,county-law|law-tac,D,DALTAC 14,Dane County Law Tactical 14,Law Tac,County Law,1
+13015,county-law|law-tac,D,DALTAC 15,Dane County Law Tactical 15,Law Tac,County Law,1
+13775,capital-law|law-tac,D,DACAPMAR,Capital Area Police Mutual Aid Response,Law Tac,County Law,1
+13002,county-law|law-talk|sheriff,D,DALAW2TK,Dane County Sheriff Law 2 Talkaround,Law Talk,County Law,1
+13003,county-law|law-talk|sheriff,D,DALAW3,Dane County Sheriff Law 3,Law Talk,County Law,1
+13004,county-law|law-talk|sheriff,D,DALAW4TK,Dane County Sheriff Law 4 Talkaround,Law Talk,County Law,1
+13020,county-law|law-talk|sheriff,D,DALAWALL,Dane County Sheriff - All,Law Talk,County Law,1
+13026,county-law|law-talk|sheriff|data,D,DADATA,Dane County Sheriff Data,Law Talk,County Law,1
+13000,county-law|multi-dispatch|announcement,D,DAATG,Dane County Announcement,Multi-Dispatch,County Law,1
+13731,county-services|emergency-ops,D,DAEM1,Emergency Management,Emergency Ops,County Services,1
+13733,county-services|emergency-ops,D,DAEOC,Emergency Management ICP-EOC,Emergency Ops,County Services,1
+13734,county-services|emergency-ops,D,DAEMCV1,Emergency Management CV-1 Coordination,Emergency Ops,County Services,1
+13725,county-services|ems-talk,D,DAMEDX1,Medical Examiner 1,EMS-Talk,County Services,1
+13726,county-services|ems-talk,D,DAMEDX2,Medical Examiner 2,EMS-Talk,County Services,1
+13767,county-services|law-talk|training,D,DADCLETC,Law Enforcement Training Center,Law Talk,County Services,1
+13755,county-services|public-works,D,DAFACMN,County Facilities Managment,Public Works,County Services,1
+13770,county-services|public-works|parks,D,DAPARKS,County Parks Dept,Public Works,County Services,1
+13780,county-services|public-works|airport-ops,D,DAAIRP OPS,Airport Operations,Public Works,County Services,1
+13276,cross-plains|ems-tac,D,DACPEMS,Cross Plains EMS,EMS-Tac,Cross Plains,1
+13277,cross-plains|fire-tac,D,DACPFD,Cross Plains Fire,Fire-Tac,Cross Plains,1
+13271,cross-plains|law-talk,D,DACPPD,Cross Plains Police,Law Talk,Cross Plains,1
+13274,cross-plains|multi-tac,D,DACPEM,Cross Plains Emergency Mangement,Multi-Tac,Cross Plains,1
+13278,cross-plains|public-works,D,DACPDPW,Cross Plains Public Works,Public Works,Cross Plains,1
+13447,cross-plains|public-works,D,DAXPDPW,Town of Cross Plains Public Works,Public Works,Cross Plains,1
+13279,cross-plains|schools,D,DAMCPSD,Middleton-Cross Plains School District,Schools,Cross Plains,1
+13284,dane-town|fire-tac,D,DADAFD,Dane Fire,Fire-Tac,Dane,1
+13281,dane-town|law-talk,D,DADAPD,Dane Police,Law Talk,Dane,1
+13288,dane-town|public-works,D,DADADPW,Dane DPW,Public Works,Dane,1
+13294,deerfield|fire-tac,D,DADRFD1,Deerfield Fire 1,Fire-Tac,Deerfield,1
+13296,deerfield|fire-tac,D,DADRFD2,Deerfield Fire 2,Fire-Tac,Deerfield,1
+13298,deerfield|public-works,D,DADRDPW,Deerfield Public Works,Public Works,Deerfield,1
+13444,deer-grove|ems-talk,D,DADGEMS,Deer-Grove EMS,EMS-Talk,Deer-Grove,1
+13304,deforest|fire-tac,D,DADFFD,DeForest Fire/EMS,Fire-Tac,DeForest,1
+13306,deforest|fire-talk,D,DADFFDAD,DeForest FD/EMS Admin,Fire-Talk,DeForest,1
+13301,deforest|law-tac,D,DADFPD,DeForest Police,Law Tac,DeForest,1
+13308,deforest|public-works,D,DADFDPW,DeForest DPW,Public Works,DeForest,1
+13106,fitchburg|ems-talk,D,DAFREMS,Fitch-Rona EMS,EMS-Talk,Fitchburg,1
+13108,fitchburg|fire-talk,D,DAFBOFCR,FFD Officers,Fire-Talk,Fitchburg,1
+13109,fitchburg|fire-talk,D,DAFBFD,Fitchburg FD Admin,Fire-Talk,Fitchburg,1
+13102,fitchburg|law-dispatch,D,DAFBPD1,Fitchburg PD 1,Law Dispatch,Fitchburg,1
+13103,fitchburg|law-tac,D,DAFBPD2,Fitchburg PD 2,Law Tac,Fitchburg,1
+13104,fitchburg|law-tac,DE,DAFBPD3,Fitchburg PD 3,Law Tac,Fitchburg,1
+13107,fitchburg|law-tac,DE,DAFBPD4,Fitchburg PD 4,Law Tac,Fitchburg,1
+13100,fitchburg|multi-dispatch,D,DAFBATG,Fitchburg ATG,Multi-Dispatch,Fitchburg,1
+13101,fitchburg|multi-talk,D,DAFBALL,Fitchburg All,Multi-Talk,Fitchburg,1
+13115,fitchburg|public-works,D,DAFBDPW,Fitchburg DPW,Public Works,Fitchburg,1
+13119,fitchburg|schools|emergency,D,DAVASD,Verona Area School District Emergency,Schools,Fitchburg,1
+4619,madison|hospital|meriter,D,MERITMAD,Meriter Hospital,Hospital,Hospital,1
+4620,sun-prairie|hospital|st-marys,D,STMSUNP,St Mary's Sun Prairie,Hospital,Hospital,1
+4621,madison|hospital|st-marys,D,STMMAD,St Mary's Hospital,Hospital,Hospital,1
+4622,stoughton|hospital,D,STOUGHH,Stoughton Hospital,Hospital,Hospital,1
+4623,madison|hospital|uw-hospital,D,UWMAD,UW Hospital,Hospital,Hospital,1
+4624,madison|hospital|va-hospital,D,VAMEDMAD,VA Hospital,Hospital,Hospital,1
+4704,sauk-prairie|hospital,D,SAUKPRMH,Sauk Prairie Hospital,Hospital,Hospital,1
+4740,madison|hospital|uw-hospital,D,UWAMCNTR,UW Hospital - East,Hospital,Hospital,1
+13732,madison|hospital,D,DAHMC,Hospital Mass Casualty,Hospital,Hospital,1
+13735,madison|hospital,D,DAHOSP,Hospital to Hospital,Hospital,Hospital,1
+13603,madison-city|law-dispatch|madison,D,DAMAPD A03,Madison PD A03,Law Dispatch,Madison (City),1
+13715,madison-city|emergency-ops|issi|madison,D,911 CENTER,911 Center,Emergency Ops,Madison (City) ISSI,1
+13638,madison-city|fire-dispatch|issi|madison,D,DAMAFD1,Madison FD A01,Fire Dispatch,Madison (City) ISSI,1
+13685,madison-city|fire-tac|issi|madison,D,DAMAFDTAC2,Madison FD TAC 2,Fire-Tac,Madison (City) ISSI,1
+13655,madison-city|hospital|issi|madison,D,DAMAFDUWER,Madison FD UW ER,Hospital,Madison (City) ISSI,1
+13600,madison-city|law-dispatch|issi|madison,D,DAMAPDATG,Madison PD Announcement,Law Dispatch,Madison (City) ISSI,1
+13601,madison-city|law-dispatch|issi|madison,D,DAMAPD A01,Madison PD A01,Law Dispatch,Madison (City) ISSI,1
+13605,madison-city|law-dispatch|issi|madison,D,DAMAPD 05,Madison PD 5 - Parking,Law Dispatch,Madison (City) ISSI,1
+13017,madison-city|law-tac|issi|jail|madison,D,DAJAIL6,Jail 6,Law Tac,Madison (City) ISSI,1
+13612,madison-city|law-tac|issi|city-law|madison,DE,DAMAPD A11,Madison PD A11,Law Tac,Madison (City) ISSI,1
+13613,madison-city|law-tac|issi|city-law|madison,DE,DAMAPD A12,Madison PD A12,Law Tac,Madison (City) ISSI,1
+13716,madison-city|law-tac|issi|city-law|narco-tf|madison,D,DAMAPDNGTF1,Narcotics Gang Task Force 1,Law Tac,Madison (City) ISSI,1
+13717,madison-city|law-tac|issi|city-law|narco-tf|madison,D,DAMAPDNGTF2,Narcotics Gang Task Force 2,Law Tac,Madison (City) ISSI,1
+13718,madison-city|law-tac|issi|city-law|narco-tf|madison,DE,DAMAPDNGTF3,Narcotics Gang Task Force 3,Law Tac,Madison (City) ISSI,1
+13719,madison-city|law-tac|issi|city-law|narco-tf|madison,DE,DAMAPDNGTF4,Narcotics Gang Task Force 4,Law Tac,Madison (City) ISSI,1
+13740,madison-city|law-tac|issi|city-law|madison,D,DAMAPDTAC7,Madison PD TAC 7,Law Tac,Madison (City) ISSI,1
+13741,madison-city|law-tac|issi|city-law|madison,D,DAMAPDTAC8,Madison PD TAC 8,Law Tac,Madison (City) ISSI,1
+13742,madison-city|law-tac|issi|city-law|madison,D,DAMAPDTAC9,Madison PD TAC 9,Law Tac,Madison (City) ISSI,1
+13743,madison-city|law-tac|issi|city-law|madison,DE,DAMAPDTAC10,Madison PD Tac 10,Law Tac,Madison (City) ISSI,1
+13776,madison-city|multi-tac|issi|city-law|madison,D,DAMAEVENT07,Madison Event 7,Multi-Tac,Madison (City) ISSI,1
+13777,madison-city|multi-tac|issi|madison,D,DAMAEVENT08,Madison Event 8,Multi-Tac,Madison (City) ISSI,1
+13778,madison-city|multi-tac|issi|madison,D,DAMAEVENT09,Madison Event 9,Multi-Tac,Madison (City) ISSI,1
+13779,madison-city|multi-tac|issi|madison,D,DAMAEVENT10,Madison Event 10,Multi-Tac,Madison (City) ISSI,1
+13472,madison-town|fire-talk|madison,D,DATMFD,Town of Madison Fire,Fire-Talk,Madison (Town),1
+13471,madison-town|law-talk|madison,D,DATMPD,Town of Madison Police,Law Talk,Madison (Town),1
+13470,madison-town|multi-talk|madison,D,DATMALL,Town of Madison All,Multi-Talk,Madison (Town),1
+13477,madison-town|public-works|madison,D,DATMDPW,Town of Madison DPW,Public Works,Madison (Town),1
+13317,maple-bluff|fire-talk,D,DAMBFD,Maple Bluff Fire,Fire-Talk,Maple Bluff,1
+13311,maple-bluff|law-talk,D,DAMBPD,Maple Bluff Police,Law Talk,Maple Bluff,1
+13310,maple-bluff|multi-talk,D,DAMBATG,Maple Bluff Announcement,Multi-Talk,Maple Bluff,1
+13318,maple-bluff|public-works,D,DAMBDPW,Maple Bluff DPW,Public Works,Maple Bluff,1
+13326,marshall|ems-talk,D,DAMREMS,Marshall EMS,EMS-Talk,Marshall,1
+13324,marshall|fire-talk,D,DAMRFD,Marshall Fire,Fire-Talk,Marshall,1
+13321,marshall|law-talk,D,DAMRPD,Marshall Police,Law Talk,Marshall,1
+13320,marshall|multi-talk,D,DAMRATG,Marshall Announcement,Multi-Talk,Marshall,1
+13328,marshall|public-works,D,DAMRDPW,Marshall DPW,Public Works,Marshall,1
+13336,mazomaine|ems-talk,D,DAMZEMS,Mazomanie EMS,EMS-Talk,Mazomanie,1
+13337,mazomaine|fire-talk,D,DAMZFD,Mazomanie FD,Fire-Talk,Mazomanie,1
+13331,mazomaine|law-talk,D,DAMZPD,Mazomanie PD,Law Talk,Mazomanie,1
+13338,mazomaine|public-works,D,DAMZDPW,Mazomanie DPW,Public Works,Mazomanie,1
+13344,mcfarland|fire-talk,D,DAMCFD,McFarland FD/EMS,Fire-Talk,McFarland,1
+13340,mcfarland|law-talk,D,DAMCATG,McFarland Announcement,Law Talk,McFarland,1
+13341,mcfarland|law-talk,D,DAMCPD,McFarland PD,Law Talk,McFarland,1
+13348,mcfarland|public-works,D,DAMCDPW,McFarland DPW,Public Works,McFarland,1
+13349,mcfarland|public-works,D,DAMCDPW2,McFarland DPW 2,Public Works,McFarland,1
+13126,middleton|ems-talk,D,DAMIEMS,Middleton EMS,EMS-Talk,Middleton,1
+13127,middleton|fire-talk,D,DAMIFD,Middleton Fire,Fire-Talk,Middleton,1
+13121,middleton|law-dispatch,D,DAMIPD1,Middleton Police 1,Law Dispatch,Middleton,1
+13122,middleton|law-talk,D,DAMIPD2,Middleton Police 2,Law Talk,Middleton,1
+13120,middleton|multi-dispatch,D,DAMIALL,Middleton All,Multi-Dispatch,Middleton,1
+13136,middleton|public-works,D,DAMIDPW,Middleton DPW,Public Works,Middleton,1
+13145,monona|fire-talk,D,DAMOFD,Monona Fire,Fire-Talk,Monona,1
+13141,monona|law-talk,D,DAMOPD,Monona Police,Law Talk,Monona,1
+13356,mount-horeb|ems-talk,D,DAMHEMS,Mount Horeb EMS,EMS-Talk,Mount Horeb,1
+13354,mount-horeb|fire-talk,D,DAMHFD,Mount Horeb Fire,Fire-Talk,Mount Horeb,1
+13351,mount-horeb|law-talk,D,DAMHPD,Mount Horeb Police,Law Talk,Mount Horeb,1
+13358,mount-horeb|public-works,D,DAMHDPW,Mount Horeb DPW,Public Works,Mount Horeb,1
+13366,oregon|ems-talk,D,DAOREMS,Oregon EMS,EMS-Talk,Oregon,1
+13367,oregon|fire-talk,D,DAORFD,Oregon Fire,Fire-Talk,Oregon,1
+13362,oregon|law-tac,D,DAORPDTAC,Oregon Police Tactical,Law Tac,Oregon,1
+13361,oregon|law-talk,D,DAORPD,Oregon Police,Law Talk,Oregon,1
+13368,oregon|public-works,D,DAORDPW,Oregon DPW,Public Works,Oregon,1
+13381,shorewood-hills|law-talk,D,DASHPD,Shorewood Hills Police,Law Talk,Shorewood Hills,1
+13380,shorewood-hills|multi-talk,D,DASHALL,Shorewood Hills All,Multi-Talk,Shorewood Hills,1
+13388,shorewood-hills|public-works,D,DASHDPW,Shorewood Hills DPW,Public Works,Shorewood Hills,1
+13173,stoughton|ems-tac,D,DASTEMS2,Stoughton EMS Ops,EMS-Tac,Stoughton,1
+13174,stoughton|ems-tac,D,DASTEMS3,Stoughton EMS Triage/treatment/transport,EMS-Tac,Stoughton,1
+13175,stoughton|ems-tac,D,DASTEMS4,Stoughton EMS Training,EMS-Tac,Stoughton,1
+13172,stoughton|ems-talk,D,DASTEMS1,Stoughton EMS Admin,EMS-Talk,Stoughton,1
+13169,stoughton|fire-tac,D,DASTFD2,Stoughton Fire 2 Ops,Fire-Tac,Stoughton,1
+13171,stoughton|fire-tac,D,DASTFD4,Stoughton Fire 4 Training,Fire-Tac,Stoughton,1
+13165,stoughton|fire-talk,D,DASTFD,Stoughton Fire Admin,Fire-Talk,Stoughton,1
+13170,stoughton|fire-talk,D,DASTFD3,Stoughton Fire 3 Coordination,Fire-Talk,Stoughton,1
+13161,stoughton|law-dispatch,D,DASTPD1,Stoughton PD 1,Law Dispatch,Stoughton,1
+13160,stoughton|law-talk,D,DASTPDTK,Stoughton PD 1 Talkaround,Law Talk,Stoughton,1
+13162,stoughton|law-talk,D,DASTPD3,Stoughton PD TAC,Law Talk,Stoughton,1
+13163,stoughton|law-talk,D,DASTPDEV,Stoughton PD Event,Law Talk,Stoughton,1
+13176,stoughton|multi-talk,D,DASTSE1,Stoughton Spec Event Admin,Multi-Talk,Stoughton,1
+13177,stoughton|multi-talk,D,DASTSE2,Stoughton Spec Event 2,Multi-Talk,Stoughton,1
+13178,stoughton|multi-talk,D,DASTSE3,Stoughton Spec Event 3,Multi-Talk,Stoughton,1
+13179,stoughton|multi-talk,D,DASTSE4,Stoughton Spec Event 4,Multi-Talk,Stoughton,1
+13164,stoughton|public-works,D,DASTDPW1,Stoughton Streets 1,Public Works,Stoughton,1
+13166,stoughton|public-works,D,DASTDPW2,Stoughton Streets 2,Public Works,Stoughton,1
+13167,stoughton|public-works,D,DASTDPW3,Stoughton Streets 3,Public Works,Stoughton,1
+13168,stoughton|public-works,D,DASTDPW4,Stoughton Streets 4,Public Works,Stoughton,1
+13190,sun-prairie|ems-talk,D,DASNEMS,Sun Prairie EMS,EMS-Talk,Sun Prairie,1
+13094,sun-prairie|fire-talk,D,DASNFG,Sun Prairie Fire Fireground Patch,Fire-Talk,Sun Prairie,1
+13187,sun-prairie|fire-talk,D,DASNFD,Sun Prairie Fire,Fire-Talk,Sun Prairie,1
+13191,sun-prairie|fire-talk,D,DASNFDAD,Sun Prairie Fire Admin,Fire-Talk,Sun Prairie,1
+13192,sun-prairie|fire-talk,D,DASNFDTN,Sun Prairie Fire Training,Fire-Talk,Sun Prairie,1
+13537,sun-prairie|fire-talk,D,DASNFDSF,Sun Prairie Fire Safety,Fire-Talk,Sun Prairie,1
+13181,sun-prairie|law-dispatch,D,DASNPD1,Sun Prairie PD 1 Dispatch,Law Dispatch,Sun Prairie,1
+13183,sun-prairie|law-tac,D,DASNPD EV,Sun Prairie PD Event,Law Tac,Sun Prairie,1
+13184,sun-prairie|law-tac,D,DASNPDTC,Sun Prairie PD Tactical,Law Tac,Sun Prairie,1
+13182,sun-prairie|law-talk,D,DASNPD2,Sun Prairie PD 2 Secondary,Law Talk,Sun Prairie,1
+13185,sun-prairie|law-talk,D,DASNPDDLO,Sun Prairie PD DLO,Law Talk,Sun Prairie,1
+13186,sun-prairie|law-talk,D,DASNPDDT,Sun Prairie PD Detectives,Law Talk,Sun Prairie,1
+13188,sun-prairie|law-talk,D,DASNPDTN,Sun Prairie PD Training,Law Talk,Sun Prairie,1
+13189,sun-prairie|law-talk,D,DASNPDAD,Sun Prairie PD Admin,Law Talk,Sun Prairie,1
+13196,sun-prairie|public-works,D,DASNDPW,DPW,Public Works,Sun Prairie,1
+13195,sun-prairie|schools,D,DASNASD,Sun Prairie Area School District,Schools,Sun Prairie,1
+13806,testing|public-works,D,DATEST1,Test 1,Public Works,Testing,1
+13807,testing|public-works,D,DATEST2,Test 2,Public Works,Testing,1
+13808,testing|public-works,D,DATEST3,Test 3,Public Works,Testing,1
+13809,testing|public-works,D,DATEST4,Test 4,Public Works,Testing,1
+13810,testing|public-works,D,DATEST5,Test 5,Public Works,Testing,1
+13820,testing|public-works,T,Test,Test,Public Works,Testing,1
+13402,albion|public-works,D,DAABDPW,Albion DPW,Public Works,Town Public Works,1
+13405,berry|public-works,D,DABYDPW,Berry DPW,Public Works,Town Public Works,1
+13422,blue-mounds|public-works,D,DABNDPW,Town of Blue Mounds DPW,Public Works,Town Public Works,1
+13427,bristol|public-works,D,DABSDPW,Bristol DPW,Public Works,Town Public Works,1
+13432,burke|public-works,D,DABUDPW,Burke DPW,Public Works,Town Public Works,1
+13437,christiana|public-works,D,DACHDPW,Christiana DPW,Public Works,Town Public Works,1
+13452,dane-town|public-works,D,DATDDPW,Town of Dane DPW,Public Works,Town Public Works,1
+13457,deer-field-town|public-works,D,DADTDPW,Town of Deerfield DPW,Public Works,Town Public Works,1
+13462,dunkirk|public-works,D,DADKDPW,Dunkirk DPW,Public Works,Town Public Works,1
+13467,dunn|public-works,D,DADUDPW,Dunn DPW,Public Works,Town Public Works,1
+13482,medina|public-works,D,DAMEDPW,Medina DPW,Public Works,Town Public Works,1
+13485,middleton-town|public-works,D,DAMDDPW,Town of Middleton DPW,Public Works,Town Public Works,1
+13495,oregon-town|public-works,D,DAOGDPW,Town of Oregon DPW,Public Works,Town Public Works,1
+13507,pleasant-springs|public-works,D,DAPSDPW,Pleasant Springs DPW,Public Works,Town Public Works,1
+13512,primrose|public-works,D,DAPRDPW,Primrose DPW,Public Works,Town Public Works,1
+13517,roxbury|public-works,D,DARXDPW,Roxbury DPW,Public Works,Town Public Works,1
+13522,rutland|public-works,D,DARUDPW,Rutland DPW,Public Works,Town Public Works,1
+13527,springdale|public-works,D,DASDDPW,Springdale DPW,Public Works,Town Public Works,1
+13532,springfield|public-works,D,DASFDPW,Springfield DPW,Public Works,Town Public Works,1
+13542,vermont|public-works,D,DAVTDPW,Vermont DPW,Public Works,Town Public Works,1
+13552,vienna|public-works,D,DAVIDPW,Vienna DPW,Public Works,Town Public Works,1
+13557,westport|public-works,D,DAWSDPW,Westport DPW,Public Works,Town Public Works,1
+13558,westport-springfield-vienna|public-works,D,DANSHARE,Westport-Springfield-Vienna DPW,Public Works,Town Public Works,1
+13562,windsor|public-works,D,DAWIDPW,Windsor DPW,Public Works,Town Public Works,1
+13659,madison|ems-talk,D,DAUWEMS,UW EMS,EMS-Talk,University of Wisconsin,1
+13572,madison|law-talk,D,DAUWEVNT5,UW Event 5,Law Talk,University of Wisconsin,1
+13570,madison|schools|uw,D,DAUWMAIN,UW Main,Schools,University of Wisconsin,1
+13571,madison|schools|uw,D,DAUWLS,UW Lifesaving,Schools,University of Wisconsin,1
+13202,verona|emergency-ops,D,DAVEEM,Verona Emergency Management,Emergency Ops,Verona,1
+13210,verona|fire-talk,D,DAVEFD,Verona Fire,Fire-Talk,Verona,1
+13204,verona|law-tac,DE,DAVEPD 2,Verona Police 2,Law Tac,Verona,1
+13203,verona|law-talk,D,DAVEPD 1,Verona Police 1,Law Talk,Verona,1
+13201,verona|multi-talk|anouncement,D,DAVEATG,Verona Announcement,Multi-Talk,Verona,1
+13215,verona|public-works,D,DAVEDPW,Verona DPW,Public Works,Verona,1
+13396,waunakee|ems-talk,D,DAWNEMS,Waunakee EMS,EMS-Talk,Waunakee,1
+13394,waunakee|fire-talk,D,DAWNFD,Waunakee Fire,Fire-Talk,Waunakee,1
+13391,waunakee|law-talk,D,DAWNPD,Waunakee Police,Law Talk,Waunakee,1
+13390,waunakee|multi-talk,D,DAWNALL,Waunakee All,Multi-Talk,Waunakee,1
+1,wiscom-issi|interop|issi,D,SCALL1,SCALL1,Interop,WISCOM ISSI,1
+2,wiscom-issi|interop|issi,D,STAC2,STAC2,Interop,WISCOM ISSI,1
+3,wiscom-issi|interop|issi,D,STAC3,STAC3,Interop,WISCOM ISSI,1
+4,wiscom-issi|interop|issi,D,STAC4,STAC4,Interop,WISCOM ISSI,1
+5,wiscom-issi|interop|issi,D,STAC5,STAC5,Interop,WISCOM ISSI,1
+6,wiscom-issi|interop|issi,D,STAC6,STAC6,Interop,WISCOM ISSI,1
+7,wiscom-issi|interop|issi,D,STAC7,STAC7,Interop,WISCOM ISSI,1
+8,wiscom-issi|interop|issi,D,STAC8,STAC8,Interop,WISCOM ISSI,1
+11,wiscom-issi|interop|issi,D,RCALL11SW,RCALL11SW,Interop,WISCOM ISSI,1
+12,wiscom-issi|interop|issi,D,RTAC12SW,RTAC12SW,Interop,WISCOM ISSI,1
+13,wiscom-issi|interop|issi,D,RTAC13SW,RTAC13SW,Interop,WISCOM ISSI,1
+14,wiscom-issi|interop|issi,D,RTAC14SW,RTAC14SW,Interop,WISCOM ISSI,1
+21,wiscom-issi|interop|issi,D,RCALL21SE,RCALL21SE,Interop,WISCOM ISSI,1
+31,wiscom-issi|interop|issi,D,RCALL31EC,RCALL31EC,Interop,WISCOM ISSI,1
+28010,wiscom-issi|interop|issi,D,JESCAN,Jefferson County Scan,Interop,WISCOM ISSI,1
+111,wiscom-issi|law-dispatch|issi|wsp-dispatch,D,WSPSW1,WSP Southwest 1 - Dispatch,Law Dispatch,WISCOM ISSI,1
+8501,wiscom-issi|law-dispatch|issi,D,DOACPD,Capitol Police,Law Dispatch,WISCOM ISSI,1

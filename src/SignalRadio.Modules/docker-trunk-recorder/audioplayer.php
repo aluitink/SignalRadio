@@ -1,0 +1,182 @@
+<?php
+$FileType = '.m4a';
+
+$system = (empty($_GET['system'])) ? null : $_GET['system'];
+$date   = (isset($_GET['date'])) ? new DateTimeImmutable($_GET['date']) : new DateTimeImmutable();
+$tg     = (empty($_GET['tg'])) ? null : $_GET['tg'];
+
+$CONFIG = (function (string $configFilePath = './config.json') {
+    if (!file_exists($configFilePath)) {
+        return false;
+    }
+
+    return json_decode(file_get_contents($configFilePath));
+})();
+
+$TGFile = function (string $tgFilePath): array {
+    $return = [];
+
+    if (!file_exists($tgFilePath)) {
+        return $return;
+    }
+
+    foreach (file($tgFilePath) as $line) {
+        [$DEC, $HEX, $Mode, $AlphaTag, $Description, $Tag, $Group, $Priority] = str_getcsv($line);
+        $return[$DEC] = $AlphaTag;
+    }
+
+    return $return;
+};
+
+$TGS = [];
+foreach ($CONFIG->systems as $system) {
+    $TGS += $TGFile($system->talkgroupsFile);
+}
+
+$files = [];
+try {
+    foreach ($CONFIG->systems as $system) {
+        $SHORTNAME = "{$system->shortName}";
+        foreach (new DirectoryIterator("{$CONFIG->captureDir}/$SHORTNAME/{$date->format('Y/n/j')}/") as $file) {
+            $EXT = '.' . $file->getExtension();
+            if ($EXT != $FileType) {
+                continue;
+            }
+
+            $Basename = $file->getBasename($EXT);
+            [$TGID, $TIME, $FREQ] = preg_split('/[-_]/', $Basename);
+
+            if ($TGID != $tg and $tg !== null) {
+                continue;
+            }
+
+            if ($file->getSize() < 1024) {
+                continue;
+            }   # Filtered because they will produce an error when attempting playback.
+
+            $files[$TIME . $FREQ] = [$Basename, round($file->getSize() / 1024), $TGID, $TIME, $FREQ / 1000000, $SHORTNAME];
+        }
+    }
+    ksort($files);
+} catch (UnexpectedValueException $e) {
+    $error = 'No directory found for that date.';
+}
+
+?>
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+        <meta name="format-detection" content="telephone=no">
+        <title>Trunk Player</title>
+        <link href="https://stackpath.bootstrapcdn.com/bootswatch/4.5.0/flatly/bootstrap.min.css" rel="stylesheet" integrity="sha384-mhpbKVUOPCSocLzx2ElRISIORFRwr1ZbO9bAlowgM5kO7hnpRBe+brVj8NNPUiFs" crossorigin="anonymous">
+        <link href="https://stackpath.bootstrapcdn.com/bootswatch/4.5.0/flatly/bootstrap.min.css" rel="stylesheet" integrity="sha384-mhpbKVUOPCSocLzx2ElRISIORFRwr1ZbO9bAlowgM5kO7hnpRBe+brVj8NNPUiFs" crossorigin="anonymous" media="(prefers-color-scheme: light)">
+        <link href="https://stackpath.bootstrapcdn.com/bootswatch/4.5.0/darkly/bootstrap.min.css" rel="stylesheet" integrity="sha384-Bo21yfmmZuXwcN/9vKrA5jPUMhr7znVBBeLxT9MA4r2BchhusfJ6+n8TLGUcRAtL" crossorigin="anonymous" media="(prefers-color-scheme: dark)">
+    </head>
+    <body>
+        <div class="container">
+            <div id="interface">
+                <form method="get">
+                    <div class="row">
+                        <div class="form-group col-lg-4">
+                            <label class="form-control-label" for="date">Date</label>
+                            <input class="form-control" id="date" name="date" type="date" value="<?=$date->format('Y-m-d')?>" />
+                        </div>
+                        <div class="form-group col-lg-4">
+                            <label class="form-control-label" for="tg">Talk Group</label>
+                            <select class="form-control" id="tg" name="tg">
+                                <option value="">All Calls</option>
+<?php       foreach ($TGS as $TGID => $TGName): ?>
+                                <option value="<?=$TGID?>"<?=($tg == $TGID) ? ' selected="selected"' : ''?>><?=$TGName?></option>
+<?php       endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="form-group col-lg-4">
+                            <label class="form-control-label">Controls</label>
+                            <button class="btn btn-outline-success btn-block" type="submit">Filter</button>
+                        </div>
+                    </div>
+                </form>
+                <div class="row">
+                    <div class="form-group col-lg-12">Click on a row to begin sequential playback, click file size to download</div>
+                </div>
+            </div>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <td>Time</td>
+                        <td>Talk Group</td>
+                        <td>MHz</td>
+                        <td>Size</td>
+                    </tr>
+                </thead>
+                <tbody>
+<?php   if (isset($error)): ?>
+                    <tr>
+                        <th colspan="4"><?=$error?></th>
+                    </tr>
+<?php   endif;  ?>
+<?php   foreach ($files as $FileTime => [$FileName, $FileSize, $TGID, $TIME, $FREQ, $SHORTNAME]):   ?>
+                    <tr>
+                        <td><?=date("H:i:s", $TIME)?></td>
+                        <td><?=($TGS[$TGID]) ?? $TGID?></td>
+                        <td><?=sprintf("%3.4f", $FREQ)?></td>
+                        <td><a href="<?="{$CONFIG->captureDir}/{$SHORTNAME}/{$date->format('Y/n/j')}/{$FileName}{$FileType}"?>"><?=$FileSize?>k</a></td>
+                    </tr>
+<?php   endforeach; ?>
+            </table>
+            <br />
+            <br />
+            <br />
+            <br />
+            <nav class="navbar fixed-bottom navbar-expand-sm navbar-light bg-light">
+                 <audio preload="none" controls>
+                    Sorry, your browser does not support HTML5 audio.
+                 </audio>
+            </nav>
+        </div>
+        <script>
+            window.onload = _ => {
+                var index = null,
+                  sources = document.querySelector('source'),
+                    audio = document.querySelector('audio'),
+                     list = document.querySelector('tbody'),
+                       tr = [...list.getElementsByTagName('tr')];
+
+                list.addEventListener('click', e => {
+                    if (tr[index])
+                        tr[index].classList.toggle('bg-secondary');
+
+                    tr.forEach((thisRow, i) => {
+                        if (e.target.parentElement == thisRow) {
+                            index = i;
+                            tr[index].classList.toggle('bg-secondary');
+                        }
+                    });
+
+                    audio.src = tr[index].querySelector('a');
+                    audio.load();
+                    audio.play().catch(error => {
+                        console.log(`${error.name}: ${error.message}`);
+                    });
+                }, false);
+
+                audio.addEventListener('ended', _ => {
+                    tr[index++].classList.toggle('bg-secondary');
+                    if (tr[index])
+                        tr[index].click();
+                }, false);
+
+            }
+        </script>
+        <style>
+            #interface, audio {
+                width: 100%;
+            }
+            table {
+                text-align: center;
+            }
+        </style>
+    </body>
+</html>
