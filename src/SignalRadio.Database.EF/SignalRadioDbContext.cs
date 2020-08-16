@@ -1,16 +1,21 @@
 using System.Reflection;
 using Microsoft.EntityFrameworkCore;
-using SignalRadio.Web.Api.Models;
+using SignalRadio.Public.Lib.Models;
 
-namespace SignalRadio.Web.Api.Database
+namespace SignalRadio.Database.EF
 {
     public class SignalRadioDbContext: DbContext
     {
         public DbSet<RadioSystem> RadioSystems { get; set; }
         public DbSet<RadioGroup> RadioGroups { get; set; }
         public DbSet<TalkGroup> TalkGroups { get; set; }
+        public DbSet<Stream> Streams {get;set;}
+        public DbSet<TalkGroupStream> TalkGroupStreams {get;set;}
         public DbSet<RadioFrequency> RadioFrequencies { get; set; }
         public DbSet<RadioCall> RadioCalls { get; set; }
+        public DbSet<User> Users {get;set;}
+        
+        public DbSet<MountPoint> MountPoints{get;set;}
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
@@ -71,14 +76,30 @@ namespace SignalRadio.Web.Api.Database
                 .Property(e => e.Id)
                 .IsRequired()
                 .ValueGeneratedOnAdd();
-            modelBuilder.Entity<TalkGroup>()
-                .HasOne(e => e.RadioGroup)
-                .WithMany(e => e.TalkGroups)
-                .HasForeignKey(e => e.RadioGroupId);
-            modelBuilder.Entity<TalkGroup>()
-                .HasOne(e => e.RadioSystem)
-                .WithMany(e => e.TalkGroups)
-                .HasForeignKey(e => e.RadioSystemId);
+                
+                
+            // modelBuilder.Entity<TalkGroup>()
+            //     .HasOne(e => e.RadioGroup)
+            //     .WithMany(e => e.TalkGroups)
+            //     .HasForeignKey(e => e.RadioGroupId);
+            // modelBuilder.Entity<TalkGroup>()
+            //     .HasOne(e => e.RadioSystem)
+            //     .WithMany(e => e.TalkGroups)
+            //     .HasForeignKey(e => e.RadioSystemId);
+            #endregion
+            #region TalkGroupStream
+            modelBuilder.Entity<TalkGroupStream>()
+                .ToTable("TalkGroupStreams", "dbo");
+            modelBuilder.Entity<TalkGroupStream>()
+                .HasKey(tgs => new { tgs.TalkGroupId, tgs.StreamId });
+            modelBuilder.Entity<TalkGroupStream>()
+                .HasOne(tgs => tgs.Stream)
+                .WithMany(tgs => tgs.StreamTalkGroups)
+                .HasForeignKey(tgs => tgs.StreamId);
+            modelBuilder.Entity<TalkGroupStream>()
+                .HasOne(tgs => tgs.TalkGroup)
+                .WithMany(tgs => tgs.TalkGroupStreams)
+                .HasForeignKey(tgs => tgs.TalkGroupId);
             #endregion
             #region RadioFrequencies
             modelBuilder.Entity<RadioFrequency>()
@@ -99,6 +120,61 @@ namespace SignalRadio.Web.Api.Database
                 .ToTable("RadioCalls", "dbo");
             modelBuilder.Entity<RadioCall>()
                 .HasKey(e => e.Id);
+            modelBuilder.Entity<RadioCall>()
+                .Property(e => e.Id)
+                .IsRequired()
+                .ValueGeneratedOnAdd();
+            modelBuilder.Entity<RadioCall>()
+            .HasOne(e => e.TalkGroup)
+            .WithMany(e => e.RadioCalls);
+            #endregion
+            #region Streams
+            modelBuilder.Entity<Stream>()
+                .ToTable("Streams", "dbo");
+            modelBuilder.Entity<Stream>()
+                .HasKey(e => e.Id);
+            modelBuilder.Entity<Stream>()
+                .Property(e => e.Id)
+                .IsRequired()
+                .ValueGeneratedOnAdd();
+            modelBuilder.Entity<Stream>()
+                .HasOne(s => s.Mount)
+                .WithOne(s => s.Stream)
+                .HasForeignKey<Stream>(m => m.MountPointId);
+            
+            #endregion
+            #region MountPoints
+            modelBuilder.Entity<MountPoint>()
+                .ToTable("MountPoints", "dbo");
+            modelBuilder.Entity<MountPoint>()
+                .HasKey(e => e.Id);
+            modelBuilder.Entity<MountPoint>()
+                .Property(e => e.Id)
+                .IsRequired()
+                .ValueGeneratedOnAdd();
+            modelBuilder.Entity<MountPoint>()
+                .HasOne(p => p.User)
+                .WithMany(p => p.MountPoints)
+                .HasForeignKey(p => p.UserId);
+            
+            #endregion
+            #region Users
+            modelBuilder.Entity<User>()
+                .ToTable("Users", "dbo");
+            modelBuilder.Entity<User>()
+                .HasKey(e => e.Id);
+            modelBuilder.Entity<User>()
+                .Property(e => e.Id)
+                .IsRequired()
+                .ValueGeneratedOnAdd();
+            modelBuilder.Entity<User>()
+                .HasMany(u => u.MountPoints)
+                .WithOne(m => m.User)
+                .HasForeignKey(m => m.UserId);
+            modelBuilder.Entity<User>()
+                .HasMany(u => u.Streams)
+                .WithOne(s => s.Owner)
+                .HasForeignKey(s => s.OwnerUserId);
             #endregion
         }
     }

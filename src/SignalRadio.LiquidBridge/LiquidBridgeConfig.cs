@@ -11,6 +11,8 @@ namespace SignalRadio.LiquidBridge
         public string LiquidsoapTemplatePath {get;set;}
         public string LiquidsoapSocketsPath {get;set;}
         public string TalkGroupCsvPath {get;set;}
+        public string ConnectionString {get;set;}
+
         public string BuildLiquidsoapConfig(string streamId, string streamName, string description, string genra)
         {
             var configBuilder = new StringBuilder();

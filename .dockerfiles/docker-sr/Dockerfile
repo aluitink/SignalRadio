@@ -13,7 +13,11 @@ RUN apt-get update \
 WORKDIR /source
 
 COPY src/*.sln .
+COPY src/SignalRadio.Public.Lib/*.csproj SignalRadio.Public.Lib/
+COPY src/SignalRadio.Web.Client/*.csproj SignalRadio.Web.Client/
+COPY src/SignalRadio.Web.Client.Test/*.csproj SignalRadio.Web.Client.Test/
 COPY src/SignalRadio.LiquidBridge/*.csproj SignalRadio.LiquidBridge/
+COPY src/SignalRadio.Database.EF/*.csproj SignalRadio.Database.EF/
 COPY src/SignalRadio.Web.Api/*.csproj SignalRadio.Web.Api/
 COPY src/SignalRadio.Web.UI/*.csproj SignalRadio.Web.UI/
 
@@ -24,61 +28,29 @@ RUN dotnet build -c Release --no-restore
 
 ###Publish Stage
 FROM build AS publish
+RUN dotnet publish -c Release --no-build -o /app/SignalRadio/SignalRadio.Public.Lib SignalRadio.Public.Lib/*.csproj
+RUN dotnet publish -c Release --no-build -o /app/SignalRadio/SignalRadio.Web.Client SignalRadio.Web.Client/*.csproj
 RUN dotnet publish -c Release --no-build -o /app/SignalRadio/SignalRadio.LiquidBridge SignalRadio.LiquidBridge/*.csproj
+RUN dotnet publish -c Release --no-build -o /app/SignalRadio/SignalRadio.Database.EF SignalRadio.Database.EF/*.csproj
 RUN dotnet publish -c Release --no-build -o /app/SignalRadio/SignalRadio.Web.UI SignalRadio.Web.UI/*.csproj
 RUN dotnet publish -c Release --no-build -o /app/SignalRadio/SignalRadio.Web.Api SignalRadio.Web.Api/*.csproj
 
 ###API Service Image
 FROM mcr.microsoft.com/dotnet/core/aspnet:3.1 as api
 
-# ENV DEBIAN_FRONTEND=noninteractive
-# ENV LANG en_US.UTF-8
-# ENV LANGUAGE en_US.UTF-8
-
-# ARG USERNAME=sigrad
-# ARG USER_UID=1000
-# ARG USER_GID=$USER_UID
-
-# # Create the user
-# RUN groupadd --gid $USER_GID $USERNAME \
-#     && useradd --uid $USER_UID --gid $USER_GID -m $USERNAME
-
-# USER $USERNAME
-
 WORKDIR /app
 
 COPY --from=publish /app/SignalRadio/SignalRadio.Web.Api .
+EXPOSE 443
 ENTRYPOINT ["dotnet", "SignalRadio.Web.Api.dll"]
 
 ###UI Service Image
 FROM mcr.microsoft.com/dotnet/core/aspnet:3.1 as ui
 
-#RUN apt-get update \
-#    && apt-get -y install nodejs npm \
-#    && npm i npm@latest -g \
-#    #
-#    # Clean up
-#    && apt-get autoremove -y \
-#    && apt-get clean -y \
-#    && rm -rf /var/lib/apt/lists/*
-
-#ENV DEBIAN_FRONTEND=noninteractive
-#ENV LANG en_US.UTF-8
-#ENV LANGUAGE en_US.UTF-8
-
-#ARG USERNAME=sigrad
-#ARG USER_UID=1000
-#ARG USER_GID=$USER_UID
-
-# Create the user
-#RUN groupadd --gid $USER_GID $USERNAME \
-#    && useradd --uid $USER_UID --gid $USER_GID -m $USERNAME
-
-#USER $USERNAME
-
 WORKDIR /app
 
 COPY --from=publish /app/SignalRadio/SignalRadio.Web.UI .
+EXPOSE 443
 ENTRYPOINT ["dotnet", "SignalRadio.Web.UI.dll"]
 
 ##Icecast2 Image

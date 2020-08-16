@@ -1,7 +1,7 @@
-using Newtonsoft.Json;
+using System.Text.Json.Serialization;
 using System.Collections.ObjectModel;
 
-namespace SignalRadio.Web.Api.Models
+namespace SignalRadio.Public.Lib.Models
 {
     public class RadioGroup
     {
@@ -9,8 +9,10 @@ namespace SignalRadio.Web.Api.Models
         public string Name { get; set; }
         public uint RadioSystemId { get; set; }
         [JsonIgnore]
+        [Newtonsoft.Json.JsonIgnore]
         public RadioSystem RadioSystem { get; set; }
         [JsonIgnore]
+        [Newtonsoft.Json.JsonIgnore]
         public Collection<TalkGroup> TalkGroups { get; set; }
     }
 }

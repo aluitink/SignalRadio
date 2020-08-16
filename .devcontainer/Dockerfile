@@ -28,24 +28,4 @@ ENV DEBIAN_FRONTEND=dialog
 # ********************************************************
 
 # [Optional] Set the default user. Omit if you want to keep the default as root.
-USER $USERNAME
-
-
-#FROM mcr.microsoft.com/dotnet/core/sdk:3.1 AS build
-# WORKDIR /src
-# COPY simple.signalr/*.sln ./
-# COPY simple.signalr/Simple.SignalR.Socket/Simple.SignalR.Socket.csproj Simple.SignalR.Socket/
-# RUN dotnet restore Simple.SignalR.Socket/Simple.SignalR.Socket.csproj
-
-# COPY simple.signalr/* .
-# WORKDIR /src/Simple.SignalR.Socket
-# RUN dotnet build Simple.SignalR.Socket.csproj -c Release -o /app
-
-# FROM build AS publish
-# RUN dotnet publish Simple.SignalR.Socket.csproj -c Release -o /app
-
-# FROM base AS final
-# WORKDIR /app
-
-# COPY --from=publish /app .
-# ENTRYPOINT ["dotnet", "Simple.SignalR.Socket.dll"]
+#USER $USERNAME

@@ -2,8 +2,8 @@ namespace SignalRadio.LiquidBridge
 {
     public class TalkGroup
     {
-        public int Identifier {get;set;}
-        public int Priority {get;set;}
+        public ushort Identifier {get;set;}
+        public ushort Priority {get;set;}
         public string Name {get;set;}
         public string Mode { get; set; }
         public string Tag { get; set; }

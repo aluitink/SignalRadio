@@ -1,7 +1,7 @@
 using System;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
-using SignalRadio.Web.Api.Database;
+using SignalRadio.Database.EF;
 
 namespace SignalRadio.Web.Api.Controllers
 {

@@ -5,8 +5,9 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
-using SignalRadio.Web.Api.Database;
-using SignalRadio.Web.Api.Models;
+using SignalRadio.Database.EF;
+using SignalRadio.Public.Lib.Models;
+using SignalRadio.Public.Lib.Models.Enums;
 
 namespace SignalRadio.Web.Api.Controllers
 {

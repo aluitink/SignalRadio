@@ -1,8 +1,9 @@
-using Newtonsoft.Json;
+using System.Text.Json.Serialization;
+using SignalRadio.Public.Lib.Models.Enums;
 using System;
 using System.Collections.ObjectModel;
 
-namespace SignalRadio.Web.Api.Models
+namespace SignalRadio.Public.Lib.Models
 {
     public class RadioSystem 
     {
@@ -14,10 +15,13 @@ namespace SignalRadio.Web.Api.Models
         public RadioSystemVoice SystemVoice { get; set; }
         public DateTime LastUpdated { get; set; }
         [JsonIgnore]
+        [Newtonsoft.Json.JsonIgnore]
         public Collection<RadioFrequency> ControlFrequencies { get; set; }
         [JsonIgnore]
+        [Newtonsoft.Json.JsonIgnore]
         public Collection<RadioGroup> RadioGroups { get; set; }
         [JsonIgnore]
+        [Newtonsoft.Json.JsonIgnore]
         public Collection<TalkGroup> TalkGroups { get; set; }
     }
 }

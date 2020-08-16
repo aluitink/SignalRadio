@@ -1,6 +1,6 @@
 using Newtonsoft.Json;
 
-namespace SignalRadio.Web.Api.Models.TrunkRecorder
+namespace SignalRadio.Public.Lib.Models.TrunkRecorder
 {
     public class StatusMessage
     {

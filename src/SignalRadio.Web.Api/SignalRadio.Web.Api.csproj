@@ -9,4 +9,8 @@
     <PackageReference Include="Microsoft.DotNet.Watcher.Tools" Version="2.0.2" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="3.1.5" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\SignalRadio.Database.EF\SignalRadio.Database.EF.csproj" />
+    <ProjectReference Include="..\SignalRadio.Public.Lib\SignalRadio.Public.Lib.csproj" />
+  </ItemGroup>
 </Project>

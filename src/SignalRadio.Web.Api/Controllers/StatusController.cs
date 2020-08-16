@@ -1,12 +1,12 @@
 
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
-using SignalRadio.Web.Api.Database;
+using SignalRadio.Database.EF;
 
 namespace SignalRadio.Web.Api.Controllers
 {
     [ApiController]
-    [Route("[controller]")]
+        [Route("api/[controller]")]
     public class StatusController : SignalRadioControllerBase
     {
         public StatusController(SignalRadioDbContext dbContext, ILogger logger) 

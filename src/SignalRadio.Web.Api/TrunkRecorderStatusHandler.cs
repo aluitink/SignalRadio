@@ -8,8 +8,9 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Newtonsoft.Json.Linq;
-using SignalRadio.Web.Api.Database;
-using SignalRadio.Web.Api.Models.TrunkRecorder;
+using SignalRadio.Database.EF;
+using SignalRadio.Public.Lib.Models;
+using SignalRadio.Public.Lib.Models.TrunkRecorder;
 
 namespace SignalRadio.Web.Api
 {
@@ -66,8 +67,8 @@ namespace SignalRadio.Web.Api
                         break;
                     case "call_start":
                         var callStart = message.First.ToObject<Call>();
-                        await DbContext.RadioCalls.AddAsync(new Models.RadioCall() {
-                            TalkGroupIdentifier = uint.Parse(callStart.Talkgroup),
+                        await DbContext.RadioCalls.AddAsync(new RadioCall() {
+                            TalkGroupIdentifier = ushort.Parse(callStart.Talkgroup),
                             CallIdentifier = callStart.Id,
                             TalkGroupTag = callStart.Talkgrouptag,
                             Elapsed = uint.Parse(callStart.Elasped),

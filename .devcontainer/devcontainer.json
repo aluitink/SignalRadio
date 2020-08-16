@@ -17,14 +17,14 @@
 		"ms-dotnettools.csharp"
 	],
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
-	"forwardPorts": [44301, 44302, 8001, 8002],
+	//"forwardPorts": [44301, 44302, 8001, 8002],
 
 	// Use 'postCreateCommand' to run commands after the container is created.
 	// "postCreateCommand": "yarn install",
 
 	// Uncomment to connect as a non-root user. See https://aka.ms/vscode-remote/containers/non-root.
-	"remoteUser": "radio",
-	"containerUser": "radio",
+	//"remoteUser": "radio",
+	//"containerUser": "radio",
 
 	"mounts": [
 		"source=${localEnv:HOME}${localEnv:USERPROFILE},target=/home/radio,type=bind,consistency=cached"

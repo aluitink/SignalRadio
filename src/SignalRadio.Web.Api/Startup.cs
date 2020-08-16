@@ -5,7 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Newtonsoft.Json;
-using SignalRadio.Web.Api.Database;
+using SignalRadio.Database.EF;
 using SignalRadio.Web.Api.Hubs;
 
 
@@ -25,11 +25,13 @@ namespace SignalRadio.Web.Api
         {
             services.AddDbContext<SignalRadioDbContext>();
 
-            services.AddCors((co) => {
-               co.AddPolicy("CorsPolicy", (cpb) => {
-                   cpb.AllowAnyMethod().AllowAnyHeader()
-                   .WithOrigins("https://localhost:44301")
-                   .AllowCredentials();
+            services.AddCors((co) => 
+            {
+               co.AddPolicy("CorsPolicy", (cpb) => 
+               {
+                   cpb.AllowAnyMethod()
+                    .AllowAnyHeader()
+                    .AllowCredentials();
                });
             });
             
@@ -61,7 +63,8 @@ namespace SignalRadio.Web.Api
                     if (context.WebSockets.IsWebSocketRequest)
                     {
                         WebSocket webSocket = await context.WebSockets.AcceptWebSocketAsync();
-                        await new TrunkRecorderStatusHandler(new SignalRadioDbContext()).StartStatusMessageHandlerAsync(context, webSocket);
+                        await new TrunkRecorderStatusHandler(new SignalRadioDbContext())
+                            .StartStatusMessageHandlerAsync(context, webSocket);
                     }
                     else
                     {
@@ -83,16 +86,5 @@ namespace SignalRadio.Web.Api
                     .RequireCors("CorsPolicy");
             });
         }
-    }
-
-    public class EndpointConfiguration
-    {
-        public string Host { get; set; }
-        public int? Port { get; set; }
-        public string Scheme { get; set; }
-        public string StoreName { get; set; }
-        public string StoreLocation { get; set; }
-        public string FilePath { get; set; }
-        public string Password { get; set; }
     }
 }
