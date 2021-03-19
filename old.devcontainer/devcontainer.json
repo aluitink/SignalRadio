@@ -62,9 +62,9 @@
 
 	// Comment this out to connect as a root instead.
 	//"remoteUser": "vscode"
-	"mounts": [
+	//"mounts": [
 		//"source=${localEnv:HOME}${localEnv:USERPROFILE},target=/home/radio,type=bind,consistency=cached"
-	],
+	//],
 	
 	"workspaceFolder": "/workspaces/signalRadio"
 }
