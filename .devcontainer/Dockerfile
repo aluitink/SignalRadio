@@ -1,29 +1,34 @@
-FROM robotastic/trunk-recorder:latest  AS base
+# See here for image contents: https://github.com/microsoft/vscode-dev-containers/tree/v0.159.0/containers/dotnetcore/.devcontainer/base.Dockerfile
 
-ARG USERNAME=radio
-ARG USER_UID=1000
+# [Choice] .NET Core version: 3.1, 2.1
+ARG VARIANT="3.1"
+FROM mcr.microsoft.com/vscode/devcontainers/dotnetcore:0-${VARIANT}
+
+# [Option] Install Node.js
+ARG INSTALL_NODE="true"
+ARG NODE_VERSION="lts/*"
+RUN if [ "${INSTALL_NODE}" = "true" ]; then su vscode -c "source /usr/local/share/nvm/nvm.sh && nvm install ${NODE_VERSION} 2>&1"; fi
+
+# [Option] Install Azure CLI
+ARG INSTALL_AZURE_CLI="false"
+COPY library-scripts/azcli-debian.sh /tmp/library-scripts/
+RUN if [ "$INSTALL_AZURE_CLI" = "true" ]; then bash /tmp/library-scripts/azcli-debian.sh; fi \
+    && apt-get clean -y && rm -rf /var/lib/apt/lists/* /tmp/library-scripts
+
+ARG USERNAME=sradmin
+ARG USER_UID21000
 ARG USER_GID=$USER_UID
-
-WORKDIR /app
 
 # Create the user
 RUN groupadd --gid $USER_GID $USERNAME \
     && useradd --uid $USER_UID --gid $USER_GID -m $USERNAME 
 
-RUN apt-get update \
-    && apt-get -y install \
-        apt-utils \
-        apt-transport-https \
-        wget \
+# [Optional] Uncomment this section to install additional OS packages.
+RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
+     && apt-get -y install --no-install-recommends \
         sudo \
-    && wget -q https://packages.microsoft.com/config/ubuntu/20.04/packages-microsoft-prod.deb \
-    && dpkg -i packages-microsoft-prod.deb \
-    && apt-get update \
-    && export DEBIAN_FRONTEND=noninteractive \
-    && apt-get -y install \
-        dotnet-sdk-3.1 \
-        lame \
         liquidsoap \
+        lame \
         sqlite3 \
         icecast2 \
         python-setuptools \
@@ -37,4 +42,5 @@ RUN apt-get update \
     && apt-get clean -y \
     && rm -rf /var/lib/apt/lists/*
 
-ENV DEBIAN_FRONTEND=dialog
+# [Optional] Uncomment this line to install global node packages.
+# RUN su vscode -c "source /usr/local/share/nvm/nvm.sh && npm install -g <your-package-here>" 2>&1
