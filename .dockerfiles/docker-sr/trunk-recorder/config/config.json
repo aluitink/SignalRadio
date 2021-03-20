@@ -27,5 +27,7 @@
     }],
     "captureDir": "/app/trunk-recorder/audio",
     "frequencyFormat": "mhz",
-    "statusAsString": true
+    "statusAsString": true,
+    "statusServer": "http://192.168.1.215:8001/ws"
 }
+
