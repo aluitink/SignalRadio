@@ -42,7 +42,7 @@ namespace SignalRadio.LiquidBridge
                     return config;
                 });
 
-                _client = new SignalRadioClient(_liquidConfig.ConnectionString);
+                _client = new SignalRadioClient(new Uri(_liquidConfig.ConnectionString));
                 
                 if(IsArgumentFlagExists(args, "import"))
                 {

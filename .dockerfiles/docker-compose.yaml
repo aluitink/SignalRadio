@@ -43,12 +43,10 @@ services:
       - sr-web:/app/.certs/
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
-      - ASPNETCORE_URLS=https://+
-      - ASPNETCORE_HTTPS_PORT=443
-      - ASPNETCORE_Kestrel__Certificates__Default__Path=/app/.certs/localhost.pfx
-      - ASPNETCORE_Kestrel__Certificates__Default__Password="Davenport252"
+      - ASPNETCORE_URLS=http://+
+      - ASPNETCORE_HTTPS_PORT=8001
     ports:
-      - 44302:443
+      - 8001:8001
   sr-web-ui:
     build:
       context: ../
@@ -62,12 +60,10 @@ services:
       - sr-web:/app/.certs/
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
-      - ASPNETCORE_URLS=https://+
-      - ASPNETCORE_HTTPS_PORT=443
-      - ASPNETCORE_Kestrel__Certificates__Default__Path=/app/.certs/localhost.pfx
-      - ASPNETCORE_Kestrel__Certificates__Default__Password="Davenport252"
-    ports:
-      - 44301:443
+      - ASPNETCORE_URLS=http://+
+      - ASPNETCORE_HTTPS_PORT=8000
+      ports:
+      - 8000:8000
 # networks:
 #  nginx-proxy: # Name of our shared network that containers will use
 volumes:
