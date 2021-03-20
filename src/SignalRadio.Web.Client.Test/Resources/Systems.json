@@ -1,0 +1,15 @@
+{
+    "systems": [
+        {
+            "id": "0",
+            "name": "DaneCom",
+            "type": "p25",
+            "sysid": "0",
+            "wacn": "0",
+            "nac": "0"
+        }
+    ],
+    "type": "systems",
+    "instanceId": "",
+    "instanceKey": ""
+}

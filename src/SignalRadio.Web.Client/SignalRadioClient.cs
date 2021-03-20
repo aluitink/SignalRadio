@@ -14,22 +14,17 @@ namespace SignalRadio.Web.Client
     public class SignalRadioClient
     {
         private readonly HttpClient _httpClient;
-        private string _connectionString;
-
-        public SignalRadioClient(string connectionString, HttpClient httpClient = null)
+        public SignalRadioClient(Uri baseAddress, HttpClient httpClient = null)
         {
-            _connectionString = connectionString;
-
-            var handler = new HttpClientHandler();
-            handler.ServerCertificateCustomValidationCallback = (request, cert, chain, errors) =>
+            var handler = new HttpClientHandler()
             {
-                return true;
+                ServerCertificateCustomValidationCallback = (request, cert, chain, errors) => true
             };
 
             _httpClient = httpClient ?? new HttpClient(handler);
-            _httpClient.BaseAddress = new Uri(_connectionString);
+            _httpClient.BaseAddress = baseAddress;
         }
-        
+
         public async Task<TalkGroup> GetTalkGroupByIdentifierAsync(ushort identifier, CancellationToken cancellationToken = default(CancellationToken))
         {
             var response = await _httpClient.GetAsync($"TalkGroups/Identifier/{identifier}", cancellationToken);

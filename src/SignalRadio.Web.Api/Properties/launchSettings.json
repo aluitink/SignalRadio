@@ -20,7 +20,7 @@
     "SignalRadio.Web.Api": {
       "commandName": "Project",
       "launchBrowser": false,
-      "applicationUrl": "https://localhost:44302;http://localhost:8002",
+      "applicationUrl": "http://localhost:8002",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
