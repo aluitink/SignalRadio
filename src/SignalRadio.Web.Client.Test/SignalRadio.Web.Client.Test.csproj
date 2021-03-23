@@ -18,7 +18,7 @@
     <ProjectReference Include="..\SignalRadio.Web.Api\SignalRadio.Web.Api.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="Resources\*.*">
+    <Content Include="Resources\*\*.*">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>  
   </ItemGroup>

@@ -18,7 +18,7 @@
             "lna_gain": "19",
             "vga1_gain": "19",
             "vga2_gain": "19",
-            "bb_gain": "-373771584",
+            "bb_gain": "477291200",
             "gain": "20",
             "if_gain": "0",
             "squelch_db": "0",
@@ -61,12 +61,21 @@
             "systemType": "p25",
             "shortName": "DaneCom",
             "sysNum": "0",
-            "uploadScript": "",
+            "uploadScript": "liquid-bridge\/liquid-bridge.sh",
             "recordUnkown": "true",
             "callLog": "true",
-            "talkgroupsFile": "\/app\/trunk-recorder\/config\/danecom-talkgroups.priorities.csv",
+            "talkgroupsFile": "\/app\/trunk-recorder\/config\/danecom-talkgroups.csv",
             "channels": [
-                "172500000"
+                "172500000",
+                "172075000",
+                "171350000",
+                "154972500",
+                "162012500",
+                "155242500",
+                "154657500",
+                "154092500",
+                "155527500",
+                "154122500"
             ]
         }
     ],
