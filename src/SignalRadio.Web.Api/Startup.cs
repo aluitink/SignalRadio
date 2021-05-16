@@ -1,6 +1,8 @@
 using System.Net.WebSockets;
+using System.Reflection;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -23,15 +25,15 @@ namespace SignalRadio.Web.Api
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddDbContext<SignalRadioDbContext>();
+            ConfigureDatabaseServices(services);
 
             services.AddCors((co) => 
             {
                co.AddPolicy("CorsPolicy", (cpb) => 
                {
                    cpb.AllowAnyMethod()
-                    .AllowAnyHeader()
-                    .AllowCredentials();
+                        .AllowAnyHeader()
+                        .AllowCredentials();
                });
             });
             
@@ -58,13 +60,15 @@ namespace SignalRadio.Web.Api
             app.UseWebSockets();
             app.Use(async (context, next) =>
             {
-                if (context.Request.Path == "/ws")
+                if (context.Request.Path == "/ws/")
                 {
                     if (context.WebSockets.IsWebSocketRequest)
                     {
-                        WebSocket webSocket = await context.WebSockets.AcceptWebSocketAsync();
-                        await new TrunkRecorderStatusHandler(new SignalRadioDbContext())
-                            .StartStatusMessageHandlerAsync(context, webSocket);
+                        var ctx = context.RequestServices.GetService<SignalRadioDbContext>();                      
+                        var webSocket = await context.WebSockets.AcceptWebSocketAsync();
+                        var handler = new TrunkRecorderStatusHandler(ctx);
+
+                        await handler.StartStatusMessageHandlerAsync(context, webSocket);
                     }
                     else
                     {
@@ -84,6 +88,17 @@ namespace SignalRadio.Web.Api
                     
                 endpoints.MapHub<RadioHub>("/radioHub")
                     .RequireCors("CorsPolicy");
+            });
+        }
+        protected virtual void ConfigureDatabaseServices(IServiceCollection services)
+        {   
+            services.AddDbContext<SignalRadioDbContext>(options =>
+            {
+                var connectionString = Configuration.GetConnectionString("SignalRadioDb");
+                options.UseSqlite(connectionString, builder => 
+                {
+                    builder.MigrationsAssembly(typeof(Startup).GetTypeInfo().Assembly.GetName().Name);
+                });
             });
         }
     }

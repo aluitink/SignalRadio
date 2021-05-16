@@ -6,8 +6,8 @@ namespace SignalRadio.Public.Lib.Models
 {
     public class TalkGroupImportResults
     {
-        public string FileName {get;set;}
-        public bool Success {get;set;}
+        public bool IsSuccessful { get; set; }
+        public uint ItemsProcessed { get; set; }
     }
     public class TalkGroup
     {

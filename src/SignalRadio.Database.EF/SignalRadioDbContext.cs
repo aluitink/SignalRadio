@@ -4,29 +4,41 @@ using SignalRadio.Public.Lib.Models;
 
 namespace SignalRadio.Database.EF
 {
-    public class SignalRadioDbContext: DbContext
+    public class SignalRadioDbContext : DbContext, ISignalRadioDbContext
     {
+        public DbSet<RadioRecorder> RadioRecorders { get; set; }
         public DbSet<RadioSystem> RadioSystems { get; set; }
         public DbSet<RadioGroup> RadioGroups { get; set; }
         public DbSet<TalkGroup> TalkGroups { get; set; }
-        public DbSet<Stream> Streams {get;set;}
-        public DbSet<TalkGroupStream> TalkGroupStreams {get;set;}
+        public DbSet<Stream> Streams { get; set; }
+        public DbSet<TalkGroupStream> TalkGroupStreams { get; set; }
         public DbSet<RadioFrequency> RadioFrequencies { get; set; }
         public DbSet<RadioCall> RadioCalls { get; set; }
-        public DbSet<User> Users {get;set;}
-        
-        public DbSet<MountPoint> MountPoints{get;set;}
+        public DbSet<User> Users { get; set; }
+        public DbSet<MountPoint> MountPoints { get; set; }
+        public DbSet<RadioRecorder> Recorders { get; set; }
 
-        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        private string _connectionString;
+
+        public SignalRadioDbContext() { }
+        public SignalRadioDbContext(string connectionString)
         {
-            optionsBuilder.UseSqlite("Filename=SignalRadio.db", options => {
-                options.MigrationsAssembly(Assembly.GetExecutingAssembly().FullName);
-            });
-            base.OnConfiguring(optionsBuilder);
+            _connectionString = connectionString;
         }
+
+        public SignalRadioDbContext(DbContextOptions<SignalRadioDbContext> options)
+            : base(options) { }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            modelBuilder.Entity<RadioRecorder>()
+                .ToTable("RadioRecorders", "dbo");
+            modelBuilder.Entity<RadioRecorder>()
+                .HasKey(e => e.Id);
+            modelBuilder.Entity<RadioRecorder>()
+                .Property(e => e.Id)
+                .IsRequired()
+                .ValueGeneratedOnAdd();
             #region RadioSystems
             modelBuilder.Entity<RadioSystem>()
                 .ToTable("RadioSystems", "dbo");
@@ -76,8 +88,8 @@ namespace SignalRadio.Database.EF
                 .Property(e => e.Id)
                 .IsRequired()
                 .ValueGeneratedOnAdd();
-                
-                
+
+
             // modelBuilder.Entity<TalkGroup>()
             //     .HasOne(e => e.RadioGroup)
             //     .WithMany(e => e.TalkGroups)
@@ -141,7 +153,7 @@ namespace SignalRadio.Database.EF
                 .HasOne(s => s.Mount)
                 .WithOne(s => s.Stream)
                 .HasForeignKey<Stream>(m => m.MountPointId);
-            
+
             #endregion
             #region MountPoints
             modelBuilder.Entity<MountPoint>()
@@ -156,7 +168,7 @@ namespace SignalRadio.Database.EF
                 .HasOne(p => p.User)
                 .WithMany(p => p.MountPoints)
                 .HasForeignKey(p => p.UserId);
-            
+
             #endregion
             #region Users
             modelBuilder.Entity<User>()
@@ -177,5 +189,12 @@ namespace SignalRadio.Database.EF
                 .HasForeignKey(s => s.OwnerUserId);
             #endregion
         }
+
+        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        {
+            if(!string.IsNullOrEmpty(_connectionString))
+                optionsBuilder.UseSqlite(_connectionString);
+        }
     }
+    
 }

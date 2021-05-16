@@ -32,5 +32,20 @@ namespace SignalRadio.Public.Lib.Models.TrunkRecorder
 
         [JsonProperty("channels")]
         public IList<string> Channels { get; set; }
+
+        [JsonProperty("nac")]
+        public int NAC { get;set; }
+        
+        [JsonProperty("wacn")]
+        public int WACN { get;set; }
+
+        [JsonProperty("Id")]
+        private int _Id { set { SystemNumber = value; } }
+
+        [JsonProperty("name")]
+        private string _SystemName { set { ShortName = value; } }
+
+        [JsonProperty("type")]
+        private string _Type { set { SystemType = value; } }
     }
 }

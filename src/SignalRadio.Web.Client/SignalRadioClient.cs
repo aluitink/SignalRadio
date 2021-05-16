@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.IO;
 using System.Net.Http;
 using System.Net.Http.Formatting;
@@ -8,6 +10,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using SignalRadio.Public.Lib.Models;
+using Stream = SignalRadio.Public.Lib.Models.Stream;
 
 namespace SignalRadio.Web.Client
 {
@@ -30,6 +33,13 @@ namespace SignalRadio.Web.Client
             var response = await _httpClient.GetAsync($"TalkGroups/Identifier/{identifier}", cancellationToken);
             return await response.Content.ReadAsAsync<TalkGroup>(cancellationToken);
         }
+
+        public async Task<Collection<Stream>> GetStreamsByTalkGroupIdAsync(uint id, CancellationToken cancellationToken = default(CancellationToken))
+        {
+            var response = await _httpClient.GetAsync($"TalkGroups/{id}/Streams", cancellationToken);
+            return await response.Content.ReadAsAsync<Collection<Stream>>(cancellationToken);
+        }
+
         public async Task<RadioCall> PostCallAsync(RadioCall radioCall, CancellationToken cancellationToken = default(CancellationToken))
         {
             var response = await _httpClient.PostAsJsonAsync("RadioCalls", radioCall, cancellationToken);
@@ -43,7 +53,7 @@ namespace SignalRadio.Web.Client
         {
             var fileInfo = new FileInfo(talkGroupCsvPath);
             if(!fileInfo.Exists)
-                throw new InvalidDataException();
+                throw new FileNotFoundException();
 
             var streamContent = new StreamContent(File.OpenRead(fileInfo.FullName));
             streamContent.Headers.ContentType = new MediaTypeHeaderValue("text/csv");

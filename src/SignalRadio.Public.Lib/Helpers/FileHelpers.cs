@@ -33,7 +33,7 @@ namespace SignalRadio.Public.Lib.Helpers
                             continue;
 
                     if(lineParts.Length > 1)
-                        streamIds = lineParts[1];
+                        hexId = lineParts[1];
                     if(lineParts.Length > 2)
                         mode = lineParts[2];
                     if(lineParts.Length > 3)
@@ -46,6 +46,9 @@ namespace SignalRadio.Public.Lib.Helpers
                         tgCategory = lineParts[6];
                     if(lineParts.Length > 7)
                         ushort.TryParse(lineParts[7], out priority);
+
+                    if(lineParts.Length > 8)
+                        streamIds = lineParts[8];
 
                     if(streamIds != null)
                         streams = streamIds.Split('|');

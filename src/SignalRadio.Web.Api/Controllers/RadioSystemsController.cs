@@ -42,7 +42,7 @@ namespace SignalRadio.Web.Api.Controllers
                 County = "TestCounty",
                 SystemType = RadioSystemType.P25Phase2,
                 SystemVoice = RadioSystemVoice.APCO25,
-                LastUpdated = DateTime.UtcNow,
+                LastUpdatedUtc = DateTime.UtcNow,
                 ControlFrequencies = new Collection<RadioFrequency>()
                 {
                     new RadioFrequency()

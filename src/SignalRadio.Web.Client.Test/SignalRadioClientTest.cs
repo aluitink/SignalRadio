@@ -1,65 +1,105 @@
 using NUnit.Framework;
 using Microsoft.AspNetCore;
-using Microsoft.AspNetCore.TestHost;
-using Microsoft.Extensions.Hosting;
-using Microsoft.AspNetCore.Hosting;
-using SRApi = SignalRadio.Web.Api;
 using SignalRadio.Public.Lib.Models;
 using System.Threading;
 using System.Threading.Tasks;
-using System;
-using System.Net.Http;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json;
 using SignalRadio.Public.Lib.Models.TrunkRecorder;
 using System.Text;
 using System.Net.WebSockets;
-using System.IO;
+using System.Collections.ObjectModel;
+using System.Linq;
+using SignalRadio.Public.Lib.Helpers;
+using SignalRadio.Web.Api.Services;
+using SignalRadio.Public.Lib.Models.Enums;
+using System;
 
 namespace SignalRadio.Web.Client.Test
 {
     [TestFixture]
-    public class SignalRadioClientTest
+    public class SignalRadioClientTest: WebTestBase
     {
         private SignalRadioClient _signalRadioClient;
-        private WebSocketClient _webSocketClient;
-        private HttpClient _testClient;
-        private TestServer _testServer;
-
-        private Uri _testWebSocketsUri;
-        private Uri _testApiUri;
-
+       
         [SetUp]
-        public void Setup()
+        public void TestSetup()
         {
-            var hostBuilder = new HostBuilder()
-                .ConfigureWebHost(webHost =>
-                {
-                    // Add TestServer
-                    webHost.UseTestServer();
-                    webHost.UseStartup<SRApi.Startup>();
-                });
-
-            // Create and start up the host
-            var host = hostBuilder.Start();
-            
-            _testServer = host.GetTestServer();
-            _testClient = _testServer.CreateClient();
-            
-            _testApiUri = new UriBuilder(_testServer.BaseAddress)
-            {
-                Path = "api"
-            }.Uri;
-            
-            _testWebSocketsUri = new UriBuilder(_testServer.BaseAddress) 
-            {
-                Scheme = "ws",
-                Path = "ws"
-            }.Uri;
-
-            _signalRadioClient = new SignalRadioClient(_testApiUri, _testClient);
+            _signalRadioClient = new SignalRadioClient(TestApiUri, TestClient);
         }
 
+        [TearDown]
+        public void TestTearDown()
+        {
+            _signalRadioClient = null;
+        }
+
+        [Test]
+        public async Task SignalRadioClient_CanImportTalkGroups()
+        {
+            var tgFile = "Resources/danecom-talkgroups.priorities.csv";
+            var result = await _signalRadioClient.ImportTalkgroupCsvAsync(tgFile);
+
+            Assert.AreEqual(true, result.IsSuccessful);
+            Assert.AreEqual(290, result.ItemsProcessed);
+        }
+
+        [Test]
+        public async Task SignalRadioClient_CanGetTalkGroupByIdentifier()
+        {
+            var expectedStream = new Stream()
+            {
+                StreamIdentifier = "test-stream",
+                LastCallTimeUtc = DateTime.UtcNow
+            };
+
+            await DbContext.Streams.AddAsync(expectedStream);
+            await DbContext.SaveChangesAsync();
+
+            var expectedTalkGroup = new TalkGroup()
+            {
+                Identifier = 1024,
+                Mode = TalkGroupMode.Digital,
+                Tag = TalkGroupTag.Hospital,
+                AlphaTag = "400",
+                Name = "test",
+                Description = "This is a description",
+                TalkGroupStreams = new Collection<TalkGroupStream>()
+            };
+
+            var existingTalkGroup = await _signalRadioClient.GetTalkGroupByIdentifierAsync(expectedTalkGroup.Identifier);
+
+            Assert.IsNull(existingTalkGroup, "Talkgroup should not exist");
+
+            await DbContext.TalkGroups.AddAsync(expectedTalkGroup);
+            await DbContext.SaveChangesAsync();
+
+            expectedTalkGroup.TalkGroupStreams.Add(new TalkGroupStream() { StreamId = expectedStream.Id, TalkGroupId = expectedTalkGroup.Id });
+
+            await DbContext.SaveChangesAsync();
+
+            var actualTalkGroup = await _signalRadioClient.GetTalkGroupByIdentifierAsync(expectedTalkGroup.Identifier);
+
+            Assert.IsNotNull(actualTalkGroup, "TalkGroup should exist");
+
+            Assert.AreEqual(expectedTalkGroup.Identifier, actualTalkGroup.Identifier);
+            Assert.AreEqual(expectedTalkGroup.Mode, actualTalkGroup.Mode);
+            Assert.AreEqual(expectedTalkGroup.Tag, actualTalkGroup.Tag);
+            Assert.AreEqual(expectedTalkGroup.AlphaTag, actualTalkGroup.AlphaTag);
+            Assert.AreEqual(expectedTalkGroup.Name, actualTalkGroup.Name);
+            Assert.AreEqual(expectedTalkGroup.Description, actualTalkGroup.Description);
+
+            // Assert.IsNotNull(actualTalkGroup.TalkGroupStreams);
+
+            // Assert.AreEqual(1, expectedStream.StreamTalkGroups.Count);
+        }
+        
+        [Test]
+        public async Task SignalRadioClient_CanGetTalkGroupById()
+        {
+            ushort identifier = 1;
+            var talkGroup = await _signalRadioClient.GetTalkGroupByIdentifierAsync(identifier);
+        }
 
         [Test]
         public async Task SignalRadioClient_CanPostCall()
@@ -87,10 +127,9 @@ namespace SignalRadio.Web.Client.Test
                 DebugFilename = "debug",
                 Filename = "filename",
                 StatusFilename = "filename"
-                
-                
-
             };
+
+            var result = await _signalRadioClient.PostCallAsync(radioCall);
 
         }
     }

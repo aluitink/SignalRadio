@@ -8,14 +8,12 @@ namespace SignalRadio.Web.Api.Controllers
     public class SignalRadioControllerBase: ControllerBase
     {
         protected ILogger Logger { get; set; }
-        protected SignalRadioDbContext DbContext { get; set; }
+        protected ISignalRadioDbContext DbContext { get; set; }
 
         public SignalRadioControllerBase(SignalRadioDbContext dbContext, ILogger logger)
         {
-            if(!dbContext.Database.EnsureCreated())
-            {
-
-            }
+            if(dbContext.Database.EnsureCreated())
+                logger.LogInformation("Database exists.");
 
             DbContext = dbContext;
             Logger = logger;

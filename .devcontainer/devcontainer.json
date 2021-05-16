@@ -22,7 +22,9 @@
 	// Add the IDs of extensions you want installed when the container is created.
 	"extensions": [
 		"ms-dotnettools.csharp",
-		"visualstudioexptteam.vscodeintellicode"
+		"visualstudioexptteam.vscodeintellicode",
+		"formulahendry.dotnet-test-explorer",
+		"alexcvzz.vscode-sqlite"
 	],
 	//"remoteEnv": {
 	//	"ASPNETCORE_Kestrel__Certificates__Default__Password": "Password1",

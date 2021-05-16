@@ -2,7 +2,6 @@ using System.Text.Json.Serialization;
 
 namespace  SignalRadio.Public.Lib.Models
 {
-
     public class TalkGroupStream
     {
         public uint TalkGroupId {get;set;}

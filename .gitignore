@@ -142,3 +142,4 @@ dist
 .tern-port
 .certs/
 *.db
+src/SignalRadio.Web.UI/ClientApp/package-lock.json

@@ -64,7 +64,9 @@ namespace SignalRadio.LiquidBridge
         private static void HandleCall(string callWavPath)
         {
             var call = ParseCall(callWavPath);
-            
+            System.Console.WriteLine("Received call: {0}", call);
+
+
             var talkGroup = _client.GetTalkGroupByIdentifierAsync(call.TalkGroupIdentifier).Result;
 
             if(talkGroup != null)
@@ -73,19 +75,13 @@ namespace SignalRadio.LiquidBridge
                 call.TalkGroupId = talkGroup.Id;
             }
 
-            System.Console.WriteLine("Received call: {0}", call);
-
             call = _client.PostCallAsync(call, CancellationToken.None).Result;
 
-            if(call?.TalkGroup?.TalkGroupStreams?.Any() != null)
-            {
-                ConvertWavToMp3(call);
-                PushCallToStreams(call);
-            }
-            else
-            {
+            ConvertWavToMp3(call);
+
+            if(!PushCallToStreams(call))
                 System.Console.WriteLine("No talkgroup or streams not found.");
-            }
+
         }
 
         private static T LoadConfigFromFile<T>(string filePath)
@@ -97,12 +93,16 @@ namespace SignalRadio.LiquidBridge
                 return (T)JsonSerializer.Deserialize<T>(new ReadOnlySpan<byte>(configBytes, 0, configBytes.Length));
             }
         }
-        private static bool PushCallToStreams(RadioCall call)
+        private static bool PushCallToStreams(RadioCall radioCall)
         {
-            var queueCallMessage = string.Format("queue.push {0}{1}", call.Filename, Environment.NewLine);
-            foreach(var tgs in call.TalkGroup.TalkGroupStreams)
+            var streams = _client.GetStreamsByTalkGroupIdAsync(radioCall.TalkGroup.Id).Result;
+
+            if(streams is null)
+                return false;
+
+            var queueCallMessage = string.Format("queue.push {0}{1}", radioCall.Filename, Environment.NewLine);
+            foreach(var stream in streams)
             {
-                var stream = tgs.Stream;
                 var mutex = new Mutex(true, $"SR_{stream.Id}");
                 bool streamQueueResult = false;
                 try
@@ -113,7 +113,7 @@ namespace SignalRadio.LiquidBridge
                     {
                         System.Console.WriteLine("PCTS: Socket Missing, Start Stream");
 
-                        var streamConfigPath = _liquidConfig.BuildLiquidsoapConfig(stream.StreamIdentifier, stream.StreamIdentifier, call.TalkGroup.Description, "Radio");
+                        var streamConfigPath = _liquidConfig.BuildLiquidsoapConfig(stream.StreamIdentifier, stream.StreamIdentifier, radioCall.TalkGroup.Description, "Radio");
                         if(!StartStream(streamConfigPath, () => File.Exists(socketPath)))
                             continue;
                     }
@@ -152,7 +152,6 @@ namespace SignalRadio.LiquidBridge
         {
             try
             {
-                
                 var liquidSoap = new UnixDomainSocketEndPoint(socketPath);
                 using(var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified))
                 {
@@ -164,66 +163,6 @@ namespace SignalRadio.LiquidBridge
             {
                 System.Console.WriteLine(ex.ToString());
                 return -1;
-            }
-        }
-        private static TalkGroup GetTalkGroupById(string talkGroupCsvPath, int talkGroupId)
-        {
-            using(var csvStream = new StreamReader(talkGroupCsvPath))
-            {
-                while(!csvStream.EndOfStream)
-                {
-                    var line = csvStream.ReadLine();
-                    var lineParts = line.Split(',');
-
-                    ushort tgId = 0;
-                    ushort priority = 0;
-                    string hexId = null;
-                    string mode = null;
-                    string alphaTag = null;
-                    string tgName = null;
-                    string tgType = null;
-                    string tgCategory = null;
-                    string streamIds = null;
-                    string[] streams = null;
-                    if(lineParts.Length > 0)
-                        if(!ushort.TryParse(lineParts[0], out tgId))
-                            continue;
-
-                    if(tgId != talkGroupId)
-                        continue;
-
-                    if(lineParts.Length > 1)
-                        streamIds = lineParts[1];
-                    if(lineParts.Length > 2)
-                        mode = lineParts[2];
-                    if(lineParts.Length > 3)
-                        alphaTag = lineParts[3];
-                    if(lineParts.Length > 4)
-                        tgName = lineParts[4];
-                    if(lineParts.Length > 5)
-                        tgType = lineParts[5];
-                    if(lineParts.Length > 6)
-                        tgCategory = lineParts[6];
-                    if(lineParts.Length > 7)
-                        ushort.TryParse(lineParts[7], out priority);
-
-                    if(streamIds != null)
-                        streams = streamIds.Split('|');
-
-                    return new TalkGroup()
-                    {
-                        Identifier = tgId,
-                        Priority = priority,
-                        Mode = mode,
-                        AlphaTag = alphaTag,
-                        Name = tgName,
-                        Tag = tgType,
-                        Description = tgCategory,
-                        Streams = streams
-                    };
-                }
-
-                return null;
             }
         }
         private static void ConvertWavToMp3(RadioCall call)

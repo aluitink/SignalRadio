@@ -3,6 +3,7 @@ namespace SignalRadio.Public.Lib.Models.Enums
     public enum RadioSystemType: byte
     {
         None,
+        P25,
         P25Phase1,
         P25Phase2
     }
