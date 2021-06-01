@@ -3,11 +3,7 @@ using System.Net;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Net.Sockets;
 using System.Text.Json;
-using System.Threading;
-using System.Threading.Tasks;
-using SignalRadio.Public.Lib.Models;
 using SignalRadio.Web.Client;
 
 namespace SignalRadio.LiquidBridge
@@ -20,11 +16,8 @@ namespace SignalRadio.LiquidBridge
         {
             bool isHelpRequested = IsArgumentFlagExists(args, "help", "-help", "--help", "?", "/?", "-?");
             
-            if (isHelpRequested || args.Length < 2)
+            if (isHelpRequested)
             {
-                System.Console.WriteLine(args[0]);
-                System.Console.WriteLine(args[1]);
-                System.Console.WriteLine("DeEerR I'm thE OpPeraToR!");
                 PrintUsage();
                 return;
             }
@@ -37,53 +30,34 @@ namespace SignalRadio.LiquidBridge
                     //QualifyPaths
                     config.LiquidsoapSocketsPath = (new FileInfo(config.LiquidsoapSocketsPath)).FullName;
                     config.LiquidsoapTemplatePath = (new FileInfo(config.LiquidsoapTemplatePath)).FullName;
-                    config.TalkGroupCsvPath = (new FileInfo(config.TalkGroupCsvPath)).FullName;
+                    //config.TalkGroupCsvPath = (new FileInfo(config.TalkGroupCsvPath)).FullName;
 
                     return config;
                 });
 
-                _client = new SignalRadioClient(new Uri(_liquidConfig.ConnectionString));
-                
+                var handler = new CallHandler(_liquidConfig);
+
                 if(IsArgumentFlagExists(args, "import"))
                 {
-                    var results = _client.ImportTalkgroupCsvAsync(_liquidConfig.TalkGroupCsvPath).Result;
+                    var client = new SignalRadioClient(new Uri(_liquidConfig.ConnectionString));
+                    var results = client.ImportTalkgroupCsvAsync(_liquidConfig.TalkGroupCsvPath).Result;
+                    System.Console.WriteLine("Imported Results: {0}", results.ToString());
                 }
+                else
+                {
+                    var callWavPath = args[1];
 
-                var callWavPath = args[1];
+                    if(string.IsNullOrEmpty(callWavPath) || !File.Exists(callWavPath))
+                        throw new Exception("Invalid callWavPath :(");
 
-                if(string.IsNullOrEmpty(callWavPath))
-                    throw new Exception("Invalid callWavPath :(");
-
-                HandleCall(callWavPath);
+                    handler.HandleCallAsync(callWavPath).GetAwaiter().GetResult();
+                }                
             }
             catch(Exception e)
             {
                 System.Console.WriteLine(e.ToString());
             }
         }
-        private static void HandleCall(string callWavPath)
-        {
-            var call = ParseCall(callWavPath);
-            System.Console.WriteLine("Received call: {0}", call);
-
-
-            var talkGroup = _client.GetTalkGroupByIdentifierAsync(call.TalkGroupIdentifier).Result;
-
-            if(talkGroup != null)
-            {
-                call.TalkGroup = talkGroup;
-                call.TalkGroupId = talkGroup.Id;
-            }
-
-            call = _client.PostCallAsync(call, CancellationToken.None).Result;
-
-            ConvertWavToMp3(call);
-
-            if(!PushCallToStreams(call))
-                System.Console.WriteLine("No talkgroup or streams not found.");
-
-        }
-
         private static T LoadConfigFromFile<T>(string filePath)
         {
             using(var stream = new FileStream(filePath, FileMode.Open))
@@ -92,135 +66,6 @@ namespace SignalRadio.LiquidBridge
                 var bytesRead = stream.Read(configBytes, 0, configBytes.Length);
                 return (T)JsonSerializer.Deserialize<T>(new ReadOnlySpan<byte>(configBytes, 0, configBytes.Length));
             }
-        }
-        private static bool PushCallToStreams(RadioCall radioCall)
-        {
-            var streams = _client.GetStreamsByTalkGroupIdAsync(radioCall.TalkGroup.Id).Result;
-
-            if(streams is null)
-                return false;
-
-            var queueCallMessage = string.Format("queue.push {0}{1}", radioCall.Filename, Environment.NewLine);
-            foreach(var stream in streams)
-            {
-                var mutex = new Mutex(true, $"SR_{stream.Id}");
-                bool streamQueueResult = false;
-                try
-                {
-                    mutex.WaitOne();
-                    var socketPath = Path.Join(_liquidConfig.LiquidsoapSocketsPath, string.Format("{0}.sock", stream.StreamIdentifier));
-                    if(!File.Exists(socketPath))
-                    {
-                        System.Console.WriteLine("PCTS: Socket Missing, Start Stream");
-
-                        var streamConfigPath = _liquidConfig.BuildLiquidsoapConfig(stream.StreamIdentifier, stream.StreamIdentifier, radioCall.TalkGroup.Description, "Radio");
-                        if(!StartStream(streamConfigPath, () => File.Exists(socketPath)))
-                            continue;
-                    }
-                    
-                    streamQueueResult = SendMessageToSocket(queueCallMessage, socketPath) > 0;
-                }
-                catch(Exception e)
-                {
-                    System.Console.WriteLine(e);
-                }
-                finally
-                {
-                    mutex.ReleaseMutex();
-                     if(streamQueueResult)
-                        System.Console.WriteLine("{0} >> {1}", stream.StreamIdentifier, queueCallMessage);
-                    else
-                        System.Console.WriteLine("{0} XX Failed", stream.StreamIdentifier);
-                }
-            }
-            return true;
-        }
-        private static bool StartStream(string streamConfigPath, Func<bool> checkStreamReadyFunc)
-        {
-            if(!File.Exists(streamConfigPath))
-                throw new ArgumentException("Stream config does not exist");
-
-            var streamProc = Process.Start("/usr/bin/liquidsoap", streamConfigPath);
-
-            byte i = 0;
-            while(!checkStreamReadyFunc() && !streamProc.HasExited && (i++ < 20))
-                Task.Delay(200).Wait();
-            
-            return !streamProc.HasExited;
-        }
-        private static int SendMessageToSocket(string message, string socketPath)
-        {
-            try
-            {
-                var liquidSoap = new UnixDomainSocketEndPoint(socketPath);
-                using(var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified))
-                {
-                    socket.Connect(liquidSoap);
-                    return socket.Send(System.Text.Encoding.UTF8.GetBytes(message));
-                }
-            }
-            catch(Exception ex)
-            {
-                System.Console.WriteLine(ex.ToString());
-                return -1;
-            }
-        }
-        private static void ConvertWavToMp3(RadioCall call)
-        {
-            var title = string.Format("[{0}][{1}]", call.CallSerialNumber, call.TalkGroup.AlphaTag);
-            var artist = call.TalkGroup.Identifier;
-            var comment = string.Format("{0} - {1}", call.TalkGroup.Tag, call.TalkGroup.Description);
-
-            var inputFile = new FileInfo(call.CallWavPath);
-
-            if(!inputFile.Exists)
-                throw new Exception("Missing input file");
-
-            var tempDir = Path.GetTempPath();
-            var outputPath = Path.Join(tempDir, string.Format("{0}.mp3", inputFile.Name.TrimEnd(inputFile.Extension.ToArray())));
-            
-            var lameProcess = Process.Start("/usr/bin/lame", 
-            string.Format("--quiet --preset voice --tt \"{0}\" --ta \"{1}\", --tc \"{2}\" {3} {4}", title, artist, comment, inputFile.FullName, outputPath));
-            lameProcess.WaitForExit();
-
-            if(lameProcess.ExitCode == 0)
-            {
-                call.Filename = outputPath;
-                System.Console.WriteLine("Converted call to mp3: {0}", call.Filename);
-            }
-        }
-        private static RadioCall ParseCall(string callWavPath)
-        {   
-            //SampleFilename
-            //13050-1594255860_172075000.mp3
-            ushort talkGroupId = 0;
-            long callStartTimeTicks = 0;
-            long callFrequencyHz = 0;
-
-            var fileInfo = new FileInfo(callWavPath);
-            var fileNameParts = fileInfo.Name.Split('-', 2, StringSplitOptions.RemoveEmptyEntries);
-
-            if(fileNameParts.Length > 0)
-                ushort.TryParse(fileNameParts[0], out talkGroupId);
-
-            if(fileNameParts.Length > 1)
-            {
-                var extraParts = fileNameParts[1]?.Split('_', 2, StringSplitOptions.RemoveEmptyEntries);
-
-                if(extraParts.Length > 0)
-                    long.TryParse(extraParts[0], out callStartTimeTicks);
-
-                if(extraParts.Length > 1)
-                    long.TryParse(extraParts[1], out callFrequencyHz);
-            }
-
-            return new RadioCall()
-            {
-                FrequencyHz = callFrequencyHz,
-                CallSerialNumber = callStartTimeTicks,
-                TalkGroupIdentifier = talkGroupId,
-                CallWavPath = callWavPath
-            };
         }
         private static T GetArgumentValue<T>(string[] args, string arg, Func<string, T> retFunc, T defaultValue = default(T))
         {

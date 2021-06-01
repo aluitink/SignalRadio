@@ -3,7 +3,6 @@
     "IcecastPort": 8000,
     "StreamPassword": "Password1",
     "LiquidsoapTemplatePath": "stream.defaults.liq",
-    "LiquidsoapSocketsPath": ".",
-    "TalkGroupCsvPath": "danecom-talkgroups.priorities.csv",
+    "LiquidsoapSocketsPath": "ls-socks",
     "ConnectionString": "https://127.0.0.1:44302/api/"
 }

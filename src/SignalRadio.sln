@@ -17,6 +17,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SignalRadio.Database.EF", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SignalRadio.Web.Client.Test", "SignalRadio.Web.Client.Test\SignalRadio.Web.Client.Test.csproj", "{72A75337-591F-417B-BAB6-829E3D5C9612}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SignalRadio.LiquidBridge.Test", "SignalRadio.LiquidBridge.Test\SignalRadio.LiquidBridge.Test.csproj", "{B9A6A46D-E551-4C4C-8AEC-B29540FDE2B0}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -114,5 +116,17 @@ Global
 		{72A75337-591F-417B-BAB6-829E3D5C9612}.Release|x64.Build.0 = Release|Any CPU
 		{72A75337-591F-417B-BAB6-829E3D5C9612}.Release|x86.ActiveCfg = Release|Any CPU
 		{72A75337-591F-417B-BAB6-829E3D5C9612}.Release|x86.Build.0 = Release|Any CPU
+		{B9A6A46D-E551-4C4C-8AEC-B29540FDE2B0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B9A6A46D-E551-4C4C-8AEC-B29540FDE2B0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B9A6A46D-E551-4C4C-8AEC-B29540FDE2B0}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{B9A6A46D-E551-4C4C-8AEC-B29540FDE2B0}.Debug|x64.Build.0 = Debug|Any CPU
+		{B9A6A46D-E551-4C4C-8AEC-B29540FDE2B0}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{B9A6A46D-E551-4C4C-8AEC-B29540FDE2B0}.Debug|x86.Build.0 = Debug|Any CPU
+		{B9A6A46D-E551-4C4C-8AEC-B29540FDE2B0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B9A6A46D-E551-4C4C-8AEC-B29540FDE2B0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B9A6A46D-E551-4C4C-8AEC-B29540FDE2B0}.Release|x64.ActiveCfg = Release|Any CPU
+		{B9A6A46D-E551-4C4C-8AEC-B29540FDE2B0}.Release|x64.Build.0 = Release|Any CPU
+		{B9A6A46D-E551-4C4C-8AEC-B29540FDE2B0}.Release|x86.ActiveCfg = Release|Any CPU
+		{B9A6A46D-E551-4C4C-8AEC-B29540FDE2B0}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
