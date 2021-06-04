@@ -13,7 +13,6 @@ namespace SignalRadio.LiquidBridge
 {
     public class CallHandler
     {
-
         protected ConcurrentDictionary<string, Socket> SocketPool { get; set; } = new ConcurrentDictionary<string, Socket>();
 
         private readonly LiquidBridgeConfig _liquidBridgeConfig;
@@ -24,10 +23,15 @@ namespace SignalRadio.LiquidBridge
             _liquidBridgeConfig = liquidBridgeConfig ?? throw new ArgumentNullException(nameof(liquidBridgeConfig));
             _client = client ?? new SignalRadioClient(new Uri(liquidBridgeConfig.ConnectionString));
         }
-        public async Task HandleCallAsync(string callWavPath, string callJsonPath = null)
+        public async Task HandleCallAsync(string callWavPath, string callJsonPath = null, CancellationToken cancellationToken = default(CancellationToken))
         {
+            if (string.IsNullOrEmpty(callWavPath))
+                throw new ArgumentException($"'{nameof(callWavPath)}' cannot be null or empty.", nameof(callWavPath));
+            
+            cancellationToken.ThrowIfCancellationRequested();
+
             var radioCall = ParseCall(callWavPath, callJsonPath);
-            var talkGroup = await _client.GetTalkGroupByIdentifierAsync(radioCall.TalkGroupIdentifier);
+            var talkGroup = await _client.GetTalkGroupByIdentifierAsync(radioCall.TalkGroupIdentifier, cancellationToken);
 
             if(talkGroup != null)
             {
@@ -35,12 +39,12 @@ namespace SignalRadio.LiquidBridge
                 radioCall.TalkGroupId = talkGroup.Id;
             }
 
-            radioCall = await _client.PostCallAsync(radioCall);
+            radioCall = await _client.PostCallAsync(radioCall, cancellationToken);
 
             ConvertCallWavToMp3(radioCall);
-            var result = await PushCallToStreamAsync(radioCall);
+            var result = await PushCallToStreamAsync(radioCall, cancellationToken);
         }
-        protected RadioCall ParseCall(string callWavPath, string callJsonPath = null)
+        protected RadioCall ParseCall(string callWavPath, string callJsonPath = null, CancellationToken cancellationToken = default(CancellationToken))
         {
             //SampleFilename
             //13050-1594255860_172075000.mp3
@@ -73,9 +77,9 @@ namespace SignalRadio.LiquidBridge
                 CallWavPath = callWavPath
             };
         }
-        protected async Task<bool> PushCallToStreamAsync(RadioCall radioCall)
+        protected async Task<bool> PushCallToStreamAsync(RadioCall radioCall, CancellationToken cancellationToken = default(CancellationToken))
         {
-            var tgStreams = await _client.GetStreamsByTalkGroupIdAsync(radioCall.TalkGroupId);
+            var tgStreams = await _client.GetStreamsByTalkGroupIdAsync(radioCall.TalkGroupId, cancellationToken);
 
             if(tgStreams is null)
                 return false;
@@ -96,11 +100,15 @@ namespace SignalRadio.LiquidBridge
                         {
                             System.Console.WriteLine("Stream Socket missing, starting new stream...");
                             var streamConfigPath = _liquidBridgeConfig.BuildLiquidsoapConfig(stream.StreamIdentifier, stream.StreamIdentifier, radioCall?.TalkGroup?.Description, "Radio");
-                            if(!await StartStreamAsync(streamConfigPath, () => File.Exists(socketPath)))
+                            if(!await StartStreamAsync(streamConfigPath, () => File.Exists(socketPath), cancellationToken))
                                 continue;
                         }
 
-                        streamQueueResult = await SendMessageToSocketAsync(queueCallMessage, socketPath) > 0;
+                        streamQueueResult = await SendMessageToSocketAsync(queueCallMessage, socketPath, cancellationToken) > 0;
+                    }
+                    catch(OperationCanceledException)
+                    {
+                        return true;
                     }
                     catch(Exception e)
                     {
@@ -118,10 +126,12 @@ namespace SignalRadio.LiquidBridge
             return true;
         }
 
-        protected async Task<bool> StartStreamAsync(string streamConfigPath, Func<bool> checkStreamReadyFunc)
+        protected async Task<bool> StartStreamAsync(string streamConfigPath, Func<bool> checkStreamReadyFunc, CancellationToken cancellationToken = default(CancellationToken))
         {
             if(!File.Exists(streamConfigPath))
                 throw new ArgumentException("Stream config does not exist");
+
+            cancellationToken.ThrowIfCancellationRequested();
 
             var liquidSoapPath = "/usr/bin/liquidsoap";            
             ExecuteProcess(liquidSoapPath, streamConfigPath, false);
@@ -129,19 +139,21 @@ namespace SignalRadio.LiquidBridge
             var maxRetries = 20;
 
             byte i = 0;
-            while(!checkStreamReadyFunc() && (i++ < maxRetries))
-                await Task.Delay(200);
+            while(!checkStreamReadyFunc() && (i++ < maxRetries) && !cancellationToken.IsCancellationRequested)
+                await Task.Delay(200, cancellationToken);
             
             return i < maxRetries;
         }
 
-        protected async Task<int> SendMessageToSocketAsync(string message, string socketPath)
+        protected async Task<int> SendMessageToSocketAsync(string message, string socketPath, CancellationToken cancellationToken = default(CancellationToken))
         {
             if (string.IsNullOrEmpty(message))
                 throw new ArgumentException($"'{nameof(message)}' cannot be null or empty.", nameof(message));
 
             if (string.IsNullOrEmpty(socketPath))
                 throw new ArgumentException($"'{nameof(socketPath)}' cannot be null or empty.", nameof(socketPath));
+
+            cancellationToken.ThrowIfCancellationRequested();
 
             try
             {
@@ -151,7 +163,7 @@ namespace SignalRadio.LiquidBridge
                     return s;
                 });
 
-                return await socket.SendAsync(new ReadOnlyMemory<byte>(System.Text.Encoding.UTF8.GetBytes(message)), SocketFlags.None);
+                return await socket.SendAsync(new ReadOnlyMemory<byte>(System.Text.Encoding.UTF8.GetBytes(message)), SocketFlags.None, cancellationToken);
             }
             catch(Exception ex)
             {
@@ -160,7 +172,7 @@ namespace SignalRadio.LiquidBridge
             }
         }
 
-        protected virtual void ConvertCallWavToMp3(RadioCall radioCall)
+        protected virtual void ConvertCallWavToMp3(RadioCall radioCall, CancellationToken cancellationToken = default(CancellationToken))
         {
             var title = string.Format("[{0}][{1}]", radioCall?.CallSerialNumber, radioCall?.TalkGroup?.AlphaTag);
             var artist = radioCall?.TalkGroup?.Identifier;
@@ -182,7 +194,7 @@ namespace SignalRadio.LiquidBridge
             {
                 radioCall.Filename = outputPath;
                 System.Console.WriteLine("Converted call to mp3: {0}", radioCall.Filename);
-            }            
+            }
         }
 
         protected virtual int ExecuteProcess(string fileName, string arguments, bool waitForExit = true, int waitForExitTimeoutMsec = int.MaxValue)

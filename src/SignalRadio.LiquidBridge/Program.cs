@@ -5,6 +5,8 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 using SignalRadio.Web.Client;
+using System.Threading.Tasks;
+using System.Threading;
 
 namespace SignalRadio.LiquidBridge
 {
@@ -12,6 +14,7 @@ namespace SignalRadio.LiquidBridge
     {
         private static SignalRadioClient _client;
         private static LiquidBridgeConfig _liquidConfig;
+        private static CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
         static void Main(string[] args)
         {
             bool isHelpRequested = IsArgumentFlagExists(args, "help", "-help", "--help", "?", "/?", "-?");
@@ -32,7 +35,16 @@ namespace SignalRadio.LiquidBridge
                     return config;
                 });
 
-                
+                var isServer = IsArgumentFlagExists(args, "server");
+
+                if(isServer)
+                {
+                    StartUdpServer(_cancellationTokenSource.Token);
+
+                    Console.WriteLine("Press Enter to Exit");
+                    Console.ReadLine();
+                }
+
                 var importResults = GetArgumentValue(args, "import", (s) => {
                     var talkGroupCsvPath = (new FileInfo(s)).FullName;
                     return (new SignalRadioClient(new Uri(_liquidConfig.ConnectionString)))
@@ -49,10 +61,11 @@ namespace SignalRadio.LiquidBridge
                     if(string.IsNullOrEmpty(callWavPath) || !File.Exists(callWavPath))
                         throw new Exception("Invalid callWavPath :(");
                     
-                    (new CallHandler(_liquidConfig))
-                        .HandleCallAsync(callWavPath)
-                            .GetAwaiter()
-                                .GetResult();
+                    using(var clientSocket = new UdpSocket())
+                    {
+                        clientSocket.Client("127.0.0.1", 27000);
+                        clientSocket.Send(callWavPath);
+                    }
                 }
                 else
                 {
@@ -64,6 +77,32 @@ namespace SignalRadio.LiquidBridge
                 System.Console.WriteLine(e.ToString());
             }
         }
+
+        private static void StartUdpServer(CancellationToken cancellationToken)
+        {
+            var callHandler = new CallHandler(_liquidConfig);
+            using(var socket = new UdpSocket())
+            {
+                try
+                {
+                    socket.Server("127.0.0.1", 27000, async (msg) => 
+                    {
+                        if(string.Compare(msg, "shutdown", true) == 0)
+                            _cancellationTokenSource.Cancel();
+                            
+                        await callHandler.HandleCallAsync(msg, null, _cancellationTokenSource.Token);  
+                    });
+
+                    while(!cancellationToken.IsCancellationRequested)
+                        Task.Delay(200).Wait(cancellationToken);
+                }
+                finally
+                {
+                    _cancellationTokenSource.Cancel();
+                }
+            }
+        }
+
         private static T LoadConfigFromFile<T>(string filePath)
         {
             using(var stream = new FileStream(filePath, FileMode.Open))

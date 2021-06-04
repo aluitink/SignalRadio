@@ -123,5 +123,5 @@ RUN chown -R liquidsoap:root /app
 RUN chown -R liquidsoap:root /var/run/liquidsoap
 
 WORKDIR /app
-
-CMD ["/app/recorder", "--config=/app/trunk-recorder/config/config.json"]
+CMD ["/bin/bash", "-c", "sudo -Eu liquidsoap /app/liquid-bridge/app/SignalRadio.LiquidBridge config:/app/liquid-bridge/config/config.json server && /app/recorder --config=/app/trunk-recorder/config/config.json"]
+#CMD ["/app/recorder", "--config=/app/trunk-recorder/config/config.json"]
