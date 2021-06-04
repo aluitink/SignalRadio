@@ -82,7 +82,8 @@ namespace SignalRadio.LiquidBridge
 
             var queueCallMessage = string.Format("queue.push {0}{1}", radioCall.Filename, Environment.NewLine);
             
-            Parallel.ForEach(tgStreams, (stream) => {
+            foreach (var stream in tgStreams)
+            {
                 using(var mutex = new Mutex(true, $"SR_{stream.Id}"))
                 {
                     bool streamQueueResult = false;
@@ -95,15 +96,11 @@ namespace SignalRadio.LiquidBridge
                         {
                             System.Console.WriteLine("Stream Socket missing, starting new stream...");
                             var streamConfigPath = _liquidBridgeConfig.BuildLiquidsoapConfig(stream.StreamIdentifier, stream.StreamIdentifier, radioCall?.TalkGroup?.Description, "Radio");
-                            if(!StartStreamAsync(streamConfigPath, () => File.Exists(socketPath))
-                                .GetAwaiter()
-                                    .GetResult())
-                                return;
+                            if(!await StartStreamAsync(streamConfigPath, () => File.Exists(socketPath)))
+                                continue;
                         }
 
-                        var resultCode = SendMessageToSocketAsync(queueCallMessage, socketPath)
-                                                .GetAwaiter()
-                                                    .GetResult();
+                        streamQueueResult = await SendMessageToSocketAsync(queueCallMessage, socketPath) > 0;
                     }
                     catch(Exception e)
                     {
@@ -111,15 +108,13 @@ namespace SignalRadio.LiquidBridge
                     }
                     finally
                     {
-                        mutex.ReleaseMutex();
                         if(streamQueueResult)
                             System.Console.WriteLine("{0} >> {1}", stream.StreamIdentifier, queueCallMessage);
                         else
                             System.Console.WriteLine("{0} XX Failed", stream.StreamIdentifier);
                     }
                 }
-            });
-
+            }
             return true;
         }
 
