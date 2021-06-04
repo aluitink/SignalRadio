@@ -161,9 +161,9 @@ namespace SignalRadio.LiquidBridge
 
         protected virtual void ConvertCallWavToMp3(RadioCall radioCall)
         {
-            var title = string.Format("[{0}][{1}]", radioCall.CallSerialNumber, radioCall.TalkGroup.AlphaTag);
-            var artist = radioCall.TalkGroup.Identifier;
-            var comment = string.Format("{0} - {1}", radioCall.TalkGroup.Tag, radioCall.TalkGroup.Description);
+            var title = string.Format("[{0}][{1}]", radioCall?.CallSerialNumber, radioCall?.TalkGroup?.AlphaTag);
+            var artist = radioCall?.TalkGroup?.Identifier;
+            var comment = string.Format("{0} - {1}", radioCall?.TalkGroup?.Tag, radioCall?.TalkGroup?.Description);
 
             var inputFile = new FileInfo(radioCall.CallWavPath);
 
