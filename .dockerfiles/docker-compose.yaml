@@ -41,10 +41,12 @@ services:
     privileged: true
     volumes:
       - sr-web:/app/.certs/
+      - sr-db:/app/.data/
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://+
       - ASPNETCORE_HTTPS_PORT=443
+      - ASPNETCORE_ConnectionStrings__SignalRadioDb=Data Source=/app/.data/signalRadio.db
     ports:
       - 8001:80
       - 44301:443
@@ -105,3 +107,9 @@ volumes:
       o: bind
       type: none
       device: /var/zzz/docker/volumes/sr-web/certs
+  sr-db:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: /var/zzz/docker/volumes/sr-db
