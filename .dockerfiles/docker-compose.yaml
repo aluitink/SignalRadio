@@ -62,7 +62,7 @@ services:
       - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://+
       - ASPNETCORE_HTTPS_PORT=8000
-      ports:
+    ports:
       - 8000:8000
 # networks:
 #  nginx-proxy: # Name of our shared network that containers will use

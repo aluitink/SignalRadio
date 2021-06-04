@@ -17,6 +17,7 @@ COPY src/SignalRadio.Public.Lib/*.csproj SignalRadio.Public.Lib/
 COPY src/SignalRadio.Web.Client/*.csproj SignalRadio.Web.Client/
 COPY src/SignalRadio.Web.Client.Test/*.csproj SignalRadio.Web.Client.Test/
 COPY src/SignalRadio.LiquidBridge/*.csproj SignalRadio.LiquidBridge/
+COPY src/SignalRadio.LiquidBridge.Test/*.csproj SignalRadio.LiquidBridge.Test/
 COPY src/SignalRadio.Database.EF/*.csproj SignalRadio.Database.EF/
 COPY src/SignalRadio.Web.Api/*.csproj SignalRadio.Web.Api/
 COPY src/SignalRadio.Web.UI/*.csproj SignalRadio.Web.UI/
@@ -31,6 +32,7 @@ FROM build AS publish
 RUN dotnet publish -c Release --no-build -o /app/SignalRadio/SignalRadio.Public.Lib SignalRadio.Public.Lib/*.csproj
 RUN dotnet publish -c Release --no-build -o /app/SignalRadio/SignalRadio.Web.Client SignalRadio.Web.Client/*.csproj
 RUN dotnet publish -c Release --no-build -o /app/SignalRadio/SignalRadio.LiquidBridge SignalRadio.LiquidBridge/*.csproj
+RUN dotnet publish -c Release --no-build -o /app/SignalRadio/SignalRadio.LiquidBridge.Test SignalRadio.LiquidBridge.Test/*.csproj
 RUN dotnet publish -c Release --no-build -o /app/SignalRadio/SignalRadio.Database.EF SignalRadio.Database.EF/*.csproj
 RUN dotnet publish -c Release --no-build -o /app/SignalRadio/SignalRadio.Web.UI SignalRadio.Web.UI/*.csproj
 RUN dotnet publish -c Release --no-build -o /app/SignalRadio/SignalRadio.Web.Api SignalRadio.Web.Api/*.csproj
