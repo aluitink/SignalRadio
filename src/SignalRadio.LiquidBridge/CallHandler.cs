@@ -163,7 +163,19 @@ namespace SignalRadio.LiquidBridge
                     return s;
                 });
 
-                return await socket.SendAsync(new ReadOnlyMemory<byte>(System.Text.Encoding.UTF8.GetBytes(message)), SocketFlags.None, cancellationToken);
+                var bytesSent = socket.Send(System.Text.Encoding.UTF8.GetBytes(message));
+
+                if(socket.Available > 0)
+                {
+                    var buff = new byte[socket.Available];
+                    var bytesReceived = socket.Receive(buff);
+                    Console.WriteLine("Unix socket received {0} bytes", bytesReceived);
+                    if(bytesReceived > 0)
+                    {
+                        System.Console.WriteLine(System.Text.Encoding.UTF8.GetString(buff));
+                    }
+                }
+                return bytesSent;
             }
             catch(Exception ex)
             {

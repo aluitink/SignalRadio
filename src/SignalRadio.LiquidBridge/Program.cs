@@ -12,7 +12,6 @@ namespace SignalRadio.LiquidBridge
 {
     class Program
     {
-        private static SignalRadioClient _client;
         private static LiquidBridgeConfig _liquidConfig;
         private static CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
         static void Main(string[] args)
