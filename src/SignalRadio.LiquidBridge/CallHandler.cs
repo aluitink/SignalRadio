@@ -82,38 +82,44 @@ namespace SignalRadio.LiquidBridge
 
             var queueCallMessage = string.Format("queue.push {0}{1}", radioCall.Filename, Environment.NewLine);
             
-            foreach(var stream in tgStreams)
-            {
-                var mutex = new Mutex(true, $"SR_{stream.Id}");
-                bool streamQueueResult = false;
-                try
+            Parallel.ForEach(tgStreams, (stream) => {
+                using(var mutex = new Mutex(true, $"SR_{stream.Id}"))
                 {
-                    mutex.WaitOne();
-                    var socketPath = Path.Join(_liquidBridgeConfig.LiquidsoapSocketsPath, string.Format("{0}.sock", stream.StreamIdentifier));
-
-                    if(!File.Exists(socketPath))
+                    bool streamQueueResult = false;
+                    try
                     {
-                        System.Console.WriteLine("Stream Socket missing, starting new stream...");
-                        var streamConfigPath = _liquidBridgeConfig.BuildLiquidsoapConfig(stream.StreamIdentifier, stream.StreamIdentifier, radioCall?.TalkGroup?.Description, "Radio");
-                        if(!await StartStreamAsync(streamConfigPath, () => File.Exists(socketPath)))
-                            continue;
+                        mutex.WaitOne();
+                        var socketPath = Path.Join(_liquidBridgeConfig.LiquidsoapSocketsPath, string.Format("{0}.sock", stream.StreamIdentifier));
+
+                        if(!File.Exists(socketPath))
+                        {
+                            System.Console.WriteLine("Stream Socket missing, starting new stream...");
+                            var streamConfigPath = _liquidBridgeConfig.BuildLiquidsoapConfig(stream.StreamIdentifier, stream.StreamIdentifier, radioCall?.TalkGroup?.Description, "Radio");
+                            if(!StartStreamAsync(streamConfigPath, () => File.Exists(socketPath))
+                                .GetAwaiter()
+                                    .GetResult())
+                                return;
+                        }
+
+                        var resultCode = SendMessageToSocketAsync(queueCallMessage, socketPath)
+                                                .GetAwaiter()
+                                                    .GetResult();
                     }
-                    
-                    streamQueueResult = await SendMessageToSocketAsync(queueCallMessage, socketPath) > 0;
+                    catch(Exception e)
+                    {
+                        System.Console.WriteLine(e);
+                    }
+                    finally
+                    {
+                        mutex.ReleaseMutex();
+                        if(streamQueueResult)
+                            System.Console.WriteLine("{0} >> {1}", stream.StreamIdentifier, queueCallMessage);
+                        else
+                            System.Console.WriteLine("{0} XX Failed", stream.StreamIdentifier);
+                    }
                 }
-                catch(Exception e)
-                {
-                    System.Console.WriteLine(e);
-                }
-                finally
-                {
-                    mutex.ReleaseMutex();
-                     if(streamQueueResult)
-                        System.Console.WriteLine("{0} >> {1}", stream.StreamIdentifier, queueCallMessage);
-                    else
-                        System.Console.WriteLine("{0} XX Failed", stream.StreamIdentifier);
-                }
-            }
+            });
+
             return true;
         }
 
