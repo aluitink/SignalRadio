@@ -114,11 +114,11 @@ namespace SignalRadio.LiquidBridge.Test
                 .Setup(c => c.GetStreamsByTalkGroupIdAsync(mockTalkGroup.Id, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(talkGroupStreams);
 
-            // var handlerMock = new Mock<CallHandler>();
-            // handlerMock
-            //     .Protected()
-            //     .Setup<int>("ExecuteProcess", "/usr/bin/lame", ItExpr.IsAny<string>(), ItExpr.IsAny<bool>(), ItExpr.IsAny<int>())
-            //     .Returns(0); //return 0 for success
+            var handlerMock = new Mock<CallHandler>() { CallBase = true };
+            handlerMock
+                .Protected()
+                .Setup<int>("ExecuteProcess", "/usr/bin/liquidsoap", ItExpr.IsAny<string>(), ItExpr.IsAny<bool>(), ItExpr.IsAny<int>())
+                .Returns(0); //return 0 for success
     
             
             var handler = new CallHandler(liquidBridgeConfig, clientMock.Object);

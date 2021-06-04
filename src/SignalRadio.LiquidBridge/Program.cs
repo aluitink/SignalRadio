@@ -16,7 +16,7 @@ namespace SignalRadio.LiquidBridge
         {
             bool isHelpRequested = IsArgumentFlagExists(args, "help", "-help", "--help", "?", "/?", "-?");
             
-            if (isHelpRequested)
+            if (isHelpRequested || args.Length < 2)
             {
                 PrintUsage();
                 return;
@@ -25,33 +25,39 @@ namespace SignalRadio.LiquidBridge
             try
             {
                 _liquidConfig = GetArgumentValue(args, "config", (s) => {
-
-                    var config = LoadConfigFromFile<LiquidBridgeConfig>((new FileInfo(s)).FullName);
-                    //QualifyPaths
+                    var configPath =(new FileInfo(s)).FullName;
+                    var config = LoadConfigFromFile<LiquidBridgeConfig>(configPath);
                     config.LiquidsoapSocketsPath = (new FileInfo(config.LiquidsoapSocketsPath)).FullName;
                     config.LiquidsoapTemplatePath = (new FileInfo(config.LiquidsoapTemplatePath)).FullName;
-                    //config.TalkGroupCsvPath = (new FileInfo(config.TalkGroupCsvPath)).FullName;
-
                     return config;
                 });
 
-                var handler = new CallHandler(_liquidConfig);
+                
+                var importResults = GetArgumentValue(args, "import", (s) => {
+                    var talkGroupCsvPath = (new FileInfo(s)).FullName;
+                    return (new SignalRadioClient(new Uri(_liquidConfig.ConnectionString)))
+                        .ImportTalkgroupCsvAsync(s)
+                            .GetAwaiter()
+                                .GetResult();
+                });
 
-                if(IsArgumentFlagExists(args, "import"))
-                {
-                    var client = new SignalRadioClient(new Uri(_liquidConfig.ConnectionString));
-                    var results = client.ImportTalkgroupCsvAsync(_liquidConfig.TalkGroupCsvPath).Result;
-                    System.Console.WriteLine("Imported Results: {0}", results.ToString());
-                }
-                else
+                if(importResults is null)
                 {
                     var callWavPath = args[1];
+                    callWavPath = (new FileInfo(callWavPath)).FullName;
 
                     if(string.IsNullOrEmpty(callWavPath) || !File.Exists(callWavPath))
                         throw new Exception("Invalid callWavPath :(");
-
-                    handler.HandleCallAsync(callWavPath).GetAwaiter().GetResult();
-                }                
+                    
+                    (new CallHandler(_liquidConfig))
+                        .HandleCallAsync(callWavPath)
+                            .GetAwaiter()
+                                .GetResult();
+                }
+                else
+                {
+                    System.Console.WriteLine(importResults.ToString());
+                }
             }
             catch(Exception e)
             {

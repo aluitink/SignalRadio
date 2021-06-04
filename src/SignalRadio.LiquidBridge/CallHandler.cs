@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -12,6 +13,9 @@ namespace SignalRadio.LiquidBridge
 {
     public class CallHandler
     {
+
+        protected ConcurrentDictionary<string, Socket> SocketPool { get; set; } = new ConcurrentDictionary<string, Socket>();
+
         private readonly LiquidBridgeConfig _liquidBridgeConfig;
         private readonly ISignalRadioClient _client;
         
@@ -138,15 +142,15 @@ namespace SignalRadio.LiquidBridge
             if (string.IsNullOrEmpty(socketPath))
                 throw new ArgumentException($"'{nameof(socketPath)}' cannot be null or empty.", nameof(socketPath));
 
-
             try
             {
-                var liquidSoap = new UnixDomainSocketEndPoint(socketPath);
-                using(var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified))
-                {
-                    await socket.ConnectAsync(liquidSoap);
-                    return await socket.SendAsync(new ReadOnlyMemory<byte>(System.Text.Encoding.UTF8.GetBytes(message)), SocketFlags.None);
-                }
+                var socket = SocketPool.GetOrAdd(socketPath, (path) => {
+                    var s = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);                    
+                    s.Connect(new UnixDomainSocketEndPoint(socketPath));
+                    return s;
+                });
+
+                return await socket.SendAsync(new ReadOnlyMemory<byte>(System.Text.Encoding.UTF8.GetBytes(message)), SocketFlags.None);
             }
             catch(Exception ex)
             {
@@ -157,12 +161,9 @@ namespace SignalRadio.LiquidBridge
 
         protected virtual void ConvertCallWavToMp3(RadioCall radioCall)
         {
-            if (radioCall is null)
-                throw new ArgumentNullException(nameof(radioCall));
-
-            var title = string.Format("[{0}][{1}]", radioCall.CallSerialNumber, radioCall?.TalkGroup?.AlphaTag);
-            var artist = radioCall?.TalkGroup?.Identifier;
-            var comment = string.Format("{0} - {1}", radioCall?.TalkGroup?.Tag, radioCall?.TalkGroup?.Description);
+            var title = string.Format("[{0}][{1}]", radioCall.CallSerialNumber, radioCall.TalkGroup.AlphaTag);
+            var artist = radioCall.TalkGroup.Identifier;
+            var comment = string.Format("{0} - {1}", radioCall.TalkGroup.Tag, radioCall.TalkGroup.Description);
 
             var inputFile = new FileInfo(radioCall.CallWavPath);
 
