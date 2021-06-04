@@ -108,7 +108,7 @@ RUN apt-get update \
     && wget -q https://packages.microsoft.com/config/ubuntu/20.04/packages-microsoft-prod.deb \
     && dpkg -i packages-microsoft-prod.deb \
     && apt-get update \
-    && apt-get -y install dotnet-runtime-3.1 lame liquidsoap \
+    && apt-get -y install dotnet-runtime-3.1 lame liquidsoap supervisor \
     #
     # Clean up
     && apt-get autoremove -y \
@@ -116,6 +116,8 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir /var/run/liquidsoap
+
+COPY .dockerfiles/docker-sr/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
 COPY .dockerfiles/docker-sr/trunk-recorder /app/trunk-recorder
 COPY .dockerfiles/docker-sr/liquid-bridge /app/liquid-bridge
@@ -125,5 +127,4 @@ RUN chown -R liquidsoap:root /app
 RUN chown -R liquidsoap:root /var/run/liquidsoap
 
 WORKDIR /app
-CMD ["/bin/bash", "-c", "sudo -Eu liquidsoap /app/liquid-bridge/app/SignalRadio.LiquidBridge config:/app/liquid-bridge/config/config.json server && /app/recorder --config=/app/trunk-recorder/config/config.json"]
-#CMD ["/app/recorder", "--config=/app/trunk-recorder/config/config.json"]
+CMD ["/usr/bin/supervisord"]
