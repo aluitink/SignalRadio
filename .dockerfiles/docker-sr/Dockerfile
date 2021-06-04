@@ -43,6 +43,7 @@ FROM mcr.microsoft.com/dotnet/core/aspnet:3.1 as api
 WORKDIR /app
 
 COPY --from=publish /app/SignalRadio/SignalRadio.Web.Api .
+EXPOSE 80
 EXPOSE 443
 ENTRYPOINT ["dotnet", "SignalRadio.Web.Api.dll"]
 
@@ -52,6 +53,7 @@ FROM mcr.microsoft.com/dotnet/core/aspnet:3.1 as ui
 WORKDIR /app
 
 COPY --from=publish /app/SignalRadio/SignalRadio.Web.UI .
+EXPOSE 80
 EXPOSE 443
 ENTRYPOINT ["dotnet", "SignalRadio.Web.UI.dll"]
 

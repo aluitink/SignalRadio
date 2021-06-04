@@ -44,9 +44,10 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://+
-      - ASPNETCORE_HTTPS_PORT=8001
+      - ASPNETCORE_HTTPS_PORT=443
     ports:
-      - 8001:8001
+      - 8001:80
+      - 44301:443
   sr-web-ui:
     build:
       context: ../
@@ -61,9 +62,10 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://+
-      - ASPNETCORE_HTTPS_PORT=8000
+      - ASPNETCORE_HTTPS_PORT=443
     ports:
-      - 8000:8000
+      - 8002:80
+      - 44302:443
 # networks:
 #  nginx-proxy: # Name of our shared network that containers will use
 volumes:

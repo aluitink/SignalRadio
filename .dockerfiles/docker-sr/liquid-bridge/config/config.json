@@ -4,5 +4,6 @@
     "StreamPassword": "Password1",
     "LiquidsoapTemplatePath": "/app/liquid-bridge/config/stream.defaults.liq",
     "LiquidsoapSocketsPath": "/var/run/liquidsoap",
-    "TalkGroupCsvPath": "/app/trunk-recorder/config/danecom-talkgroups.csv"
+    "TalkGroupCsvPath": "/app/trunk-recorder/config/danecom-talkgroups.csv",
+    "ConnectionString": "192.168.1.215:8001/api/"
 }
