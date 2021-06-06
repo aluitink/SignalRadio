@@ -69,7 +69,7 @@ namespace SignalRadio.Public.Lib.Models
     
         public override string ToString()
         {
-            return string.Format("RadioCall[{0}](SN={1}) - TG[{2}] - {3}", Id, CallSerialNumber, TalkGroupIdentifier);
+            return string.Format("RadioCall[{0}](SN={1}) - TG[{2}]", Id, CallSerialNumber, TalkGroupIdentifier);
         }
     }
 }
