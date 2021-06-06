@@ -34,9 +34,7 @@ namespace SignalRadio.LiquidBridge
                     return config;
                 });
 
-                var isServer = IsArgumentFlagExists(args, "server");
-
-                if(isServer)
+                if(IsArgumentFlagExists(args, "server"))
                 {
                     StartUdpServer(_cancellationTokenSource.Token);
 
@@ -54,16 +52,30 @@ namespace SignalRadio.LiquidBridge
 
                 if(importResults is null)
                 {
-                    var callWavPath = args[1];
-                    callWavPath = (new FileInfo(callWavPath)).FullName;
+                    try
+                    {    
+                        var callWavPath = (new FileInfo(args[1])).FullName;
+                        if(string.IsNullOrEmpty(callWavPath) || !File.Exists(callWavPath))
+                            throw new Exception("Invalid callWavPath :(");
 
-                    if(string.IsNullOrEmpty(callWavPath) || !File.Exists(callWavPath))
-                        throw new Exception("Invalid callWavPath :(");
-                    
-                    using(var clientSocket = new UdpSocket())
+                        var callJsonPath = (args.Length > 2 && args[2] != null) ? 
+                            (new FileInfo(args[2])).FullName : 
+                            null;
+                        
+                        var messageToSend = string.Format("{0}{2}{1}", 
+                                callWavPath, //Audio
+                                callJsonPath, //Additional Data
+                                callJsonPath != null ? "|" : null); //Delimiter
+
+                        using(var clientSocket = new UdpSocket())
+                        {
+                            clientSocket.Client("127.0.0.1", 27000);
+                            clientSocket.Send(messageToSend);
+                        }
+                    }
+                    catch (System.Exception)
                     {
-                        clientSocket.Client("127.0.0.1", 27000);
-                        clientSocket.Send(callWavPath);
+                        throw;
                     }
                 }
                 else

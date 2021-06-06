@@ -49,7 +49,7 @@ namespace SignalRadio.LiquidBridge
             //SampleFilename
             //13050-1594255860_172075000.mp3
             ushort talkGroupId = 0;
-            long callStartTimeTicks = 0;
+            ulong callStartTimeTicks = 0;
             long callFrequencyHz = 0;
 
             var fileInfo = new FileInfo(callWavPath);
@@ -63,7 +63,7 @@ namespace SignalRadio.LiquidBridge
                 var extraParts = fileNameParts[1]?.Split('_', 2, StringSplitOptions.RemoveEmptyEntries);
 
                 if(extraParts.Length > 0)
-                    long.TryParse(extraParts[0], out callStartTimeTicks);
+                    ulong.TryParse(extraParts[0], out callStartTimeTicks);
 
                 if(extraParts.Length > 1)
                     long.TryParse(extraParts[1], out callFrequencyHz);
@@ -72,7 +72,9 @@ namespace SignalRadio.LiquidBridge
             return new RadioCall()
             {
                 FrequencyHz = callFrequencyHz,
-                CallSerialNumber = callStartTimeTicks,
+                CallIdentifier = callStartTimeTicks.ToString(),
+                CallSerialNumber = (long)callStartTimeTicks,
+                StartTime = callStartTimeTicks,
                 TalkGroupIdentifier = talkGroupId,
                 CallWavPath = callWavPath
             };
@@ -104,7 +106,7 @@ namespace SignalRadio.LiquidBridge
                                 continue;
                         }
 
-                        streamQueueResult = await SendMessageToSocketAsync(queueCallMessage, socketPath, cancellationToken) > 0;
+                        streamQueueResult = SendMessageToSocket(queueCallMessage, socketPath, cancellationToken) > 0;
                     }
                     catch(OperationCanceledException)
                     {
@@ -145,7 +147,7 @@ namespace SignalRadio.LiquidBridge
             return i < maxRetries;
         }
 
-        protected async Task<int> SendMessageToSocketAsync(string message, string socketPath, CancellationToken cancellationToken = default(CancellationToken))
+        protected int SendMessageToSocket(string message, string socketPath, CancellationToken cancellationToken = default(CancellationToken))
         {
             if (string.IsNullOrEmpty(message))
                 throw new ArgumentException($"'{nameof(message)}' cannot be null or empty.", nameof(message));
@@ -179,24 +181,31 @@ namespace SignalRadio.LiquidBridge
             }
             catch(Exception ex)
             {
-                System.Console.WriteLine(ex.ToString());
+                System.Console.WriteLine("SendMessageToSocket: {0}",ex.ToString());
                 return -1;
             }
         }
 
         protected virtual void ConvertCallWavToMp3(RadioCall radioCall, CancellationToken cancellationToken = default(CancellationToken))
         {
-            var title = string.Format("[{0}][{1}]", radioCall?.CallSerialNumber, radioCall?.TalkGroup?.AlphaTag);
-            var artist = radioCall?.TalkGroup?.Identifier;
-            var comment = string.Format("{0} - {1}", radioCall?.TalkGroup?.Tag, radioCall?.TalkGroup?.Description);
+            if (radioCall is null)
+                throw new ArgumentNullException(nameof(radioCall));
 
             var inputFile = new FileInfo(radioCall.CallWavPath);
 
             if(!inputFile.Exists)
                 throw new Exception("Missing input file");
 
+            
             var tempDir = Path.GetTempPath();
             var outputPath = Path.Join(tempDir, string.Format("{0}.mp3", inputFile.Name.TrimEnd(inputFile.Extension.ToArray())));
+
+            string title = string.Empty;
+            string artist = string.Empty;
+            string comment = string.Empty;
+
+            if(!GetMetadata(radioCall, out title, out artist, out comment))
+                throw new Exception("Could not GetMetadata");
 
             var lamePath = "/usr/bin/lame";
             var lameArgs = string.Format("--quiet --preset voice --tt \"{0}\" --ta \"{1}\", --tc \"{2}\" {3} {4}", title, artist, comment, inputFile.FullName, outputPath);
@@ -208,6 +217,30 @@ namespace SignalRadio.LiquidBridge
                 System.Console.WriteLine("Converted call to mp3: {0}", radioCall.Filename);
             }
         }
+
+        protected virtual bool GetMetadata(RadioCall radioCall, out string title, out string artist, out string comment)
+        {
+            var talkGroup = radioCall.TalkGroup;
+            if(radioCall.TalkGroup is null)
+                throw new Exception("Unable to determine TalkGroup");
+
+            title = null;
+            artist = null;
+            comment = null;
+
+            try
+            {
+                title = string.Format("[{0}][{1}]", radioCall.CallSerialNumber, talkGroup.AlphaTag);
+                artist = string.Format("{0} ({1})", talkGroup.Identifier, talkGroup.Name);
+                comment = talkGroup.Description;
+                return true;              
+            }
+            catch (System.Exception)
+            {
+                return false;
+            }
+        }
+
 
         protected virtual int ExecuteProcess(string fileName, string arguments, bool waitForExit = true, int waitForExitTimeoutMsec = int.MaxValue)
         {

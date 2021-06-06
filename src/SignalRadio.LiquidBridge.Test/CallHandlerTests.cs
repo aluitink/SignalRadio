@@ -39,7 +39,7 @@ namespace SignalRadio.LiquidBridge.Test
             };
 
             var expectedTalkGroupIdentifier = (ushort)13050;
-            var expectedCallIdentifier = "1594255860";
+            var expectedCallIdentifier = (ulong)1594255860;
             var expectedFrequency = 172075000;
             var expectedOriginalExtension = "wav";
             var expectedConvertedExtension = "mp3";
@@ -79,7 +79,10 @@ namespace SignalRadio.LiquidBridge.Test
             var mockTalkGroup = new TalkGroup()
             {
                 Id = 1,
+                AlphaTag = "TGPALPHA",
                 Identifier = expectedTalkGroupIdentifier,
+                Name = "Tag Test Alpha (1)",
+                Description = "This channel is used for testing",
                 TalkGroupStreams = new Collection<TalkGroupStream>()
             };
 
@@ -87,13 +90,13 @@ namespace SignalRadio.LiquidBridge.Test
             mockTalkGroup.TalkGroupStreams.Add(new TalkGroupStream() { TalkGroup = mockTalkGroup, TalkGroupId = mockTalkGroup.Id, Stream = mockStream2, StreamId = mockStream2.Id });
             mockTalkGroup.TalkGroupStreams.Add(new TalkGroupStream() { TalkGroup = mockTalkGroup, TalkGroupId = mockTalkGroup.Id, Stream = mockStream3, StreamId = mockStream3.Id });
 
-
             var mockRadioCall = new RadioCall()
             {
                 Id = 1,
-                TalkGroupId = 1,
+                TalkGroupId = mockTalkGroup.Id,
                 TalkGroup = mockTalkGroup,
-                CallIdentifier = expectedCallIdentifier,
+                CallIdentifier = expectedCallIdentifier.ToString(),
+                CallSerialNumber = (long)expectedCallIdentifier,
                 CallWavPath = callWavPath,
                 FrequencyHz = expectedFrequency,
                 Frequency = expectedFrequency
@@ -125,15 +128,5 @@ namespace SignalRadio.LiquidBridge.Test
 
             await handler.HandleCallAsync(callWavPath);
         }
-
-
-        protected CallHandler GetCallHandler(LiquidBridgeConfig config)
-        {
-            return new CallHandler(config)
-            {
-
-            };
-        }
-
     }
 }
