@@ -41,6 +41,8 @@ namespace SignalRadio.LiquidBridge
 
             radioCall = await _client.PostCallAsync(radioCall, cancellationToken);
 
+            System.Console.WriteLine("Received Call: {0}", radioCall);
+
             ConvertCallWavToMp3(radioCall);
             var result = await PushCallToStreamAsync(radioCall, cancellationToken);
         }

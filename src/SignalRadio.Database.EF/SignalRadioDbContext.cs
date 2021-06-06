@@ -137,8 +137,9 @@ namespace SignalRadio.Database.EF
                 .IsRequired()
                 .ValueGeneratedOnAdd();
             modelBuilder.Entity<RadioCall>()
-            .HasOne(e => e.TalkGroup)
-            .WithMany(e => e.RadioCalls);
+                .HasOne(e => e.TalkGroup)
+                .WithMany(e => e.RadioCalls)
+                .HasForeignKey(e => e.TalkGroupId);
             #endregion
             #region Streams
             modelBuilder.Entity<Stream>()
