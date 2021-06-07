@@ -16,16 +16,21 @@ namespace SignalRadio.LiquidBridge
         private static CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
         static void Main(string[] args)
         {
-            bool isHelpRequested = IsArgumentFlagExists(args, "help", "-help", "--help", "?", "/?", "-?");
-            
-            if (isHelpRequested || args.Length < 2) //config and mode are required
-            {
-                PrintUsage();
-                return;
-            }
-            
             try
             {
+                AppDomain.CurrentDomain.UnhandledException += (s, e) => 
+                {
+                    Console.WriteLine("Exception Handled: {0}", e.ExceptionObject.ToString());
+                };
+
+                bool isHelpRequested = IsArgumentFlagExists(args, "help", "-help", "--help", "?", "/?", "-?");
+                
+                if (isHelpRequested || args.Length < 2) //config and mode are required
+                {
+                    PrintUsage();
+                    return;
+                }
+
                 _liquidConfig = GetArgumentValue(args, "config", (s) => {
                     var configPath =(new FileInfo(s)).FullName;
                     var config = LoadConfigFromFile<LiquidBridgeConfig>(configPath);
@@ -74,7 +79,7 @@ namespace SignalRadio.LiquidBridge
             }
             catch(Exception e)
             {
-                System.Console.WriteLine(e.ToString());
+                System.Console.WriteLine("Exception: {0}", e.ToString());
             }
         }
         private static void HandleDirectMode(string callWavPath, string callJsonPath = null, CancellationToken cancellationToken = default(CancellationToken))
@@ -93,6 +98,8 @@ namespace SignalRadio.LiquidBridge
 
             using(var clientSocket = new UdpSocket())
             {
+                Console.WriteLine("LiquidBridge (Client) SEND: {0}", messageToSend);
+
                 clientSocket.Client(_liquidConfig.UdpServerIpAddress, _liquidConfig.UdpServerPort);
                 clientSocket.Send(messageToSend);
             }
@@ -119,6 +126,8 @@ namespace SignalRadio.LiquidBridge
                 {
                     socket.Server(_liquidConfig.UdpServerIpAddress, _liquidConfig.UdpServerPort, async (msg) => 
                     {
+                        Console.WriteLine("LiquidBridge (Server) RECV: {0}", msg);
+
                         var parts = msg.Split('|', 2, StringSplitOptions.RemoveEmptyEntries);
 
                         var callWavPath = string.Empty;

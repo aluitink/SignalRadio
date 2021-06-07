@@ -39,7 +39,6 @@ namespace SignalRadio.LiquidBridge
             {
                 State so = (State)ar.AsyncState;
                 int bytes = _socket.EndSend(ar);
-                Console.WriteLine("SEND: {0}, {1}", bytes, text);
             }, state);
         }
 
@@ -53,7 +52,6 @@ namespace SignalRadio.LiquidBridge
                 var message = Encoding.UTF8.GetString(so.buffer, 0, bytes);
                 if(onMessageReceived != null)
                     onMessageReceived(message);
-                Console.WriteLine("RECV: {0}: {1}, {2}", epFrom.ToString(), bytes, message);
             }, state);
         }
 
