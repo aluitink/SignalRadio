@@ -39,7 +39,7 @@ namespace SignalRadio.LiquidBridge
 
                 var mode = GetArgumentValue<Mode>(args, "mode", (s) => {
                     Mode mode = Mode.None;
-                    if(!Enum.TryParse<Mode>(s, out mode))
+                    if(!Enum.TryParse<Mode>(s, true, out mode))
                         throw new ArgumentOutOfRangeException("mode");
                     return mode;
                 });

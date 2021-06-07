@@ -2,6 +2,8 @@
     "IcecastHost": "192.168.1.215",
     "IcecastPort": 8000,
     "StreamPassword": "Password1",
+    "UdpServerIpAddress": "127.0.0.1",
+    "UdpServerPort": 27000,
     "LiquidsoapTemplatePath": "/app/liquid-bridge/config/stream.defaults.liq",
     "LiquidsoapSocketsPath": "/var/run/liquidsoap",
     "ConnectionString": "192.168.1.215:8001/api/"
