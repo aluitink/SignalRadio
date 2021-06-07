@@ -28,18 +28,20 @@ namespace SignalRadio.LiquidBridge
             if (string.IsNullOrEmpty(callWavPath))
                 throw new ArgumentException($"'{nameof(callWavPath)}' cannot be null or empty.", nameof(callWavPath));
             
+            if (!File.Exists(callWavPath))
+                throw new ArgumentException($"'{callWavPath}' does not exist.", nameof(callWavPath));
+
             cancellationToken.ThrowIfCancellationRequested();
 
             var radioCall = ParseCall(callWavPath, callJsonPath);
             var talkGroup = await _client.GetTalkGroupByIdentifierAsync(radioCall.TalkGroupIdentifier, cancellationToken);
 
             if(talkGroup != null)
-            {
-                radioCall.TalkGroup = talkGroup;
                 radioCall.TalkGroupId = talkGroup.Id;
-            }
 
             radioCall = await _client.PostCallAsync(radioCall, cancellationToken);
+            
+            radioCall.TalkGroup = talkGroup;
 
             System.Console.WriteLine("Received Call: {0}", radioCall.ToString());
 
@@ -50,7 +52,7 @@ namespace SignalRadio.LiquidBridge
         {
             //SampleFilename
             //13050-1594255860_172075000.mp3
-            ushort talkGroupId = 0;
+            ushort talkGroupIdentifier = 0;
             ulong callStartTimeTicks = 0;
             long callFrequencyHz = 0;
 
@@ -58,7 +60,7 @@ namespace SignalRadio.LiquidBridge
             var fileNameParts = fileInfo.Name.Split('-', 2, StringSplitOptions.RemoveEmptyEntries);
 
             if(fileNameParts.Length > 0)
-                ushort.TryParse(fileNameParts[0], out talkGroupId);
+                ushort.TryParse(fileNameParts[0], out talkGroupIdentifier);
 
             if(fileNameParts.Length > 1)
             {
@@ -77,7 +79,7 @@ namespace SignalRadio.LiquidBridge
                 CallIdentifier = callStartTimeTicks.ToString(),
                 CallSerialNumber = (long)callStartTimeTicks,
                 StartTime = callStartTimeTicks,
-                TalkGroupIdentifier = talkGroupId,
+                TalkGroupIdentifier = talkGroupIdentifier,
                 CallWavPath = callWavPath
             };
         }
@@ -129,7 +131,6 @@ namespace SignalRadio.LiquidBridge
             }
             return true;
         }
-
         protected async Task<bool> StartStreamAsync(string streamConfigPath, Func<bool> checkStreamReadyFunc, CancellationToken cancellationToken = default(CancellationToken))
         {
             if(!File.Exists(streamConfigPath))
@@ -148,7 +149,6 @@ namespace SignalRadio.LiquidBridge
             
             return i < maxRetries;
         }
-
         protected int SendMessageToSocket(string message, string socketPath, CancellationToken cancellationToken = default(CancellationToken))
         {
             if (string.IsNullOrEmpty(message))
@@ -187,7 +187,6 @@ namespace SignalRadio.LiquidBridge
                 return -1;
             }
         }
-
         protected virtual void ConvertCallWavToMp3(RadioCall radioCall, CancellationToken cancellationToken = default(CancellationToken))
         {
             if (radioCall is null)
@@ -219,7 +218,6 @@ namespace SignalRadio.LiquidBridge
                 System.Console.WriteLine("Converted call to mp3: {0}", radioCall.Filename);
             }
         }
-
         protected virtual bool GetMetadata(RadioCall radioCall, out string title, out string artist, out string comment)
         {
             var talkGroup = radioCall.TalkGroup;
@@ -242,8 +240,6 @@ namespace SignalRadio.LiquidBridge
                 return false;
             }
         }
-
-
         protected virtual int ExecuteProcess(string fileName, string arguments, bool waitForExit = true, int waitForExitTimeoutMsec = int.MaxValue)
         {
             var proc = Process.Start(fileName, arguments);

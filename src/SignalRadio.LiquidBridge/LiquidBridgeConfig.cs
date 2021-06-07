@@ -5,14 +5,15 @@ namespace SignalRadio.LiquidBridge
 {
     public class LiquidBridgeConfig
     {
-        public string IcecastHost {get;set;}
-        public int IcecastPort {get; set;}
-        public string StreamPassword {get;set;}
-        public string LiquidsoapTemplatePath {get;set;}
-        public string LiquidsoapSocketsPath {get;set;}
-        public string TalkGroupCsvPath {get;set;}
-        public string ConnectionString {get;set;}
-
+        public string IcecastHost  { get; set; }
+        public int IcecastPort  { get; set; }
+        public string UdpServerIpAddress { get; set; }
+        public int UdpServerPort { get; set; }
+        public string StreamPassword  { get; set; }
+        public string LiquidsoapTemplatePath { get; set; }
+        public string LiquidsoapSocketsPath { get; set; }
+        public string ConnectionString { get; set; }
+        
         public string BuildLiquidsoapConfig(string streamId, string streamName, string description, string genra)
         {
             var configBuilder = new StringBuilder();

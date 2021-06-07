@@ -18,7 +18,7 @@ namespace SignalRadio.LiquidBridge
         {
             bool isHelpRequested = IsArgumentFlagExists(args, "help", "-help", "--help", "?", "/?", "-?");
             
-            if (isHelpRequested || args.Length < 2)
+            if (isHelpRequested || args.Length < 2) //config and mode are required
             {
                 PrintUsage();
                 return;
@@ -34,53 +34,42 @@ namespace SignalRadio.LiquidBridge
                     return config;
                 });
 
-                if(IsArgumentFlagExists(args, "server"))
-                {
-                    StartUdpServer(_cancellationTokenSource.Token);
+                if(_liquidConfig is null)
+                    throw new ArgumentException("config is required.", "config");
 
-                    Console.WriteLine("Press Enter to Exit");
-                    Console.ReadLine();
-                }
-
-                var importResults = GetArgumentValue(args, "import", (s) => {
-                    var talkGroupCsvPath = (new FileInfo(s)).FullName;
-                    return (new SignalRadioClient(new Uri(_liquidConfig.ConnectionString)))
-                        .ImportTalkgroupCsvAsync(s)
-                            .GetAwaiter()
-                                .GetResult();
+                var mode = GetArgumentValue<Mode>(args, "mode", (s) => {
+                    Mode mode = Mode.None;
+                    if(!Enum.TryParse<Mode>(s, out mode))
+                        throw new ArgumentOutOfRangeException("mode");
+                    return mode;
                 });
 
-                if(importResults is null)
-                {
-                    try
-                    {    
-                        var callWavPath = (new FileInfo(args[1])).FullName;
-                        if(string.IsNullOrEmpty(callWavPath) || !File.Exists(callWavPath))
-                            throw new Exception("Invalid callWavPath :(");
+                var callWavPath = GetArgumentValue(args, "wav", (s) => {
+                    return (new FileInfo(s)).FullName;
+                });
+                var callJsonPath = GetArgumentValue(args, "json", (s) => {
+                    return (new FileInfo(s)).FullName;
+                });
+                var importCsvPath = GetArgumentValue(args, "csv", (s) => {
+                    return (new FileInfo(s)).FullName;
+                });
 
-                        var callJsonPath = (args.Length > 2 && args[2] != null) ? 
-                            (new FileInfo(args[2])).FullName : 
-                            null;
-                        
-                        var messageToSend = string.Format("{0}{2}{1}", 
-                                callWavPath, //Audio
-                                callJsonPath, //Additional Data
-                                callJsonPath != null ? "|" : null); //Delimiter
-
-                        using(var clientSocket = new UdpSocket())
-                        {
-                            clientSocket.Client("127.0.0.1", 27000);
-                            clientSocket.Send(messageToSend);
-                        }
-                    }
-                    catch (System.Exception)
-                    {
-                        throw;
-                    }
-                }
-                else
+                switch(mode)
                 {
-                    System.Console.WriteLine(importResults.ToString());
+                    case Mode.Direct:
+                        HandleDirectMode(callWavPath, callJsonPath, _cancellationTokenSource.Token);
+                        break;
+                    case Mode.Client:
+                        HandleClientMode(callWavPath, callJsonPath, _cancellationTokenSource.Token);
+                        break;
+                    case Mode.Server:
+                        HandleServerMode();
+                        break;
+                    case Mode.Import:
+                        HandleImportMode(importCsvPath);
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException("mode");
                 }
             }
             catch(Exception e)
@@ -88,32 +77,74 @@ namespace SignalRadio.LiquidBridge
                 System.Console.WriteLine(e.ToString());
             }
         }
+        private static void HandleDirectMode(string callWavPath, string callJsonPath = null, CancellationToken cancellationToken = default(CancellationToken))
+        {
+            var callHandler = new CallHandler(_liquidConfig);
+            callHandler.HandleCallAsync(callWavPath, callJsonPath, _cancellationTokenSource.Token)
+                .GetAwaiter()
+                    .GetResult();
+        }
+        private static void HandleClientMode(string callWavPath, string callJsonPath = null, CancellationToken cancellationToken = default(CancellationToken))
+        {
+            var messageToSend = string.Format("{0}{2}{1}", 
+                callWavPath, //Audio
+                callJsonPath, //Additional Data
+                callJsonPath != null ? "|" : null); //Delimiter
 
-        private static void StartUdpServer(CancellationToken cancellationToken)
+            using(var clientSocket = new UdpSocket())
+            {
+                clientSocket.Client(_liquidConfig.UdpServerIpAddress, _liquidConfig.UdpServerPort);
+                clientSocket.Send(messageToSend);
+            }
+        }
+        private static void HandleImportMode(string csvPath)
+        {
+            if (csvPath is null)
+                throw new ArgumentNullException(nameof(csvPath));
+            
+            if(!File.Exists(csvPath))
+                throw new ArgumentException($"'{csvPath}' does not exist.");
+            
+            var results = (new SignalRadioClient(new Uri(_liquidConfig.ConnectionString)))
+                .ImportTalkgroupCsvAsync(csvPath)
+                    .GetAwaiter()
+                        .GetResult();
+        }
+        private static void HandleServerMode()
         {
             var callHandler = new CallHandler(_liquidConfig);
             using(var socket = new UdpSocket())
             {
                 try
                 {
-                    socket.Server("127.0.0.1", 27000, async (msg) => 
+                    socket.Server(_liquidConfig.UdpServerIpAddress, _liquidConfig.UdpServerPort, async (msg) => 
                     {
-                        if(string.Compare(msg, "shutdown", true) == 0)
-                            _cancellationTokenSource.Cancel();
-                            
-                        await callHandler.HandleCallAsync(msg, null, _cancellationTokenSource.Token);  
+                        var parts = msg.Split('|', 2, StringSplitOptions.RemoveEmptyEntries);
+
+                        var callWavPath = string.Empty;
+                        var callJsonPath = string.Empty;
+
+                        if(parts.Length > 0)
+                        {
+                            callWavPath = parts[0];
+                            if(parts.Length > 1)
+                                callJsonPath = parts[1];
+                        }
+
+                        await callHandler.HandleCallAsync(callWavPath, callJsonPath, _cancellationTokenSource.Token);  
                     });
 
-                    while(!cancellationToken.IsCancellationRequested)
-                        Task.Delay(200).Wait(cancellationToken);
+                    while(!_cancellationTokenSource.IsCancellationRequested)
+                        Task.Delay(200).Wait(_cancellationTokenSource.Token);
                 }
                 finally
                 {
                     _cancellationTokenSource.Cancel();
                 }
             }
+            Console.WriteLine("Press Enter to Exit");
+            Console.ReadLine();
         }
-
         private static T LoadConfigFromFile<T>(string filePath)
         {
             using(var stream = new FileStream(filePath, FileMode.Open))
@@ -159,7 +190,25 @@ namespace SignalRadio.LiquidBridge
             Console.WriteLine(" Argument values containing a space should be surrounded by double quotes. e.g. \"ARG:Value With Space\"");
             Console.WriteLine(" Arguments and values are separated by colon character. e.g. ARG:VAL");
             Console.WriteLine();
-            Console.WriteLine("{0} Config:config.json call.wav", binName);
+            Console.WriteLine(" Config - LiquidBridge configuration file [REQUIRED]");
+            Console.WriteLine(" Mode - Operating Mode [REQUIRED]");
+            Console.WriteLine("   Client - Send request to LiquidBridge UDP Server.");
+            Console.WriteLine("     Wav - WAV file to process and queue. [REQUIRED]");
+            Console.WriteLine("     Json - Json file to for additional data. [Optional]");
+            Console.WriteLine("   Direct - Send request directly to Liquidsoap Socket");
+            Console.WriteLine("     Wav - WAV file to process and queue. [REQUIRED]");
+            Console.WriteLine("     Json - Json file to for additional data. [Optional]");
+            Console.WriteLine("   Server - Starts LiquidBridge UDP Server.");
+            Console.WriteLine("   Import - SignalRadio Talk Group CSV Import");
+            Console.WriteLine("     Csv - TalkGroups CSV file. [REQUIRED]");
+            Console.WriteLine();
+            Console.WriteLine("{0} Config:config.json Mode:direct Wav:13050-1594255860_172075000.wav Json:13050-1594255860_172075000.json", binName);
+            Console.WriteLine();
+            Console.WriteLine("{0} Config:config.json Mode:server", binName);
+            Console.WriteLine();
+            Console.WriteLine("{0} Config:config.json Mode:client Wav:13050-1594255860_172075000.wav Json:13050-1594255860_172075000.json", binName);
+            Console.WriteLine();
+            Console.WriteLine("{0} Config:config.json Mode:import Csv:talkgroups.csv", binName);
             Console.WriteLine();
             Console.WriteLine("{0} Help", binName);
             Console.WriteLine();

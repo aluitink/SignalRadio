@@ -34,7 +34,6 @@ namespace SignalRadio.LiquidBridge.Test
                 StreamPassword = "Password1",
                 LiquidsoapSocketsPath = Path.Join(Directory.GetCurrentDirectory(), "ls-socks"),
                 LiquidsoapTemplatePath = templateResource,
-                TalkGroupCsvPath = talkgroupsResource,
                 ConnectionString = "http://127.0.0.1:8001/api/"
             };
 

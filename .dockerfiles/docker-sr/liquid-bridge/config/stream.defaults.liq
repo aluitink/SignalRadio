@@ -12,6 +12,7 @@ set("log.syslog.program","liquidsoap-#{STREAMID}")
 set("server.socket",true)
 set("server.socket.path","<sysrundir>/#{STREAMID}.sock")
 set("server.socket.permissions",511)
+set("server.timeout", -1.0)
 # This creates a 1 second silence period generated programmatically (no disk reads)
 silence = blank(duration=1.)
 
