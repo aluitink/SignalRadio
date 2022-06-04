@@ -3,8 +3,6 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.32112.339
 MinimumVisualStudioVersion = 15.0.26124.0
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SignalRadio.Web.UI", "SignalRadio.Web.UI\SignalRadio.Web.UI.csproj", "{BDCC67B4-E4F9-4E83-9DCA-37266469BD73}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SignalRadio.LiquidBridge", "SignalRadio.LiquidBridge\SignalRadio.LiquidBridge.csproj", "{CAF3CBF5-BCB9-4903-AA1E-B5099B84CCFC}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SignalRadio.Web.Client", "SignalRadio.Web.Client\SignalRadio.Web.Client.csproj", "{E85913F7-079D-4D5A-B6DC-2B785FBBFB4F}"
@@ -13,17 +11,13 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SignalRadio.Public.Lib", "S
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SignalRadio.Database.EF", "SignalRadio.Database.EF\SignalRadio.Database.EF.csproj", "{7A9ADB86-51D2-46EF-A9C4-F6B99D2848F5}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SignalRadio.Web.Client.Test", "SignalRadio.Web.Client.Test\SignalRadio.Web.Client.Test.csproj", "{72A75337-591F-417B-BAB6-829E3D5C9612}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SignalRadio.LiquidBridge.Test", "SignalRadio.LiquidBridge.Test\SignalRadio.LiquidBridge.Test.csproj", "{B9A6A46D-E551-4C4C-8AEC-B29540FDE2B0}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SignalRadio.ArchiveCrawler", "SignalRadio.ArchiveCrawler\SignalRadio.ArchiveCrawler.csproj", "{AB0EE805-B907-48B8-A041-C0CFE1595895}"
 EndProject
 Project("{00D1A9C2-B5F0-4AF3-8072-F6C62B433612}") = "SignalRadio.Database.SqlServer", "SignalRadio.Database.SqlServer\SignalRadio.Database.SqlServer.sqlproj", "{A046FF04-78BB-4FA1-BF66-B43A36D08E97}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SignalRadio.Web.Api", "SignalRadio.Web.Api\SignalRadio.Web.Api.csproj", "{F8B3529A-1D81-40B4-B074-35E1CF5D2D6A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SignalRadio.Web.Api", "SignalRadio.Web.Api\SignalRadio.Web.Api.csproj", "{F8B3529A-1D81-40B4-B074-35E1CF5D2D6A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SignalRadio.Web.Api.Test", "SignalRadio.Web.Api.Test\SignalRadio.Web.Api.Test.csproj", "{9E47A274-C9CF-4940-AA4C-5F83FF1A45BF}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SignalRadio.Web.Api.Test", "SignalRadio.Web.Api.Test\SignalRadio.Web.Api.Test.csproj", "{9E47A274-C9CF-4940-AA4C-5F83FF1A45BF}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -35,18 +29,6 @@ Global
 		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{BDCC67B4-E4F9-4E83-9DCA-37266469BD73}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{BDCC67B4-E4F9-4E83-9DCA-37266469BD73}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{BDCC67B4-E4F9-4E83-9DCA-37266469BD73}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{BDCC67B4-E4F9-4E83-9DCA-37266469BD73}.Debug|x64.Build.0 = Debug|Any CPU
-		{BDCC67B4-E4F9-4E83-9DCA-37266469BD73}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{BDCC67B4-E4F9-4E83-9DCA-37266469BD73}.Debug|x86.Build.0 = Debug|Any CPU
-		{BDCC67B4-E4F9-4E83-9DCA-37266469BD73}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{BDCC67B4-E4F9-4E83-9DCA-37266469BD73}.Release|Any CPU.Build.0 = Release|Any CPU
-		{BDCC67B4-E4F9-4E83-9DCA-37266469BD73}.Release|x64.ActiveCfg = Release|Any CPU
-		{BDCC67B4-E4F9-4E83-9DCA-37266469BD73}.Release|x64.Build.0 = Release|Any CPU
-		{BDCC67B4-E4F9-4E83-9DCA-37266469BD73}.Release|x86.ActiveCfg = Release|Any CPU
-		{BDCC67B4-E4F9-4E83-9DCA-37266469BD73}.Release|x86.Build.0 = Release|Any CPU
 		{CAF3CBF5-BCB9-4903-AA1E-B5099B84CCFC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{CAF3CBF5-BCB9-4903-AA1E-B5099B84CCFC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CAF3CBF5-BCB9-4903-AA1E-B5099B84CCFC}.Debug|x64.ActiveCfg = Debug|Any CPU
@@ -95,18 +77,6 @@ Global
 		{7A9ADB86-51D2-46EF-A9C4-F6B99D2848F5}.Release|x64.Build.0 = Release|Any CPU
 		{7A9ADB86-51D2-46EF-A9C4-F6B99D2848F5}.Release|x86.ActiveCfg = Release|Any CPU
 		{7A9ADB86-51D2-46EF-A9C4-F6B99D2848F5}.Release|x86.Build.0 = Release|Any CPU
-		{72A75337-591F-417B-BAB6-829E3D5C9612}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{72A75337-591F-417B-BAB6-829E3D5C9612}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{72A75337-591F-417B-BAB6-829E3D5C9612}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{72A75337-591F-417B-BAB6-829E3D5C9612}.Debug|x64.Build.0 = Debug|Any CPU
-		{72A75337-591F-417B-BAB6-829E3D5C9612}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{72A75337-591F-417B-BAB6-829E3D5C9612}.Debug|x86.Build.0 = Debug|Any CPU
-		{72A75337-591F-417B-BAB6-829E3D5C9612}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{72A75337-591F-417B-BAB6-829E3D5C9612}.Release|Any CPU.Build.0 = Release|Any CPU
-		{72A75337-591F-417B-BAB6-829E3D5C9612}.Release|x64.ActiveCfg = Release|Any CPU
-		{72A75337-591F-417B-BAB6-829E3D5C9612}.Release|x64.Build.0 = Release|Any CPU
-		{72A75337-591F-417B-BAB6-829E3D5C9612}.Release|x86.ActiveCfg = Release|Any CPU
-		{72A75337-591F-417B-BAB6-829E3D5C9612}.Release|x86.Build.0 = Release|Any CPU
 		{B9A6A46D-E551-4C4C-8AEC-B29540FDE2B0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{B9A6A46D-E551-4C4C-8AEC-B29540FDE2B0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B9A6A46D-E551-4C4C-8AEC-B29540FDE2B0}.Debug|x64.ActiveCfg = Debug|Any CPU
@@ -119,18 +89,6 @@ Global
 		{B9A6A46D-E551-4C4C-8AEC-B29540FDE2B0}.Release|x64.Build.0 = Release|Any CPU
 		{B9A6A46D-E551-4C4C-8AEC-B29540FDE2B0}.Release|x86.ActiveCfg = Release|Any CPU
 		{B9A6A46D-E551-4C4C-8AEC-B29540FDE2B0}.Release|x86.Build.0 = Release|Any CPU
-		{AB0EE805-B907-48B8-A041-C0CFE1595895}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{AB0EE805-B907-48B8-A041-C0CFE1595895}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{AB0EE805-B907-48B8-A041-C0CFE1595895}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{AB0EE805-B907-48B8-A041-C0CFE1595895}.Debug|x64.Build.0 = Debug|Any CPU
-		{AB0EE805-B907-48B8-A041-C0CFE1595895}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{AB0EE805-B907-48B8-A041-C0CFE1595895}.Debug|x86.Build.0 = Debug|Any CPU
-		{AB0EE805-B907-48B8-A041-C0CFE1595895}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{AB0EE805-B907-48B8-A041-C0CFE1595895}.Release|Any CPU.Build.0 = Release|Any CPU
-		{AB0EE805-B907-48B8-A041-C0CFE1595895}.Release|x64.ActiveCfg = Release|Any CPU
-		{AB0EE805-B907-48B8-A041-C0CFE1595895}.Release|x64.Build.0 = Release|Any CPU
-		{AB0EE805-B907-48B8-A041-C0CFE1595895}.Release|x86.ActiveCfg = Release|Any CPU
-		{AB0EE805-B907-48B8-A041-C0CFE1595895}.Release|x86.Build.0 = Release|Any CPU
 		{A046FF04-78BB-4FA1-BF66-B43A36D08E97}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{A046FF04-78BB-4FA1-BF66-B43A36D08E97}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A046FF04-78BB-4FA1-BF66-B43A36D08E97}.Debug|Any CPU.Deploy.0 = Debug|Any CPU

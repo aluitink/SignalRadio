@@ -1,13 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<TargetFramework>net6.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+	</PropertyGroup>
+	
   <ItemGroup>
     <ProjectReference Include="..\SignalRadio.Public.Lib\SignalRadio.Public.Lib.csproj" />
     <ProjectReference Include="..\SignalRadio.Web.Client\SignalRadio.Web.Client.csproj" />
   </ItemGroup>
-
-  <PropertyGroup>
-    <OutputType>Exe</OutputType>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
-  </PropertyGroup>
 
 </Project>

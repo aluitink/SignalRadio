@@ -97,7 +97,6 @@ namespace SignalRadio.LiquidBridge.Test
                 CallIdentifier = expectedCallIdentifier.ToString(),
                 CallSerialNumber = (long)expectedCallIdentifier,
                 CallWavPath = callWavPath,
-                FrequencyHz = expectedFrequency,
                 Frequency = expectedFrequency
             };
 
