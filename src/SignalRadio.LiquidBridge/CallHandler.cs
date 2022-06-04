@@ -33,23 +33,17 @@ namespace SignalRadio.LiquidBridge
 
             cancellationToken.ThrowIfCancellationRequested();
 
-            var radioCall = ParseCall(callWavPath, callJsonPath);
-            var talkGroup = await _client.GetTalkGroupByIdentifierAsync(radioCall.TalkGroupIdentifier, cancellationToken);
-
-            if(talkGroup != null)
-                radioCall.TalkGroupId = talkGroup.Id;
-
+            var radioCall = await ParseCallAsync(_client, callWavPath, callJsonPath);
             radioCall = await _client.PostCallAsync(radioCall, cancellationToken);
             
-            radioCall.TalkGroup = talkGroup;
-
             System.Console.WriteLine("Received Call: {0}", radioCall.ToString());
 
             ConvertCallWavToMp3(radioCall);
             var result = await PushCallToStreamAsync(radioCall, cancellationToken);
         }
-        protected RadioCall ParseCall(string callWavPath, string callJsonPath = null, CancellationToken cancellationToken = default(CancellationToken))
+        protected async Task<RadioCall> ParseCallAsync(ISignalRadioClient client, string callWavPath, string callJsonPath = null, CancellationToken cancellationToken = default(CancellationToken))
         {
+
             //SampleFilename
             //13050-1594255860_172075000.mp3
             ushort talkGroupIdentifier = 0;
@@ -62,7 +56,9 @@ namespace SignalRadio.LiquidBridge
             if(fileNameParts.Length > 0)
                 ushort.TryParse(fileNameParts[0], out talkGroupIdentifier);
 
-            if(fileNameParts.Length > 1)
+            var talkGroup = await _client.GetTalkGroupByIdentifierAsync(talkGroupIdentifier, cancellationToken);
+
+            if (fileNameParts.Length > 1)
             {
                 var extraParts = fileNameParts[1]?.Split('_', 2, StringSplitOptions.RemoveEmptyEntries);
 
@@ -78,9 +74,9 @@ namespace SignalRadio.LiquidBridge
                 Frequency = callFrequencyHz,
                 CallIdentifier = callStartTimeTicks.ToString(),
                 CallSerialNumber = (long)callStartTimeTicks,
-                StartTime = callStartTimeTicks,
-                TalkGroupIdentifier = talkGroupIdentifier,
-                CallWavPath = callWavPath
+                StartTime = DateTimeFromFileTime((long)callStartTimeTicks),
+                CallWavPath = callWavPath,
+                TalkGroupId = talkGroup?.Id ?? 0
             };
         }
         protected async Task<bool> PushCallToStreamAsync(RadioCall radioCall, CancellationToken cancellationToken = default(CancellationToken))
@@ -90,7 +86,7 @@ namespace SignalRadio.LiquidBridge
             if(tgStreams is null)
                 return false;
 
-            var queueCallMessage = string.Format("queue.push {0}{1}", radioCall.Filename, Environment.NewLine);
+            var queueCallMessage = string.Format("queue.push {0}{1}", radioCall.CallWavPath, Environment.NewLine);
             
             foreach (var stream in tgStreams)
             {
@@ -214,8 +210,8 @@ namespace SignalRadio.LiquidBridge
             //Execute Lame to convert, timeout after 20 seconds, success on result code 0
             if(ExecuteProcess(lamePath, lameArgs, true, 20 * 1000) == 0)
             {
-                radioCall.Filename = outputPath;
-                System.Console.WriteLine("Converted call to mp3: {0}", radioCall.Filename);
+                radioCall.CallWavPath = outputPath;
+                System.Console.WriteLine("Converted call to mp3: {0}", radioCall.CallWavPath);
             }
         }
         protected virtual bool GetMetadata(RadioCall radioCall, out string title, out string artist, out string comment)
@@ -248,6 +244,10 @@ namespace SignalRadio.LiquidBridge
                 return proc.WaitForExit(waitForExitTimeoutMsec) ? proc.ExitCode : int.MinValue;
             
             return 1;
+        }
+        private DateTime DateTimeFromFileTime(long fileTime)
+        {
+            return new DateTime(1970, 1, 1).ToUniversalTime().AddSeconds(fileTime);
         }
     }
 }

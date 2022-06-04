@@ -34,103 +34,103 @@ namespace SignalRadio.Web.Client.Test
             _signalRadioClient = null;
         }
 
-        [Test]
-        public async Task SignalRadioClient_CanImportTalkGroups()
-        {
-            var tgFile = "Resources/danecom-talkgroups.priorities.csv";
-            var result = await _signalRadioClient.ImportTalkgroupCsvAsync(tgFile);
+        //[Test]
+        //public async Task SignalRadioClient_CanImportTalkGroups()
+        //{
+        //    var tgFile = "Resources/danecom-talkgroups.priorities.csv";
+        //    var result = await _signalRadioClient.ImportTalkgroupCsvAsync(tgFile);
 
-            Assert.AreEqual(true, result.IsSuccessful);
-            Assert.AreEqual(290, result.ItemsProcessed);
-        }
+        //    Assert.AreEqual(true, result.IsSuccessful);
+        //    Assert.AreEqual(290, result.ItemsProcessed);
+        //}
 
-        [Test]
-        public async Task SignalRadioClient_CanGetTalkGroupByIdentifier()
-        {
-            var expectedStream = new Stream()
-            {
-                StreamIdentifier = "test-stream",
-                LastCallTimeUtc = DateTime.UtcNow
-            };
+        //[Test]
+        //public async Task SignalRadioClient_CanGetTalkGroupByIdentifier()
+        //{
+        //    var expectedStream = new Stream()
+        //    {
+        //        StreamIdentifier = "test-stream",
+        //        LastCallTimeUtc = DateTime.UtcNow
+        //    };
 
-            await DbContext.Streams.AddAsync(expectedStream);
-            await DbContext.SaveChangesAsync();
+        //    await DbContext.Streams.AddAsync(expectedStream);
+        //    await DbContext.SaveChangesAsync();
 
-            var expectedTalkGroup = new TalkGroup()
-            {
-                Identifier = 1024,
-                Mode = TalkGroupMode.Digital,
-                Tag = TalkGroupTag.Hospital,
-                AlphaTag = "400",
-                Name = "test",
-                Description = "This is a description",
-                TalkGroupStreams = new Collection<TalkGroupStream>()
-            };
+        //    var expectedTalkGroup = new TalkGroup()
+        //    {
+        //        Identifier = 1024,
+        //        Mode = TalkGroupMode.Digital,
+        //        Tag = TalkGroupTag.Hospital,
+        //        AlphaTag = "400",
+        //        Name = "test",
+        //        Description = "This is a description",
+        //        TalkGroupStreams = new Collection<TalkGroupStream>()
+        //    };
 
-            var existingTalkGroup = await _signalRadioClient.GetTalkGroupByIdentifierAsync(expectedTalkGroup.Identifier);
+        //    var existingTalkGroup = await _signalRadioClient.GetTalkGroupByIdentifierAsync(expectedTalkGroup.Identifier);
 
-            Assert.IsNull(existingTalkGroup, "Talkgroup should not exist");
+        //    Assert.IsNull(existingTalkGroup, "Talkgroup should not exist");
 
-            await DbContext.TalkGroups.AddAsync(expectedTalkGroup);
-            await DbContext.SaveChangesAsync();
+        //    await DbContext.TalkGroups.AddAsync(expectedTalkGroup);
+        //    await DbContext.SaveChangesAsync();
 
-            expectedTalkGroup.TalkGroupStreams.Add(new TalkGroupStream() { StreamId = expectedStream.Id, TalkGroupId = expectedTalkGroup.Id });
+        //    expectedTalkGroup.TalkGroupStreams.Add(new TalkGroupStream() { StreamId = expectedStream.Id, TalkGroupId = expectedTalkGroup.Id });
 
-            await DbContext.SaveChangesAsync();
+        //    await DbContext.SaveChangesAsync();
 
-            var actualTalkGroup = await _signalRadioClient.GetTalkGroupByIdentifierAsync(expectedTalkGroup.Identifier);
+        //    var actualTalkGroup = await _signalRadioClient.GetTalkGroupByIdentifierAsync(expectedTalkGroup.Identifier);
 
-            Assert.IsNotNull(actualTalkGroup, "TalkGroup should exist");
+        //    Assert.IsNotNull(actualTalkGroup, "TalkGroup should exist");
 
-            Assert.AreEqual(expectedTalkGroup.Identifier, actualTalkGroup.Identifier);
-            Assert.AreEqual(expectedTalkGroup.Mode, actualTalkGroup.Mode);
-            Assert.AreEqual(expectedTalkGroup.Tag, actualTalkGroup.Tag);
-            Assert.AreEqual(expectedTalkGroup.AlphaTag, actualTalkGroup.AlphaTag);
-            Assert.AreEqual(expectedTalkGroup.Name, actualTalkGroup.Name);
-            Assert.AreEqual(expectedTalkGroup.Description, actualTalkGroup.Description);
+        //    Assert.AreEqual(expectedTalkGroup.Identifier, actualTalkGroup.Identifier);
+        //    Assert.AreEqual(expectedTalkGroup.Mode, actualTalkGroup.Mode);
+        //    Assert.AreEqual(expectedTalkGroup.Tag, actualTalkGroup.Tag);
+        //    Assert.AreEqual(expectedTalkGroup.AlphaTag, actualTalkGroup.AlphaTag);
+        //    Assert.AreEqual(expectedTalkGroup.Name, actualTalkGroup.Name);
+        //    Assert.AreEqual(expectedTalkGroup.Description, actualTalkGroup.Description);
 
-            // Assert.IsNotNull(actualTalkGroup.TalkGroupStreams);
+        //    // Assert.IsNotNull(actualTalkGroup.TalkGroupStreams);
 
-            // Assert.AreEqual(1, expectedStream.StreamTalkGroups.Count);
-        }
+        //    // Assert.AreEqual(1, expectedStream.StreamTalkGroups.Count);
+        //}
         
-        [Test]
-        public async Task SignalRadioClient_CanGetTalkGroupById()
-        {
-            ushort identifier = 1;
-            var talkGroup = await _signalRadioClient.GetTalkGroupByIdentifierAsync(identifier);
-        }
+        //[Test]
+        //public async Task SignalRadioClient_CanGetTalkGroupById()
+        //{
+        //    ushort identifier = 1;
+        //    var talkGroup = await _signalRadioClient.GetTalkGroupByIdentifierAsync(identifier);
+        //}
 
-        [Test]
-        public async Task SignalRadioClient_CanPostCall()
-        {
-            var radioCall = new RadioCall()
-            {
-                TalkGroupIdentifier = 123,
-                CallState = 123,
-                CallRecordState = 123,
-                CallIdentifier = "call",
-                TalkGroupTag = "abc",
-                Elapsed = 123,
-                Length = 123,
-                IsPhase2 = true,
-                IsConventional = false,
-                IsEncrypted = false,
-                IsAnalog = false,
-                StartTime = 123,
-                StopTime = 123,
-                FrequencyHz = 1233123123,
-                Frequency = 123,
-                CallSerialNumber = 123,
-                CallWavPath = "thisisthewave",
-                SigmfFileName = "sigmf",
-                DebugFilename = "debug",
-                Filename = "filename",
-                StatusFilename = "filename"
-            };
+        //[Test]
+        //public async Task SignalRadioClient_CanPostCall()
+        //{
+        //    var radioCall = new RadioCall()
+        //    {
+        //        TalkGroupIdentifier = 123,
+        //        CallState = 123,
+        //        CallRecordState = 123,
+        //        CallIdentifier = "call",
+        //        TalkGroupTag = "abc",
+        //        Elapsed = 123,
+        //        Length = 123,
+        //        IsPhase2 = true,
+        //        IsConventional = false,
+        //        IsEncrypted = false,
+        //        IsAnalog = false,
+        //        StartTime = 123,
+        //        StopTime = 123,
+        //        FrequencyHz = 1233123123,
+        //        Frequency = 123,
+        //        CallSerialNumber = 123,
+        //        CallWavPath = "thisisthewave",
+        //        SigmfFileName = "sigmf",
+        //        DebugFilename = "debug",
+        //        Filename = "filename",
+        //        StatusFilename = "filename"
+        //    };
 
-            var result = await _signalRadioClient.PostCallAsync(radioCall);
+        //    var result = await _signalRadioClient.PostCallAsync(radioCall);
 
-        }
+        //}
     }
 }
