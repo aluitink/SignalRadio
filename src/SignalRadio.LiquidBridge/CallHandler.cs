@@ -75,7 +75,7 @@ namespace SignalRadio.LiquidBridge
 
             return new RadioCall()
             {
-                FrequencyHz = callFrequencyHz,
+                Frequency = callFrequencyHz,
                 CallIdentifier = callStartTimeTicks.ToString(),
                 CallSerialNumber = (long)callStartTimeTicks,
                 StartTime = callStartTimeTicks,

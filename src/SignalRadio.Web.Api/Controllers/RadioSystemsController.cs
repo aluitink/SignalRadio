@@ -15,7 +15,7 @@ namespace SignalRadio.Web.Api.Controllers
     [Route("[controller]")]
     public class RadioSystemsController : SignalRadioControllerBase
     {
-        public RadioSystemsController(SignalRadioDbContext dbContext, ILogger<TalkGroupsController> logger):
+        public RadioSystemsController(SignalRadioDbContext dbContext, ILogger<RadioCallsController> logger):
             base(dbContext, logger) { }
 
 
@@ -35,38 +35,40 @@ namespace SignalRadio.Web.Api.Controllers
         [HttpGet]
         public async Task<IEnumerable<RadioSystem>> GetAsync()
         {
-            await DbContext.RadioSystems.AddAsync(new RadioSystem() 
-            {
-                City = "test",
-                State = "testState",
-                County = "TestCounty",
-                SystemType = RadioSystemType.P25Phase2,
-                SystemVoice = RadioSystemVoice.APCO25,
-                LastUpdatedUtc = DateTime.UtcNow,
-                ControlFrequencies = new Collection<RadioFrequency>()
-                {
-                    new RadioFrequency()
-                    {
-                        FrequencyHz = 172000000,
-                        ControlData = true,
-                    },
-                    new RadioFrequency()
-                    {
-                        FrequencyHz = 174000000,
-                        ControlData = false,
-                    }
-                }
-            });
-            
-            await DbContext.SaveChangesAsync();
+            throw new NotImplementedException();
+            //await DbContext.RadioSystems.AddAsync(new RadioSystem() 
+            //{
+            //    City = "test",
+            //    State = "testState",
+            //    County = "TestCounty",
+            //    SystemType = RadioSystemType.P25Phase2,
+            //    SystemVoice = RadioSystemVoice.APCO25,
+            //    LastUpdatedUtc = DateTime.UtcNow,
+            //    ControlFrequencies = new Collection<RadioFrequency>()
+            //    {
+            //        new RadioFrequency()
+            //        {
+            //            FrequencyHz = 172000000,
+            //            ControlData = true,
+            //        },
+            //        new RadioFrequency()
+            //        {
+            //            FrequencyHz = 174000000,
+            //            ControlData = false,
+            //        }
+            //    }
+            //});
 
-            return DbContext.RadioSystems;
+            //await DbContext.SaveChangesAsync();
+
+            //return DbContext.RadioSystems;
         }
 
         [HttpGet("{id}")]
         public async Task<RadioSystem> GetOneAsync(uint id)
         {
-            return await Task.FromResult(DbContext.RadioSystems.FirstOrDefault(r => r.Id == id));
+            throw new NotImplementedException();
+            //return await Task.FromResult(DbContext.RadioSystems.FirstOrDefault(r => r.Id == id));
         }
 
         [HttpDelete]

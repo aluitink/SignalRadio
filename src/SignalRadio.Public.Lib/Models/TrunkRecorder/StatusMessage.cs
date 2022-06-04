@@ -26,4 +26,9 @@ namespace SignalRadio.Public.Lib.Models.TrunkRecorder
         [JsonProperty("type")]
         public string Type { get; set; }
     }
+
+    public class Config
+    {
+
+    }
 }

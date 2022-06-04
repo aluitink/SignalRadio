@@ -12,7 +12,7 @@ using SRStream = SignalRadio.Public.Lib.Models.Stream;
 
 namespace SignalRadio.Web.Api.Services
 {
-    public class BulkImportService: IDisposable
+    public class BulkImportService
     {
         private readonly ISignalRadioDbContext _dbContext;
         
@@ -119,16 +119,16 @@ namespace SignalRadio.Web.Api.Services
                         dbTalkGroup.AlphaTag = alphaTag;
                         dbTalkGroup.Name = tgName;
 
-                        if(dbTalkGroup.TalkGroupStreams is null)
-                            dbTalkGroup.TalkGroupStreams = new Collection<TalkGroupStream>();
+                        //if(dbTalkGroup.TalkGroupStreams is null)
+                        //    dbTalkGroup.TalkGroupStreams = new Collection<TalkGroupStream>();
 
-                        foreach(var stream in streams)
-                        {
-                            var dbStream = await GetOrCreateStreamAsync(new SRStream() { StreamIdentifier = stream });
+                        //foreach(var stream in streams)
+                        //{
+                        //    var dbStream = await GetOrCreateStreamAsync(new SRStream() { StreamIdentifier = stream });
 
-                            if(dbTalkGroup.TalkGroupStreams.FirstOrDefault(tgs => tgs.StreamId == dbStream.Id) is null)
-                                dbTalkGroup.TalkGroupStreams.Add(new TalkGroupStream() { TalkGroup = dbTalkGroup, TalkGroupId = dbTalkGroup.Id, Stream = dbStream, StreamId = dbStream.Id });
-                        }
+                        //    if(dbTalkGroup.TalkGroupStreams.FirstOrDefault(tgs => tgs.StreamId == dbStream.Id) is null)
+                        //        dbTalkGroup.TalkGroupStreams.Add(new TalkGroupStream() { TalkGroup = dbTalkGroup, TalkGroupId = dbTalkGroup.Id, Stream = dbStream, StreamId = dbStream.Id });
+                        //}
                     }
                     catch(Exception e)
                     {
@@ -147,7 +147,5 @@ namespace SignalRadio.Web.Api.Services
                 ItemsProcessed = talkGroupCount
             };
         }
-
-        public void Dispose() {  }
     }
 }

@@ -143,3 +143,7 @@ dist
 .certs/
 *.db
 src/SignalRadio.Web.UI/ClientApp/package-lock.json
+/src/SignalRadio.ArchiveCrawler
+/src/SignalRadio.Web.Api2
+*.jfm
+*.dbmdl

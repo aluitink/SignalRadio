@@ -10,7 +10,7 @@ namespace SignalRadio.Web.Api.Controllers
     [Route("api/[controller]")]
     public class RadioGroupsController : SignalRadioControllerBase
     {
-        public RadioGroupsController(SignalRadioDbContext dbContext, ILogger<TalkGroupsController> logger):
+        public RadioGroupsController(SignalRadioDbContext dbContext, ILogger<RadioCallsController> logger):
             base(dbContext, logger) { }
 
         [HttpGet]

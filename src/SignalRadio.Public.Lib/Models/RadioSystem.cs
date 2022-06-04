@@ -38,11 +38,15 @@ namespace SignalRadio.Public.Lib.Models
 
         public void UpdateFromSystem(TrunkRecorder.System system)
         {
-            ShortName = system.ShortName;
+            if(!string.IsNullOrWhiteSpace(system.ShortName))
+                ShortName = system.ShortName;
             
-            SystemNumber = system.SystemNumber;
-            NAC = system.NAC;
-            WANC = system.WACN;
+            if(system.SystemId > 0)
+                SystemNumber = system.SystemId;
+            if(system.NAC > 0)
+                NAC = system.NAC;
+            if(system.WACN > 0)
+                WANC = system.WACN;
 
             if(system.SystemType != null)
                 SystemType = (RadioSystemType)Enum.Parse(typeof(RadioSystemType), system.SystemType, true);

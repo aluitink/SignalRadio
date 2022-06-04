@@ -27,36 +27,43 @@ namespace SignalRadio.Web.Api.Controllers
         [HttpPost]
         public async Task<RadioCall> PostOneAsync([FromBody]RadioCall radioCall)
         {
-            var tgIdent = radioCall.TalkGroupIdentifier;
+            throw new NotImplementedException();
+            //using (var scope = ServiceScopeFactory.CreateScope())
+            //{
+            //    using (var ctx = scope.ServiceProvider.GetRequiredService<SignalRadioDbContext>())
+            //    {
+            //        var tgIdent = radioCall.TalkGroupIdentifier;
 
-            if(radioCall.TalkGroupId <= 0)
-            {
-                var talkGroup = await DbContext
-                                .TalkGroups
-                                .FirstOrDefaultAsync(t => t.Identifier == tgIdent);
-                if(talkGroup == null)
-                {
-                    talkGroup = new TalkGroup()
-                    {
-                        Identifier = tgIdent
-                    };
+            //        if (radioCall.TalkGroupId <= 0)
+            //        {
+            //            var talkGroup = await DbContext
+            //                            .TalkGroups
+            //                            .FirstOrDefaultAsync(t => t.Identifier == tgIdent);
+            //            if (talkGroup == null)
+            //            {
+            //                talkGroup = new TalkGroup()
+            //                {
+            //                    Identifier = tgIdent
+            //                };
 
-                    var tgEntity = await DbContext
-                        .TalkGroups
-                        .AddAsync(talkGroup);
-                    
-                    await DbContext.SaveChangesAsync();
+            //                var tgEntity = await DbContext
+            //                    .TalkGroups
+            //                    .AddAsync(talkGroup);
 
-                    talkGroup = tgEntity.Entity;
-                }
+            //                await DbContext.SaveChangesAsync();
 
-                radioCall.TalkGroupId = talkGroup.Id;
-            }
+            //                talkGroup = tgEntity.Entity;
+            //            }
 
-            var radioCallEntity = await DbContext.RadioCalls.AddAsync(radioCall);
-            await DbContext.SaveChangesAsync();
+            //            radioCall.TalkGroupId = talkGroup.Id;
+            //        }
 
-            return radioCallEntity.Entity;
+            //        var radioCallEntity = await DbContext.RadioCalls.AddAsync(radioCall);
+            //        await DbContext.SaveChangesAsync();
+
+            //        return radioCallEntity.Entity;
+            //    }
+            //}
         }
 
         [HttpGet]

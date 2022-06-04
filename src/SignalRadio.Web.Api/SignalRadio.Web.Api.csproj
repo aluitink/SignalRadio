@@ -1,16 +1,25 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk.Web">
+
   <PropertyGroup>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
-    <UserSecretsId>9689855e-af34-4771-bdc4-6ebb9ada370d</UserSecretsId>
+    <TargetFramework>net6.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>46b01e4f-6893-427b-b868-7d73bd3f5d45</UserSecretsId>
+    <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
   </PropertyGroup>
+
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="3.1.5" />
-    <PackageReference Include="Microsoft.DotNet.Watcher.Tools" Version="2.0.2" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="3.1.5" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="6.0.5" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="6.0.5">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.14.0" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.2.3" />
   </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\SignalRadio.Database.EF\SignalRadio.Database.EF.csproj" />
-    <ProjectReference Include="..\SignalRadio.Public.Lib\SignalRadio.Public.Lib.csproj" />
   </ItemGroup>
+
 </Project>

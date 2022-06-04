@@ -1,0 +1,42 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="6.0.5" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="6.0.1" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.11.0" />
+    <PackageReference Include="NUnit" Version="3.13.2" />
+    <PackageReference Include="NUnit3TestAdapter" Version="4.0.0" />
+    <PackageReference Include="coverlet.collector" Version="3.1.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SignalRadio.Web.Api\SignalRadio.Web.Api.csproj" />
+  </ItemGroup>
+
+	<ItemGroup>
+		<Content Remove="Assets\TrunkRecorderStatusMessages\tr-calls-active-msg.json" />
+		<Content Remove="Assets\TrunkRecorderStatusMessages\tr-calls-end-msg.json" />
+		<Content Remove="Assets\TrunkRecorderStatusMessages\tr-config-msg.json" />
+		<Content Remove="Assets\TrunkRecorderStatusMessages\tr-rates-msg.json" />
+		<Content Remove="Assets\TrunkRecorderStatusMessages\tr-recorder-msg.json" />
+		<Content Remove="Assets\TrunkRecorderStatusMessages\tr-recorders-msg.json" />
+		<Content Remove="Assets\TrunkRecorderStatusMessages\tr-system-msg.json" />
+		<Content Remove="Assets\TalkGroupFiles\danecom-talkgroups.priorities.csv" />
+	</ItemGroup>
+	<ItemGroup>
+	  <EmbeddedResource Include="Assets\TrunkRecorderStatusMessages\tr-calls-active-msg.json" />
+	  <EmbeddedResource Include="Assets\TrunkRecorderStatusMessages\tr-calls-end-msg.json" />
+	  <EmbeddedResource Include="Assets\TrunkRecorderStatusMessages\tr-config-msg.json" />
+	  <EmbeddedResource Include="Assets\TrunkRecorderStatusMessages\tr-rates-msg.json" />
+	  <EmbeddedResource Include="Assets\TrunkRecorderStatusMessages\tr-recorder-msg.json" />
+	  <EmbeddedResource Include="Assets\TrunkRecorderStatusMessages\tr-recorders-msg.json" />
+	  <EmbeddedResource Include="Assets\TrunkRecorderStatusMessages\tr-system-msg.json" />
+	  <EmbeddedResource Include="Assets\TalkGroupFiles\danecom-talkgroups.priorities.csv" />
+  </ItemGroup>
+</Project>

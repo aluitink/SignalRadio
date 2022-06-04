@@ -10,9 +10,9 @@ namespace SignalRadio.Public.Lib.Models
         public string EmailAddress {get;set;}
         [JsonIgnore]
         [Newtonsoft.Json.JsonIgnore]
-        public Collection<MountPoint> MountPoints {get;set;}
+        public Collection<MountPoint> MountPoints { get; set; }
         [JsonIgnore]
         [Newtonsoft.Json.JsonIgnore]
-        public Collection<Stream> Streams {get;set;}
+        public Collection<Stream> Streams { get; set; }
     }
 }

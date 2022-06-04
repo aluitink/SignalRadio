@@ -1,0 +1,17 @@
+{
+    "recorder": {
+        "id": "0_1",
+        "type": "P25",
+        "srcNum": "0",
+        "recNum": "1",
+        "count": "18",
+        "duration": "150.12",
+        "state": "2",
+        "status_len": "0",
+        "status_error": "0",
+        "status_spike": "0"
+    },
+    "type": "recorder",
+    "instanceId": "",
+    "instanceKey": ""
+}

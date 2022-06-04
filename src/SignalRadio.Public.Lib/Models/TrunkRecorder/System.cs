@@ -18,6 +18,9 @@ namespace SignalRadio.Public.Lib.Models.TrunkRecorder
         [JsonProperty("sysNum")]
         public int SystemNumber { get; set; }
 
+        [JsonProperty("sysid")]
+        public int SystemId { get; set; }
+
         [JsonProperty("uploadScript")]
         public string UploadScript { get; set; }
 
@@ -39,8 +42,8 @@ namespace SignalRadio.Public.Lib.Models.TrunkRecorder
         [JsonProperty("wacn")]
         public int WACN { get;set; }
 
-        [JsonProperty("Id")]
-        private int _Id { set { SystemNumber = value; } }
+        //[JsonProperty("Id")]
+        //private int _Id { set { SystemNumber = value; } }
 
         [JsonProperty("name")]
         private string _SystemName { set { ShortName = value; } }

@@ -6,7 +6,7 @@ namespace SignalRadio.Public.Lib.Models.TrunkRecorder
     public class Source
     {
         [JsonProperty("source_num")]
-        public string SourceNumber { get; set; }
+        public int SourceNumber { get; set; }
 
         [JsonProperty("antenna")]
         public string Antenna { get; set; }
@@ -79,5 +79,10 @@ namespace SignalRadio.Public.Lib.Models.TrunkRecorder
 
         [JsonProperty("sigmf_recorders")]
         public string SigmfRecorders { get; set; }
+
+        public override string ToString()
+        {
+            return string.Format("Id:{0}, Min:{1}, Max:{2}, Center:{3}, Rate:{4}, Driver:{5}, Device:{6}", SourceNumber, MinHz, MaxHz, Center, Rate, Driver, Device);
+        }
     }
 }

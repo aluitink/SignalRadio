@@ -10,7 +10,7 @@ namespace SignalRadio.Web.Api.Controllers
     [Route("api/[controller]")]
     public class RadioFreqenciesController : SignalRadioControllerBase
     {
-        public RadioFreqenciesController(SignalRadioDbContext dbContext, ILogger<TalkGroupsController> logger):
+        public RadioFreqenciesController(SignalRadioDbContext dbContext, ILogger<RadioCallsController> logger) :
             base(dbContext, logger) { }
 
         [HttpGet]

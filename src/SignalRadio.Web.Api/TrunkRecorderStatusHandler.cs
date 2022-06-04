@@ -19,16 +19,21 @@ namespace SignalRadio.Web.Api
     public class TrunkRecorderStatusHandler
     {
         protected bool IsTraceEnabled { get; }
-        protected SignalRadioDbContext DbContext { get; }
-        public TrunkRecorderStatusHandler(SignalRadioDbContext dbContext)
+
+        protected ISignalRadioDbContext DbContext { get; }
+        protected ILogger Logger { get; }
+
+        public TrunkRecorderStatusHandler(ISignalRadioDbContext dbContext, ILogger logger)
         {
             DbContext = dbContext;
+            Logger = logger;
         }
 
         public async Task StartStatusMessageHandlerAsync(HttpContext context,
                                             WebSocket webSocket,
                                             CancellationToken cancellationToken = default(CancellationToken))
         {
+            Logger.LogInformation("Starting Trunk Recorder Status Handler - Client: {0}", context.Connection.RemoteIpAddress);
             await DbContext.Database.EnsureCreatedAsync(cancellationToken);
 
             var buffer = new byte[1024 * 16];
@@ -44,72 +49,121 @@ namespace SignalRadio.Web.Api
                 }
                 catch (System.Exception e)
                 {
-                    
+                    Logger.LogError(e, "Error in status message handler");
                 }
             }
-            while (!result.CloseStatus.HasValue);
+            while (result != null && !result.CloseStatus.HasValue);
 
-            await webSocket.CloseAsync(result.CloseStatus.Value, result.CloseStatusDescription, cancellationToken);
+            var closeStatus = WebSocketCloseStatus.Empty;
+            var closeStatusDescription = string.Empty;
+
+            if (result != null)
+            {
+                closeStatus = result.CloseStatus.GetValueOrDefault();
+                closeStatusDescription = result.CloseStatusDescription;
+            }
+
+            await webSocket.CloseAsync(closeStatus, closeStatusDescription, cancellationToken);
         }
-        private async Task HandleStatusMessageAsync(byte[] messageBuffer, int count, 
+        public async Task HandleStatusMessageAsync(byte[] messageBuffer, int count, 
                                             CancellationToken cancellationToken = default(CancellationToken))
-        {   
-            var jsonString = ToUtf8(messageBuffer, count);
+        {
+            var messageString = ToUtf8(messageBuffer, count);
 
             if(IsTraceEnabled)
-                TraceMessage(jsonString);
+                TraceMessage(messageString);
 
-            var obj = JObject.Parse(jsonString);
-            var message = obj.First.DeepClone();
-            
-            obj.First.Remove();
-            var statusMessage = obj.ToObject<StatusMessage>();
-            
+            var messageObject = JObject.Parse(messageString);
+            if (messageObject == null)
+                throw new Exception("Could not parse status message");
+
+            var statusMessage = messageObject.ToObject<StatusMessage>();
+            if (statusMessage == null)
+                throw new Exception("Could not convert to StatusMessage");
+
             switch(statusMessage.Type)
             {
                 case "config":
+                    var sources = messageObject["sources"]?.ToObject<List<Source>>();
+                    var sys = messageObject["systems"]?.ToObject<List<TR.System>>();
+
+                    await HandleSourcesAsync(sources, cancellationToken);
+                    await HandleSystemsAsync(sys, cancellationToken);
                     break;
                 case "rates":
-                    var rates = message.First.ToObject<List<Rate>>();
+                    var rates = messageObject["rates"]?.ToObject<List<TR.Rate>>();
                     await HandleRatesAsync(rates, cancellationToken);
                     break;
                 case "systems":
-                    var systems = message.First.ToObject<List<TR.System>>();
+                    var systems = messageObject["systems"]?.ToObject<List<TR.System>>();
                     await HandleSystemsAsync(systems, cancellationToken);
                     break;
                 case "calls_active":
-                    var calls = message.First.ToObject<List<Call>>();
+                    var calls = messageObject["calls"]?.ToObject<List<TR.Call>>();
                     await HandleCallsActiveAsync(calls, cancellationToken);
                     break;
                 case "call_start":
                 case "call_end":
-                    var call = message.First.ToObject<Call>();
+                    var call = messageObject["call"]?.ToObject<Call>();
                     await HandleCallsActiveAsync(new [] { call }, cancellationToken);
                     break;
                 case "recorders":
-                    var recorder = message.First.ToObject<Recorder>();
-                    await HandleRecordersAsync(new List<Recorder>() { recorder }, cancellationToken);
-                    break;
-                case "recorder":
-                    var recorders = message.First.ToObject<List<Recorder>>();
+                    var recorders = messageObject["recorders"]?.ToObject<List<TR.Recorder>>();
                     await HandleRecordersAsync(recorders, cancellationToken);
                     break;
+                case "recorder":
+                    var recorder = messageObject["recorder"]?.ToObject<Recorder>();
+                    await HandleRecordersAsync(new [] { recorder } , cancellationToken);
+                    break;
             }
+        }
 
+        private async Task HandleSourcesAsync(IEnumerable<TR.Source> sources, CancellationToken cancellationToken)
+        {
+            if (sources == null)
+                return;
+
+            foreach (var source in sources)
+            {
+                var radioSource = await DbContext.RadioSources.FirstOrDefaultAsync(rs => rs.SourceNumber == source.SourceNumber && rs.Device == source.Device);
+                if (radioSource == null)
+                {
+                    radioSource = RadioSource.FromSource(source);
+                    await DbContext.RadioSources.AddAsync(radioSource, cancellationToken);
+                }
+                else
+                {
+                    radioSource.UpdateFromSource(source);
+                }
+
+                Logger.LogInformation(radioSource.ToString());
+            }
             await DbContext.SaveChangesAsync(cancellationToken);
-        }
-
-        private async Task HandleRatesAsync(List<Rate> rates, CancellationToken cancellationToken = default(CancellationToken))
-        {
 
         }
 
-        private async Task HandleSystemsAsync(List<TR.System> systems, CancellationToken cancellationToken = default(CancellationToken))
+        private async Task HandleRatesAsync(IEnumerable<TR.Rate> rates, CancellationToken cancellationToken = default(CancellationToken))
         {
+            if (rates == null)
+                return;
+
+            foreach (var rate in rates)
+            {
+                Logger.LogInformation("DecodeRate: {0}", rate.Decoderate);
+            }
+        }
+
+        private async Task HandleSystemsAsync(IEnumerable<TR.System> systems, CancellationToken cancellationToken = default(CancellationToken))
+        {
+            if (systems == null)
+                return;
+
             foreach (var sys in systems)
             {
+                var systemId = sys.SystemNumber > 0 ? sys.SystemNumber : sys.SystemId;
+
                 var radioSystem = await DbContext
-                                    .RadioSystems.FirstOrDefaultAsync(rs => rs.Name == sys.ShortName);
+                                    .RadioSystems.FirstOrDefaultAsync(rs => rs.ShortName == sys.ShortName && rs.SystemNumber == systemId);
 
                 if(radioSystem == null)
                 {
@@ -120,48 +174,76 @@ namespace SignalRadio.Web.Api
                 {
                     radioSystem.UpdateFromSystem(sys);
                 }
+
+                Logger.LogInformation(sys.ToString());
             }
+            await DbContext.SaveChangesAsync(cancellationToken);
         }
 
-        private async Task HandleCallsActiveAsync(IEnumerable<Call> calls, CancellationToken cancellationToken = default(CancellationToken))
+        private async Task HandleCallsActiveAsync(IEnumerable<TR.Call> calls, CancellationToken cancellationToken = default(CancellationToken))
         {
-            foreach(var call in calls)
+            if (calls == null)
+                return;
+            foreach (var call in calls)
             {
-                var radioCall = await DbContext.RadioCalls.FirstOrDefaultAsync(c => c.CallIdentifier == call.Id);
-
+                var radioCall = await DbContext.RadioCalls
+                    .FirstOrDefaultAsync(c => c.CallIdentifier == call.Id);
                 if(radioCall == null)
                 {
-                    radioCall = RadioCall.FromCall(call);
+                    var tgIdentifier = ushort.Parse(call.Talkgroup);
 
-                    await DbContext
-                        .RadioCalls.AddAsync(radioCall, cancellationToken);
+                    var existingTalkgroup = await DbContext.TalkGroups
+                        .FirstOrDefaultAsync(tg => tg.Identifier == tgIdentifier);
+
+                    if(existingTalkgroup == null)
+                    {
+                        existingTalkgroup = new TalkGroup()
+                        {
+                            Identifier = tgIdentifier,
+                            AlphaTag = call.Talkgrouptag
+                        };
+                        await DbContext.TalkGroups
+                            .AddAsync(existingTalkgroup, cancellationToken);
+                        await DbContext.SaveChangesAsync();
+                    }
+
+                    radioCall = RadioCall.FromCall(call);
+                    radioCall.TalkGroupId = existingTalkgroup.Id;
+
+                    await DbContext.RadioCalls
+                        .AddAsync(radioCall, cancellationToken);
                 }
                 else
                 {
                     radioCall.UpdateFromCall(call);
                 }
+
+                Logger.LogInformation(radioCall.ToString());
             }
+            await DbContext.SaveChangesAsync(cancellationToken);
         }
 
-        private async Task HandleRecordersAsync(List<Recorder> recorders, CancellationToken cancellationToken = default(CancellationToken))
+        private async Task HandleRecordersAsync(IEnumerable<TR.Recorder> recorders, CancellationToken cancellationToken = default(CancellationToken))
         {
             foreach (var recorder in recorders)
             {
-                var radioRecorder = await DbContext.Recorders
+                var radioRecorder = await DbContext.RadioRecorders
                                         .FirstOrDefaultAsync(r => r.RecorderIdentifier == recorder.Id);
 
                 if(radioRecorder == null)
                 {
                     radioRecorder = RadioRecorder.FromRecorder(recorder);
-                    await DbContext.Recorders.AddAsync(radioRecorder, cancellationToken);
+                    await DbContext.RadioRecorders.AddAsync(radioRecorder, cancellationToken);
                 }
                 else
                 {
                     radioRecorder.UpdateFromRecorder(recorder);
-                } 
+                }
+
+                Logger.LogInformation(radioRecorder.ToString());
             }
 
-            await DbContext.SaveChangesAsync();
+            await DbContext.SaveChangesAsync(cancellationToken);
         }
 
         private void TraceMessage(string jsonString)
