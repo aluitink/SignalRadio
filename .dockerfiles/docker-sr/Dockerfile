@@ -1,5 +1,6 @@
 #build stage
-FROM mcr.microsoft.com/dotnet/core/sdk:3.1 AS build
+#FROM mcr.microsoft.com/dotnet/core/sdk:3.1 AS build
+FROM mcr.microsoft.com/dotnet/sdk:6.0 AS build
 
 RUN apt-get update \
     && apt-get -y install nodejs npm \
@@ -38,7 +39,8 @@ RUN dotnet publish -c Release --no-build -o /app/SignalRadio/SignalRadio.Web.UI 
 RUN dotnet publish -c Release --no-build -o /app/SignalRadio/SignalRadio.Web.Api SignalRadio.Web.Api/*.csproj
 
 ###API Service Image
-FROM mcr.microsoft.com/dotnet/core/aspnet:3.1 as api
+#FROM mcr.microsoft.com/dotnet/core/aspnet:3.1 as api
+FROM mcr.microsoft.com/dotnet/aspnet:6.0 AS api
 
 WORKDIR /app
 
@@ -48,14 +50,14 @@ EXPOSE 443
 ENTRYPOINT ["dotnet", "SignalRadio.Web.Api.dll"]
 
 ###UI Service Image
-FROM mcr.microsoft.com/dotnet/core/aspnet:3.1 as ui
+#FROM mcr.microsoft.com/dotnet/core/aspnet:3.1 as ui
 
-WORKDIR /app
+#WORKDIR /app
 
-COPY --from=publish /app/SignalRadio/SignalRadio.Web.UI .
-EXPOSE 80
-EXPOSE 443
-ENTRYPOINT ["dotnet", "SignalRadio.Web.UI.dll"]
+#COPY --from=publish /app/SignalRadio/SignalRadio.Web.UI .
+#EXPOSE 80
+#EXPOSE 443
+#ENTRYPOINT ["dotnet", "SignalRadio.Web.UI.dll"]
 
 ##Icecast2 Image
 FROM debian:stable-slim AS icecast
@@ -122,8 +124,8 @@ RUN mkdir /var/run/liquidsoap
 COPY .dockerfiles/docker-sr/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
 COPY .dockerfiles/docker-sr/trunk-recorder /app/trunk-recorder
-COPY .dockerfiles/docker-sr/liquid-bridge /app/liquid-bridge
-COPY --from=publish /app/SignalRadio/SignalRadio.LiquidBridge /app/liquid-bridge/app
+#COPY .dockerfiles/docker-sr/liquid-bridge /app/liquid-bridge
+#COPY --from=publish /app/SignalRadio/SignalRadio.LiquidBridge /app/liquid-bridge/app
 
 RUN chown -R liquidsoap:root /app
 RUN chown -R liquidsoap:root /var/run/liquidsoap

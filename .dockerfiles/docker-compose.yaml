@@ -46,28 +46,28 @@ services:
       - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://+
       - ASPNETCORE_HTTPS_PORT=443
-      - ASPNETCORE_ConnectionStrings__SignalRadioDb=Data Source=/app/.data/signalRadio.db
+#      - ASPNETCORE_ConnectionStrings__SignalRadioDb=Data Source=/app/.data/signalRadio.db
     ports:
       - 8001:80
       - 44301:443
-  sr-web-ui:
-    build:
-      context: ../
-      dockerfile: .dockerfiles/docker-sr/Dockerfile
-      target: ui
-    restart: unless-stopped
-    privileged: true
-    depends_on: 
-      - sr-web-api
-    volumes:
-      - sr-web:/app/.certs/
-    environment:
-      - ASPNETCORE_ENVIRONMENT=Production
-      - ASPNETCORE_URLS=http://+
-      - ASPNETCORE_HTTPS_PORT=443
-    ports:
-      - 8002:80
-      - 44302:443
+#  sr-web-ui:
+#    build:
+#      context: ../
+#      dockerfile: .dockerfiles/docker-sr/Dockerfile
+#      target: ui
+#    restart: unless-stopped
+#    privileged: true
+#    depends_on: 
+#      - sr-web-api
+#    volumes:
+#      - sr-web:/app/.certs/
+#    environment:
+#      - ASPNETCORE_ENVIRONMENT=Production
+#      - ASPNETCORE_URLS=http://+
+#      - ASPNETCORE_HTTPS_PORT=443
+#    ports:
+#      - 8002:80
+#      - 44302:443
 # networks:
 #  nginx-proxy: # Name of our shared network that containers will use
 volumes:
