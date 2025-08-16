@@ -1,0 +1,66 @@
+services:
+  # SignalRadio API Service
+  signalradio-api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api
+    container_name: signalradio-api
+    ports:
+      - "5000:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+      - AzureStorage__ConnectionString=${AZURE_STORAGE_CONNECTION_STRING}
+      - AzureStorage__ContainerName=recordings
+    volumes:
+      # Temporary processing (named volume)
+      - temp:/app/temp
+      # Configuration files (if needed for API settings)
+      - ./config:/app/config:ro
+    networks:
+      - signalradio-network
+    depends_on:
+      - trunk-recorder
+    restart: unless-stopped
+
+  # Trunk Recorder Service
+  trunk-recorder:
+    image: robotastic/trunk-recorder:latest
+    container_name: trunk-recorder
+    command: ["trunk-recorder", "--config=/app/config/trunk-recorder.json"]
+    volumes:
+      - /var/run/dbus:/var/run/dbus 
+      - /var/run/avahi-daemon/socket:/var/run/avahi-daemon/socket
+      # Configuration files (external)
+      - ./config:/app/config:ro
+      # Scripts (external)
+      - ./scripts:/app/scripts:ro
+      # Audio recordings (named volume)
+      - recordings:/app/audio
+      # Temporary processing (named volume)
+      - temp:/app/temp
+      # Logs
+      - logs:/app/logs
+    environment:
+      - UPLOAD_SCRIPT=/app/scripts/upload_callback.sh
+      - API_ENDPOINT=http://signalradio-api:8080/api/recording/upload
+    networks:
+      - signalradio-network
+    restart: unless-stopped
+    # Note: trunk-recorder needs RTL-SDR hardware access
+    devices:
+      - /dev/bus/usb:/dev/bus/usb:rwm
+    privileged: true
+
+networks:
+  signalradio-network:
+    driver: bridge
+
+volumes:
+  # Named volumes for persistent data
+  recordings:
+    driver: local
+  temp:
+    driver: local
+  logs:
+    driver: local
