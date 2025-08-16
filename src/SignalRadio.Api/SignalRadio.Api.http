@@ -1,17 +1,11 @@
 @SignalRadio.Api_HostAddress = http://localhost:5210
 
+###
 # Health Check
 GET {{SignalRadio.Api_HostAddress}}/health
 Accept: application/json
 
 ###
-
-# Recording Controller Health Check
-GET {{SignalRadio.Api_HostAddress}}/api/recording/health
-Accept: application/json
-
-###
-
 # Upload Recording (WAV only)
 POST {{SignalRadio.Api_HostAddress}}/api/recording/upload
 Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
@@ -27,34 +21,105 @@ Content-Disposition: form-data; name="Frequency"
 ------WebKitFormBoundary7MA4YWxkTrZu0gW
 Content-Disposition: form-data; name="Timestamp"
 
-2024-01-15T14:30:00Z
+2025-08-16T21:00:00Z
 ------WebKitFormBoundary7MA4YWxkTrZu0gW
 Content-Disposition: form-data; name="SystemName"
 
-DanecomSystem
+TestSystem
 ------WebKitFormBoundary7MA4YWxkTrZu0gW
-Content-Disposition: form-data; name="audioFile"; filename="test.wav"
+Content-Disposition: form-data; name="audioFile"; filename="sample.wav"
 Content-Type: audio/wav
 
-< ./test-files/sample.wav
+< ../../test-files/sample.wav
 ------WebKitFormBoundary7MA4YWxkTrZu0gW--
 
 ###
+# Upload Recording (M4A only)
+POST {{SignalRadio.Api_HostAddress}}/api/recording/upload
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
 
-# List Recordings
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="TalkgroupId"
+
+67890
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="Frequency"
+
+852.2375
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="Timestamp"
+
+2025-08-16T21:05:00Z
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="SystemName"
+
+TestSystem
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="m4aFile"; filename="sample.m4a"
+Content-Type: audio/mp4
+
+< ../../test-files/sample.m4a
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+###
+# Upload Recording (Both WAV and M4A)
+POST {{SignalRadio.Api_HostAddress}}/api/recording/upload
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="TalkgroupId"
+
+11111
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="Frequency"
+
+853.4625
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="Timestamp"
+
+2025-08-16T21:10:00Z
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="SystemName"
+
+TestSystem
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="audioFile"; filename="sample.wav"
+Content-Type: audio/wav
+
+< ../../test-files/sample.wav
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="m4aFile"; filename="sample.m4a"
+Content-Type: audio/mp4
+
+< ../../test-files/sample.m4a
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+###
+# List All Recordings
 GET {{SignalRadio.Api_HostAddress}}/api/recording/list
 Accept: application/json
 
 ###
-
-# List Recordings with filters
-GET {{SignalRadio.Api_HostAddress}}/api/recording/list?systemName=DanecomSystem&talkgroupId=12345
+# List Recordings with System Filter
+GET {{SignalRadio.Api_HostAddress}}/api/recording/list?systemName=TestSystem
 Accept: application/json
 
 ###
+# List Recordings with Talkgroup Filter
+GET {{SignalRadio.Api_HostAddress}}/api/recording/list?systemName=TestSystem&talkgroupId=12345
+Accept: application/json
 
-# Download Recording (replace with actual blob name)
-GET {{SignalRadio.Api_HostAddress}}/api/recording/download/DanecomSystem/12345/2024/01/15/20240115-143000-851.0125Hz.wav
+###
+# List Recordings with Date Range
+GET {{SignalRadio.Api_HostAddress}}/api/recording/list?fromDate=2025-08-16T00:00:00Z&toDate=2025-08-16T23:59:59Z
+Accept: application/json
+
+###
+# Download Recording (replace with actual blob name from list response)
+GET {{SignalRadio.Api_HostAddress}}/api/recording/download/TestSystem/12345/2025/08/16/20250816-210000-851.0125Hz.wav
 Accept: audio/wav
 
 ###
+# Delete Recording (replace with actual blob name from list response)
+DELETE {{SignalRadio.Api_HostAddress}}/api/recording/delete/TestSystem/12345/2025/08/16/20250816-210000-851.0125Hz.wav
+Accept: application/json

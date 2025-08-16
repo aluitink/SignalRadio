@@ -6,9 +6,9 @@ A trunk-recorder integration system that receives, processes, and stores radio r
 
 SignalRadio is a multi-service architecture that:
 - Receives audio recordings from trunk-recorder via callbacks
-- Processes and compresses audio files using FFmpeg
+- Handles both raw wave (.wav) and compressed (.m4a) audio files
 - Stores recordings in Azure Blob Storage
-- Provides a REST API for upload handling
+- Provides a REST API for upload handling and recording management
 
 ## Quick Start
 
@@ -84,9 +84,59 @@ docker-compose ps
 
 ### 6. Verify Operation
 
-- API Health Check: http://localhost:5000/health
+- API Health Check: http://localhost:5210/health
 - Check logs: `docker-compose logs signalradio-api`
 - Monitor uploads: `docker-compose logs trunk-recorder`
+- Test upload: Use the sample files in `test-files/` directory
+
+## Azure Storage Integration
+
+### Configuration
+
+The API supports both development and production Azure Storage configurations:
+
+**Production** (`appsettings.json`):
+```json
+{
+  "AzureStorage": {
+    "ConnectionString": "your_azure_storage_connection_string",
+    "ContainerName": "recordings",
+    "DefaultPathPattern": "{SystemName}/{TalkgroupId}/{Year}/{Month}/{Day}"
+  }
+}
+```
+
+**Development** (`appsettings.Development.json`):
+```json
+{
+  "AzureStorage": {
+    "ConnectionString": "UseDevelopmentStorage=true",
+    "ContainerName": "recordings-dev",
+    "DefaultPathPattern": "{SystemName}/{TalkgroupId}/{Year}/{Month}/{Day}"
+  }
+}
+```
+
+### File Organization
+
+Recordings are automatically organized using a configurable path pattern:
+- Default: `{SystemName}/{TalkgroupId}/{Year}/{Month}/{Day}`
+- Example: `DanecomSystem/12345/2025/08/16/20250816-210000-851.0125Hz.wav`
+
+### API Endpoints
+
+- `POST /api/recording/upload` - Upload new recording (supports both WAV and M4A)
+- `GET /api/recording/list` - List recordings with optional filtering
+- `GET /api/recording/download/{blobName}` - Download a recording
+- `DELETE /api/recording/delete/{blobName}` - Delete a recording
+- `GET /health` - Service health check
+
+### Storage Features
+
+- **Automatic container creation** - Creates storage containers if they don't exist
+- **Comprehensive metadata** - Stores talkgroup, system, frequency, and timing information
+- **Path sanitization** - Ensures valid blob names for Azure Storage
+- **Error handling** - Graceful handling of storage failures with proper logging
 
 ## Configuration Guide
 
@@ -156,8 +206,8 @@ Use [Radio Reference](https://www.radioreference.com) to find:
 1. **trunk-recorder** captures radio traffic from SDR hardware
 2. **Upload callback** triggered when recording completes
 3. **SignalRadio API** receives file and metadata via HTTP POST
-4. **FFmpeg processing** compresses audio (Phase 2)
-5. **Azure Storage** stores final recordings with metadata
+4. **Azure Storage** stores recordings with comprehensive metadata
+5. **REST API** provides full CRUD operations for managing recordings
 
 ## Directory Structure
 
@@ -223,7 +273,15 @@ docker-compose logs trunk-recorder | grep -i "error\|control\|signal"
 docker-compose exec trunk-recorder cat /app/logs/upload.log
 
 # Test API connectivity
-curl http://localhost:5000/health
+curl http://localhost:5210/health
+
+# Test upload with sample files
+curl -X POST http://localhost:5210/api/recording/upload \
+  -F "TalkgroupId=12345" \
+  -F "Frequency=851.0125" \
+  -F "Timestamp=2025-08-16T21:00:00Z" \
+  -F "SystemName=TestSystem" \
+  -F "audioFile=@test-files/sample.wav"
 ```
 
 ### Common Problems
@@ -281,24 +339,34 @@ curl http://localhost:5000/health
 - Project structure and build system
 - Health check and basic upload endpoints
 
-🚧 **Phase 2: Audio Processing** - NEXT
-- FFmpeg integration for audio compression
-- Support for multiple audio formats (Opus, AAC, MP3)
-- Audio quality optimization
+✅ **Phase 2: Dual File Handling** - COMPLETE
+- Support for both WAV and M4A file uploads
+- Enhanced logging for tracking both file types
+- No audio processing needed (trunk-recorder provides both formats)
 
-⏳ **Phase 3: Azure Storage** - PLANNED
+✅ **Phase 3: Azure Storage** - COMPLETE
 - Azure Blob Storage integration
 - Metadata storage and retrieval
 - File organization strategies
+- Full CRUD API for recordings
+- Development and production storage configurations
 
-⏳ **Phase 4: Advanced Features** - PLANNED
+⏳ **Phase 4: Advanced Features** - NEXT
 - Background processing queues
 - Monitoring and alerting
 - Advanced audio analysis
+- Performance optimization
 
 ## Contributing
 
 This project follows a phased development approach. Focus on completing one phase before moving to the next to ensure stability and maintainability.
+
+## Documentation
+
+- [Quick Start Guide](docs/QUICK-START.md) - Get up and running quickly
+- [API Documentation](docs/API.md) - Complete API reference
+- [Phase 3: Azure Storage](docs/PHASE3-AZURE-STORAGE.md) - Azure Storage implementation details
+- [Volume Management](docs/VOLUMES.md) - Docker volume configuration
 
 ## License
 
