@@ -15,45 +15,85 @@ public class RecordingController : ControllerBase
     }
 
     [HttpPost("upload")]
-    public IActionResult UploadRecording([FromForm] RecordingUploadRequest request, IFormFile audioFile)
+    public IActionResult UploadRecording([FromForm] RecordingUploadRequest request, IFormFile? audioFile, IFormFile? m4aFile)
     {
         try
         {
-            _logger.LogInformation("Received recording upload: TalkgroupId={TalkgroupId}, System={SystemName}, Frequency={Frequency}", 
-                request.TalkgroupId, request.SystemName, request.Frequency);
+            var hasWav = audioFile != null && audioFile.Length > 0;
+            var hasM4a = m4aFile != null && m4aFile.Length > 0;
 
-            if (audioFile == null || audioFile.Length == 0)
+            _logger.LogInformation("Recording upload - TalkgroupId={TalkgroupId}, System={SystemName}, Frequency={Frequency}, Timestamp={Timestamp}", 
+                request.TalkgroupId, request.SystemName, request.Frequency, request.Timestamp);
+
+            // Check if at least one audio file is provided
+            if (!hasWav && !hasM4a)
             {
+                _logger.LogWarning("Upload rejected - No audio files provided");
                 return BadRequest("No audio file provided");
             }
 
-            // Phase 1: Just log the upload details
-            var metadata = new RecordingMetadata
+            // Log received files
+            if (hasWav && hasM4a)
             {
-                TalkgroupId = request.TalkgroupId,
-                SystemName = request.SystemName,
-                RecordingTime = request.Timestamp,
-                Frequency = request.Frequency,
-                FileName = audioFile.FileName,
-                OriginalFormat = audioFile.ContentType,
-                OriginalSize = audioFile.Length
-            };
+                _logger.LogInformation("Files received: WAV ({WavSize:N0} bytes) + M4A ({M4aSize:N0} bytes)", 
+                    audioFile!.Length, m4aFile!.Length);
+            }
+            else if (hasWav)
+            {
+                _logger.LogInformation("Files received: WAV only ({WavSize:N0} bytes)", audioFile!.Length);
+            }
+            else
+            {
+                _logger.LogInformation("Files received: M4A only ({M4aSize:N0} bytes)", m4aFile!.Length);
+            }
 
-            _logger.LogInformation("Processing recording: {FileName}, Size: {Size} bytes", 
-                metadata.FileName, metadata.OriginalSize);
+            var uploadedFiles = new List<RecordingMetadata>();
 
-            // TODO Phase 2: Add audio processing
+            // Process WAV file if provided
+            if (hasWav)
+            {
+                var wavMetadata = new RecordingMetadata
+                {
+                    TalkgroupId = request.TalkgroupId,
+                    SystemName = request.SystemName,
+                    RecordingTime = request.Timestamp,
+                    Frequency = request.Frequency,
+                    FileName = audioFile!.FileName,
+                    OriginalFormat = audioFile.ContentType,
+                    OriginalSize = audioFile.Length
+                };
+                uploadedFiles.Add(wavMetadata);
+            }
+
+            // Process M4A file if provided
+            if (hasM4a)
+            {
+                var m4aMetadata = new RecordingMetadata
+                {
+                    TalkgroupId = request.TalkgroupId,
+                    SystemName = request.SystemName,
+                    RecordingTime = request.Timestamp,
+                    Frequency = request.Frequency,
+                    FileName = m4aFile!.FileName,
+                    OriginalFormat = m4aFile.ContentType,
+                    OriginalSize = m4aFile.Length
+                };
+                uploadedFiles.Add(m4aMetadata);
+            }
+
             // TODO Phase 3: Add Azure Blob Storage upload
 
             return Ok(new { 
                 Message = "Recording received successfully", 
-                Metadata = metadata,
-                Status = "Phase1-LogOnly"
+                UploadedFiles = uploadedFiles,
+                FileCount = uploadedFiles.Count,
+                HasDualFormat = hasWav && hasM4a,
+                Status = "Phase2-DualFileHandling"
             });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to process recording upload");
+            _logger.LogError(ex, "Recording upload failed");
             return StatusCode(500, "Processing failed");
         }
     }
@@ -61,6 +101,11 @@ public class RecordingController : ControllerBase
     [HttpGet("health")]
     public IActionResult Health()
     {
-        return Ok(new { Status = "Healthy", Service = "SignalRadio.Api", Phase = "1" });
+        return Ok(new { 
+            Status = "Healthy", 
+            Service = "SignalRadio.Api", 
+            Phase = "2-DualFileHandling",
+            Features = new[] { "WAV Upload", "M4A Upload", "Dual Format Support", "Enhanced Logging" }
+        });
     }
 }
