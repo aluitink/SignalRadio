@@ -52,12 +52,12 @@ public class AzureBlobStorageService : IStorageService
             // Create metadata for the blob
             var blobMetadata = new Dictionary<string, string>
             {
-                ["TalkgroupId"] = metadata.TalkgroupId,
-                ["SystemName"] = metadata.SystemName,
+                ["TalkgroupId"] = SanitizeMetadataValue(metadata.TalkgroupId),
+                ["SystemName"] = SanitizeMetadataValue(metadata.SystemName),
                 ["RecordingTime"] = metadata.RecordingTime.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
-                ["Frequency"] = metadata.Frequency,
-                ["OriginalFileName"] = fileName,
-                ["OriginalFormat"] = metadata.OriginalFormat,
+                ["Frequency"] = SanitizeMetadataValue(metadata.Frequency),
+                ["OriginalFileName"] = SanitizeMetadataValue(fileName),
+                ["OriginalFormat"] = SanitizeMetadataValue(metadata.OriginalFormat),
                 ["OriginalSize"] = metadata.OriginalSize.ToString(),
                 ["UploadedAt"] = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
             };
@@ -184,9 +184,14 @@ public class AzureBlobStorageService : IStorageService
 
         var timestamp = metadata.RecordingTime.ToString("yyyyMMdd-HHmmss");
         var fileExtension = Path.GetExtension(originalFileName);
-        var fileName = $"{timestamp}-{metadata.Frequency}Hz{fileExtension}";
+        var sanitizedFrequency = SanitizePath(metadata.Frequency);
+        var fileName = $"{timestamp}-{sanitizedFrequency}Hz{fileExtension}";
 
-        return $"{pathPattern}/{fileName}";
+        var blobName = $"{pathPattern}/{fileName}";
+        
+        _logger.LogDebug("Generated blob name: {BlobName} for file: {OriginalFileName}", blobName, originalFileName);
+        
+        return blobName;
     }
 
     private string SanitizePath(string input)
@@ -195,12 +200,51 @@ public class AzureBlobStorageService : IStorageService
             return "unknown";
 
         // Replace invalid characters for blob storage paths
-        var invalidChars = new char[] { '\\', '/', ':', '*', '?', '"', '<', '>', '|' };
+        // Azure blob names cannot contain: \ / : * ? " < > | and some others
+        var invalidChars = new char[] { '\\', ':', '*', '?', '"', '<', '>', '|', '\t', '\r', '\n' };
         var sanitized = input;
         
         foreach (var invalidChar in invalidChars)
         {
             sanitized = sanitized.Replace(invalidChar, '-');
+        }
+
+        // Remove any control characters and non-printable characters
+        sanitized = System.Text.RegularExpressions.Regex.Replace(sanitized, @"[\x00-\x1F\x7F]", "");
+        
+        // Replace multiple consecutive dashes with single dash
+        sanitized = System.Text.RegularExpressions.Regex.Replace(sanitized, @"-+", "-");
+        
+        // Remove leading/trailing dashes and whitespace
+        sanitized = sanitized.Trim('-', ' ');
+
+        // Ensure it's not empty after sanitization
+        if (string.IsNullOrEmpty(sanitized))
+            return "unknown";
+
+        return sanitized;
+    }
+
+    private string SanitizeMetadataValue(string input)
+    {
+        if (string.IsNullOrEmpty(input))
+            return "unknown";
+
+        // Azure Blob Storage metadata values must be ASCII and cannot contain certain characters
+        // Remove or replace non-ASCII characters and control characters
+        var sanitized = System.Text.RegularExpressions.Regex.Replace(input, @"[^\x20-\x7E]", "");
+        
+        // Replace problematic characters that might cause header issues
+        var invalidChars = new char[] { '\r', '\n', '\t', '"', '\'' };
+        foreach (var invalidChar in invalidChars)
+        {
+            sanitized = sanitized.Replace(invalidChar, ' ');
+        }
+
+        // Ensure the value is not too long (Azure has a 8KB limit for all metadata combined)
+        if (sanitized.Length > 256)
+        {
+            sanitized = sanitized.Substring(0, 256);
         }
 
         return sanitized.Trim();

@@ -26,8 +26,8 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:8080
-      - AzureStorage__ConnectionString=${AZURE_STORAGE_CONNECTION_STRING}
-      - AzureStorage__ContainerName=recordings
+      - AzureStorage__ConnectionString=${AzureStorage__ConnectionString}
+      - AzureStorage__ContainerName=${AzureStorage__ContainerName}
       - ConnectionStrings__DefaultConnection=Server=sqlserver,1433;Database=SignalRadio;User Id=sa;Password=SignalRadio123!;TrustServerCertificate=true;
     volumes:
       # Temporary processing (named volume)

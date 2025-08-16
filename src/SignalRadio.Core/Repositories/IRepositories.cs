@@ -25,4 +25,10 @@ public interface IRecordingRepository
     Task<Recording> UpdateAsync(Recording recording);
     Task DeleteAsync(int id);
     Task MarkAsUploadedAsync(int id, string blobUri, string blobName);
+    Task MarkUploadFailedAsync(int id, string errorMessage);
+    Task UpdateAudioMetadataAsync(int id, TimeSpan? duration, int? sampleRate, int? bitrate, byte? channels, string? quality, string? fileHash);
+    Task<IEnumerable<Recording>> GetDuplicatesByHashAsync(string fileHash);
+    Task<IEnumerable<Recording>> GetFailedUploadsAsync(int maxAttempts = 3);
+    Task<Dictionary<string, int>> GetRecordingStatsByFormatAsync();
+    Task<Dictionary<string, long>> GetStorageStatsByFormatAsync();
 }

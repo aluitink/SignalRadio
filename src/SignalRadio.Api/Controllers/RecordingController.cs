@@ -30,8 +30,8 @@ public class RecordingController : ControllerBase
             var hasWav = audioFile != null && audioFile.Length > 0;
             var hasM4a = m4aFile != null && m4aFile.Length > 0;
 
-            _logger.LogInformation("Recording upload - TalkgroupId={TalkgroupId}, System={SystemName}, Frequency={Frequency}, Timestamp={Timestamp}",
-                request.TalkgroupId, request.SystemName, request.Frequency, request.Timestamp);
+            _logger.LogInformation("Recording upload - TalkgroupId={TalkgroupId}, System={SystemName}, Frequency={Frequency}, Timestamp={Timestamp}, Duration={Duration}s, StopTime={StopTime}",
+                request.TalkgroupId, request.SystemName, request.Frequency, request.Timestamp, request.Duration, request.StopTime);
 
             // Check if at least one audio file is provided
             if (!hasWav && !hasM4a)
@@ -81,6 +81,7 @@ public class RecordingController : ControllerBase
                     SystemName = request.SystemName,
                     RecordingTime = request.Timestamp,
                     Frequency = request.Frequency,
+                    Duration = request.Duration.HasValue ? TimeSpan.FromSeconds(request.Duration.Value) : TimeSpan.Zero,
                     FileName = audioFile!.FileName,
                     OriginalFormat = audioFile.ContentType,
                     OriginalSize = audioFile.Length
@@ -108,6 +109,7 @@ public class RecordingController : ControllerBase
                 }
                 else
                 {
+                    await _callService.MarkRecordingUploadFailedAsync(wavRecording.Id, wavResult.ErrorMessage ?? "Unknown error");
                     _logger.LogError("Failed to upload WAV file: {Error}", wavResult.ErrorMessage);
                 }
 
@@ -133,6 +135,7 @@ public class RecordingController : ControllerBase
                     SystemName = request.SystemName,
                     RecordingTime = request.Timestamp,
                     Frequency = request.Frequency,
+                    Duration = request.Duration.HasValue ? TimeSpan.FromSeconds(request.Duration.Value) : TimeSpan.Zero,
                     FileName = m4aFile!.FileName,
                     OriginalFormat = m4aFile.ContentType,
                     OriginalSize = m4aFile.Length
@@ -160,6 +163,7 @@ public class RecordingController : ControllerBase
                 }
                 else
                 {
+                    await _callService.MarkRecordingUploadFailedAsync(m4aRecording.Id, m4aResult.ErrorMessage ?? "Unknown error");
                     _logger.LogError("Failed to upload M4A file: {Error}", m4aResult.ErrorMessage);
                 }
 
@@ -294,9 +298,60 @@ public class RecordingController : ControllerBase
         {
             Status = "Healthy",
             Service = "SignalRadio.Api",
-            Phase = "4-DatabaseIntegration",
-            Features = new[] { "WAV Upload", "M4A Upload", "Dual Format Support", "Azure Blob Storage", "SQL Server Database", "Call Tracking", "Recording Management" }
+            Phase = "4-DatabaseIntegration-Optimized",
+            Features = new[] { "WAV Upload", "M4A Upload", "Dual Format Support", "Azure Blob Storage", "SQL Server Database", "Call Tracking", "Recording Management", "Upload Retry", "Audio Metadata", "Quality Analysis" }
         });
+    }
+
+    [HttpGet("stats")]
+    public async Task<IActionResult> GetStats()
+    {
+        try
+        {
+            var stats = await _callService.GetRecordingStatsAsync();
+            return Ok(new
+            {
+                Message = "Recording statistics",
+                Data = stats,
+                Generated = DateTime.UtcNow
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get recording statistics");
+            return StatusCode(500, "Failed to retrieve statistics");
+        }
+    }
+
+    [HttpGet("failed-uploads")]
+    public async Task<IActionResult> GetFailedUploads([FromQuery] int maxAttempts = 3)
+    {
+        try
+        {
+            var failedUploads = await _callService.GetFailedUploadsAsync(maxAttempts);
+            return Ok(new
+            {
+                Message = "Failed uploads",
+                FailedUploads = failedUploads.Select(r => new
+                {
+                    RecordingId = r.Id,
+                    CallId = r.CallId,
+                    FileName = r.FileName,
+                    Format = r.Format,
+                    UploadAttempts = r.UploadAttempts,
+                    LastError = r.LastUploadError,
+                    CreatedAt = r.CreatedAt,
+                    FileSizeMB = r.FileSizeMB
+                }),
+                Count = failedUploads.Count(),
+                MaxAttempts = maxAttempts
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get failed uploads");
+            return StatusCode(500, "Failed to retrieve failed uploads");
+        }
     }
 
     private static string GetContentType(string fileName)

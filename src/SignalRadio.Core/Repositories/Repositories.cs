@@ -177,7 +177,73 @@ public class RecordingRepository : IRecordingRepository
             recording.UploadedAt = DateTime.UtcNow;
             recording.BlobUri = blobUri;
             recording.BlobName = blobName;
+            recording.UpdatedAt = DateTime.UtcNow;
+            recording.UploadAttempts = recording.UploadAttempts + 1;
+            recording.LastUploadError = null; // Clear any previous error
             await _context.SaveChangesAsync();
         }
+    }
+
+    public async Task MarkUploadFailedAsync(int id, string errorMessage)
+    {
+        var recording = await _context.Recordings.FindAsync(id);
+        if (recording != null)
+        {
+            recording.UploadAttempts = recording.UploadAttempts + 1;
+            recording.LastUploadError = errorMessage;
+            recording.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+        }
+    }
+
+    public async Task UpdateAudioMetadataAsync(int id, TimeSpan? duration, int? sampleRate, int? bitrate, byte? channels, string? quality, string? fileHash)
+    {
+        var recording = await _context.Recordings.FindAsync(id);
+        if (recording != null)
+        {
+            recording.Duration = duration;
+            recording.SampleRate = sampleRate;
+            recording.Bitrate = bitrate;
+            recording.Channels = channels;
+            recording.Quality = quality;
+            recording.FileHash = fileHash;
+            recording.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+        }
+    }
+
+    public async Task<IEnumerable<Recording>> GetDuplicatesByHashAsync(string fileHash)
+    {
+        return await _context.Recordings
+            .Include(r => r.Call)
+            .Where(r => r.FileHash == fileHash)
+            .OrderBy(r => r.CreatedAt)
+            .ToListAsync();
+    }
+
+    public async Task<IEnumerable<Recording>> GetFailedUploadsAsync(int maxAttempts = 3)
+    {
+        return await _context.Recordings
+            .Include(r => r.Call)
+            .Where(r => !r.IsUploaded && r.UploadAttempts >= maxAttempts)
+            .OrderBy(r => r.CreatedAt)
+            .ToListAsync();
+    }
+
+    public async Task<Dictionary<string, int>> GetRecordingStatsByFormatAsync()
+    {
+        return await _context.Recordings
+            .GroupBy(r => r.Format)
+            .Select(g => new { Format = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.Format, x => x.Count);
+    }
+
+    public async Task<Dictionary<string, long>> GetStorageStatsByFormatAsync()
+    {
+        return await _context.Recordings
+            .Where(r => r.IsUploaded)
+            .GroupBy(r => r.Format)
+            .Select(g => new { Format = g.Key, TotalSize = g.Sum(r => r.FileSize) })
+            .ToDictionaryAsync(x => x.Format, x => x.TotalSize);
     }
 }

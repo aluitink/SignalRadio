@@ -15,4 +15,14 @@ public class RecordingUploadRequest
 
     [Required]
     public string SystemName { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Call duration in seconds (can be fractional)
+    /// </summary>
+    public double? Duration { get; set; }
+
+    /// <summary>
+    /// Call stop time (Unix timestamp)
+    /// </summary>
+    public long? StopTime { get; set; }
 }

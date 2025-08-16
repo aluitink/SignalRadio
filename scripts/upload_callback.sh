@@ -38,6 +38,8 @@ fi
 TALKGROUP=$(grep -o '"talkgroup":[[:space:]]*[0-9]*' "$JSON_FILE" | sed 's/.*://g' | tr -d ' ')
 FREQUENCY=$(grep -o '"freq":[[:space:]]*[0-9.]*' "$JSON_FILE" | sed 's/.*://g' | tr -d ' ')
 START_TIME=$(grep -o '"start_time":[[:space:]]*[0-9]*' "$JSON_FILE" | sed 's/.*://g' | tr -d ' ')
+STOP_TIME=$(grep -o '"stop_time":[[:space:]]*[0-9]*' "$JSON_FILE" | sed 's/.*://g' | tr -d ' ')
+CALL_LENGTH=$(grep -o '"call_length":[[:space:]]*[0-9.]*' "$JSON_FILE" | sed 's/.*://g' | tr -d ' ')
 SYSTEM_NAME=$(grep -o '"short_name":[[:space:]]*"[^"]*"' "$JSON_FILE" | sed 's/.*"//g' | sed 's/".*//g')
 
 # Convert Unix timestamp to ISO 8601 format
@@ -52,8 +54,10 @@ TALKGROUP="${TALKGROUP:-unknown}"
 FREQUENCY="${FREQUENCY:-0}"
 SYSTEM_NAME="${SYSTEM_NAME:-DaneCom}"
 TIMESTAMP="${TIMESTAMP:-$(date -Iseconds)}"
+CALL_LENGTH="${CALL_LENGTH:-}"
+STOP_TIME="${STOP_TIME:-}"
 
-log "Parsed metadata - Talkgroup: $TALKGROUP, Frequency: $FREQUENCY, System: $SYSTEM_NAME, Timestamp: $TIMESTAMP"
+log "Parsed metadata - Talkgroup: $TALKGROUP, Frequency: $FREQUENCY, System: $SYSTEM_NAME, Timestamp: $TIMESTAMP, Duration: ${CALL_LENGTH}s, Stop: $STOP_TIME"
 
 # Check if audio file exists
 if [ ! -f "$AUDIO_FILE" ]; then
@@ -85,6 +89,18 @@ CURL_ARGS=(
     -F "systemName=${SYSTEM_NAME}"
     -F "audioFile=@${AUDIO_FILE}"
 )
+
+# Add duration if available
+if [ -n "$CALL_LENGTH" ] && [ "$CALL_LENGTH" != "" ]; then
+    CURL_ARGS+=(-F "duration=${CALL_LENGTH}")
+    log "Including call duration: ${CALL_LENGTH} seconds"
+fi
+
+# Add stop time if available
+if [ -n "$STOP_TIME" ] && [ "$STOP_TIME" != "" ]; then
+    CURL_ARGS+=(-F "stopTime=${STOP_TIME}")
+    log "Including stop time: ${STOP_TIME}"
+fi
 
 # Add M4A file if available
 if [ -n "$M4A_FILE" ] && [ -f "$M4A_FILE" ]; then
