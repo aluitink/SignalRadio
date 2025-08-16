@@ -20,6 +20,7 @@ SignalRadio is a trunk-recorder integration system that:
 - Use docker-compose for service orchestration
 - Implement proper error handling and logging
 - Follow separation of concerns principles
+- **After successful implementation of features or significant changes, offer to commit changes to git**
 
 ## Phase Status
 ✅ **Phase 1: Foundation Setup** - COMPLETE
