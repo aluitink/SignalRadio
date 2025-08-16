@@ -17,10 +17,12 @@ This repository includes several GitHub Actions workflows for continuous integra
 - Publish the API project
 - Upload build artifacts
 
-### 2. Docker Build (`docker-build.yml`)
-**Triggers:** Push to `main`/`develop`, PRs to `main`
+### 2. Docker Build (`docker-build.yml.disabled`)
+**Status:** DISABLED - No image repository configured
 
 **Purpose:** Builds Docker images without pushing to registry (for CI validation).
+
+**To Enable:** Rename `docker-build.yml.disabled` to `docker-build.yml` when ready to use Docker builds.
 
 **Steps:**
 - Setup Docker Buildx
