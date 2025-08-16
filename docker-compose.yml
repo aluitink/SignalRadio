@@ -41,6 +41,20 @@ services:
       - sqlserver
     restart: unless-stopped
 
+  # SignalRadio UI Service
+  signalradio-ui:
+    build:
+      context: ./src/SignalRadio.UI
+      dockerfile: Dockerfile
+    container_name: signalradio-ui
+    ports:
+      - "3000:80"
+    networks:
+      - signalradio-network
+    depends_on:
+      - signalradio-api
+    restart: unless-stopped
+
   # Trunk Recorder Service
   trunk-recorder:
     image: robotastic/trunk-recorder:latest

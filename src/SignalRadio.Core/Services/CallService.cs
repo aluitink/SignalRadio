@@ -12,6 +12,7 @@ public interface ICallService
     Task MarkRecordingUploadFailedAsync(int recordingId, string errorMessage);
     Task UpdateRecordingMetadataAsync(int recordingId, TimeSpan? duration, int? sampleRate, int? bitrate, byte? channels, string? quality, string? fileHash);
     Task<Call?> GetCallByIdAsync(int id);
+    Task<Recording?> GetRecordingByIdAsync(int id);
     Task<IEnumerable<Call>> GetRecentCallsAsync(int limit = 50);
     Task<IEnumerable<Call>> GetCallsByTalkgroupAsync(string talkgroupId, int? limit = null);
     Task<IEnumerable<Call>> GetCallsBySystemAsync(string systemName, int? limit = null);
@@ -122,6 +123,11 @@ public class CallService : ICallService
     public async Task<Call?> GetCallByIdAsync(int id)
     {
         return await _callRepository.GetByIdAsync(id);
+    }
+
+    public async Task<Recording?> GetRecordingByIdAsync(int id)
+    {
+        return await _recordingRepository.GetByIdAsync(id);
     }
 
     public async Task<IEnumerable<Call>> GetRecentCallsAsync(int limit = 50)

@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SignalRadio - Talk Group Monitor</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎙️ SignalRadio</h1>
+            <p>Real-time Talk Group Monitor</p>
+            <div class="connection-status" id="connectionStatus">
+                <span class="status-indicator" id="statusIndicator"></span>
+                <span id="statusText">Connecting...</span>
+            </div>
+        </header>
+
+        <main>
+            <!-- Talk Group Subscription Section -->
+            <section class="subscription-section">
+                <h2>Subscribe to Talk Groups</h2>
+                <div class="talkgroup-input">
+                    <input 
+                        type="text" 
+                        id="talkgroupInput" 
+                        placeholder="Enter talk group ID (e.g., 4001)" 
+                        maxlength="10"
+                    >
+                    <button id="subscribeBtn" onclick="subscribeTalkGroup()">Subscribe</button>
+                </div>
+                
+                <div class="subscribed-groups" id="subscribedGroups">
+                    <h3>Subscribed Talk Groups</h3>
+                    <div class="groups-list" id="groupsList">
+                        <p class="no-subscriptions">No talk groups subscribed yet</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Live Activity Section -->
+            <section class="activity-section">
+                <h2>Live Activity</h2>
+                <div class="activity-controls">
+                    <label>
+                        <input type="checkbox" id="autoPlay" checked>
+                        Auto-play new calls
+                    </label>
+                    <label>
+                        Volume: <input type="range" id="volumeSlider" min="0" max="100" value="50">
+                        <span id="volumeDisplay">50%</span>
+                    </label>
+                </div>
+                
+                <div class="calls-feed" id="callsFeed">
+                    <p class="no-calls">Subscribe to talk groups to see live calls</p>
+                </div>
+            </section>
+
+            <!-- Recent Calls Section -->
+            <section class="recent-section">
+                <h2>Recent Calls</h2>
+                <button id="refreshBtn" onclick="loadRecentCalls()">Refresh</button>
+                <div class="recent-calls" id="recentCalls">
+                    <p class="loading">Loading recent calls...</p>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Audio element for playback -->
+    <audio id="audioPlayer" preload="none"></audio>
+
+    <!-- Scripts -->
+    <script src="https://unpkg.com/@microsoft/signalr@latest/dist/browser/signalr.min.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

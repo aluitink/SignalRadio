@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using SignalRadio.Core.Models;
 using SignalRadio.Core.Services;
+using SignalRadio.Api.Hubs;
 
 namespace SignalRadio.Api.Controllers;
 
@@ -11,15 +13,18 @@ public class RecordingController : ControllerBase
     private readonly ILogger<RecordingController> _logger;
     private readonly IStorageService _storageService;
     private readonly ICallService _callService;
+    private readonly IHubContext<TalkGroupHub> _hubContext;
 
     public RecordingController(
         ILogger<RecordingController> logger, 
         IStorageService storageService,
-        ICallService callService)
+        ICallService callService,
+        IHubContext<TalkGroupHub> hubContext)
     {
         _logger = logger;
         _storageService = storageService;
         _callService = callService;
+        _hubContext = hubContext;
     }
 
     [HttpPost("upload")]
@@ -193,6 +198,40 @@ public class RecordingController : ControllerBase
 
             var totalUploadedBytes = storageResults.Where(r => r.IsSuccess).Sum(r => r.UploadedBytes);
 
+            // Broadcast new call to SignalR clients subscribed to this talk group
+            try 
+            {
+                var callNotification = new
+                {
+                    call.Id,
+                    call.TalkgroupId,
+                    call.SystemName,
+                    call.RecordingTime,
+                    call.Frequency,
+                    call.Duration,
+                    call.CreatedAt,
+                    Recordings = recordings.Select(r => new
+                    {
+                        r.Id,
+                        r.FileName,
+                        r.Format,
+                        r.FileSize,
+                        r.IsUploaded,
+                        r.BlobName
+                    })
+                };
+
+                await _hubContext.Clients.Group($"talkgroup_{call.TalkgroupId}")
+                    .SendAsync("NewCall", callNotification);
+
+                _logger.LogInformation("Broadcasted new call notification for talk group {TalkgroupId}", call.TalkgroupId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to broadcast call notification for talk group {TalkgroupId}", call.TalkgroupId);
+                // Don't fail the upload if SignalR broadcast fails
+            }
+
             return Ok(new
             {
                 Message = "Recording processed successfully",
@@ -245,6 +284,42 @@ public class RecordingController : ControllerBase
         {
             _logger.LogError(ex, "Failed to list recordings");
             return StatusCode(500, "Failed to retrieve recordings");
+        }
+    }
+
+    [HttpGet("stream/{recordingId:int}")]
+    public async Task<IActionResult> StreamRecording(int recordingId)
+    {
+        try
+        {
+            // Get recording details from database
+            var recording = await _callService.GetRecordingByIdAsync(recordingId);
+            if (recording == null)
+            {
+                return NotFound($"Recording not found: {recordingId}");
+            }
+
+            if (!recording.IsUploaded || string.IsNullOrEmpty(recording.BlobName))
+            {
+                return NotFound($"Recording file not available: {recordingId}");
+            }
+
+            // Get the audio stream
+            var stream = await _storageService.DownloadRecordingAsync(recording.BlobName);
+            if (stream == null)
+            {
+                return NotFound($"Recording file not found in storage: {recording.BlobName}");
+            }
+
+            var contentType = GetContentType(recording.FileName);
+
+            // Return stream for audio playback
+            return File(stream, contentType, recording.FileName, enableRangeProcessing: true);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to stream recording: {RecordingId}", recordingId);
+            return StatusCode(500, "Failed to stream recording");
         }
     }
 

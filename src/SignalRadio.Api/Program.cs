@@ -2,6 +2,7 @@ using SignalRadio.Core.Models;
 using SignalRadio.Core.Services;
 using SignalRadio.Core.Data;
 using SignalRadio.Core.Repositories;
+using SignalRadio.Api.Hubs;
 using Microsoft.EntityFrameworkCore;
 using DotNetEnv;
 
@@ -19,6 +20,21 @@ builder.Configuration.AddEnvironmentVariables();
 
 // Add services to the container.
 builder.Services.AddControllers();
+
+// Add SignalR
+builder.Services.AddSignalR();
+
+// Add CORS for standalone UI
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowUI", policy =>
+    {
+        policy.WithOrigins("http://localhost:3000", "http://localhost:8080", "http://localhost:5173")
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
+    });
+});
 
 // Configure Entity Framework
 builder.Services.AddDbContext<SignalRadioDbContext>(options =>
@@ -67,9 +83,14 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+app.UseCors("AllowUI");
+
 app.UseAuthorization();
 
 app.MapControllers();
+
+// Map SignalR hub
+app.MapHub<TalkGroupHub>("/hubs/talkgroups");
 
 // Add health check endpoint
 app.MapGet("/health", () => Results.Ok(new { status = "healthy", timestamp = DateTime.UtcNow }));
