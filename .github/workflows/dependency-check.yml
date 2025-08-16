@@ -1,0 +1,43 @@
+name: Dependency Check
+
+on:
+  schedule:
+    # Run weekly on Monday at 9 AM UTC
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+
+jobs:
+  dependency-check:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '9.0.x'
+        
+    - name: Restore dependencies
+      run: dotnet restore SignalRadio.sln
+      
+    - name: Check for outdated packages
+      run: |
+        echo "Checking for outdated packages..."
+        dotnet list SignalRadio.sln package --outdated --include-transitive > outdated-packages.txt
+        cat outdated-packages.txt
+        
+    - name: Check for vulnerable packages
+      run: |
+        echo "Checking for vulnerable packages..."
+        dotnet list SignalRadio.sln package --vulnerable --include-transitive > vulnerable-packages.txt
+        cat vulnerable-packages.txt
+        
+    - name: Upload dependency reports
+      uses: actions/upload-artifact@v4
+      with:
+        name: dependency-reports
+        path: |
+          outdated-packages.txt
+          vulnerable-packages.txt
+        retention-days: 30
