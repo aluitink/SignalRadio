@@ -12,6 +12,8 @@ public class RecordingMetadata
     public string FileName { get; set; } = string.Empty;
     public string OriginalFormat { get; set; } = string.Empty;
     public long OriginalSize { get; set; }
+    public string? BlobUri { get; set; }
+    public string? BlobName { get; set; }
 }
 
 public class RecordingUploadRequest
@@ -27,4 +29,22 @@ public class RecordingUploadRequest
 
     [Required]
     public string SystemName { get; set; } = string.Empty;
+}
+
+public class StorageResult
+{
+    public bool IsSuccess { get; set; }
+    public string BlobUri { get; set; } = string.Empty;
+    public string BlobName { get; set; } = string.Empty;
+    public string? ErrorMessage { get; set; }
+    public long UploadedBytes { get; set; }
+}
+
+public class AzureStorageOptions
+{
+    public const string Section = "AzureStorage";
+    
+    public string ConnectionString { get; set; } = string.Empty;
+    public string ContainerName { get; set; } = "recordings";
+    public string DefaultPathPattern { get; set; } = "{SystemName}/{TalkgroupId}/{Year}/{Month}/{Day}";
 }
