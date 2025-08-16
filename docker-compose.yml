@@ -1,4 +1,20 @@
 services:
+  # SQL Server Database
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: signalradio-sqlserver
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=SignalRadio123!
+      - MSSQL_PID=Express
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+    networks:
+      - signalradio-network
+    restart: unless-stopped
+
   # SignalRadio API Service
   signalradio-api:
     build:
@@ -12,6 +28,7 @@ services:
       - ASPNETCORE_URLS=http://+:8080
       - AzureStorage__ConnectionString=${AZURE_STORAGE_CONNECTION_STRING}
       - AzureStorage__ContainerName=recordings
+      - ConnectionStrings__DefaultConnection=Server=sqlserver,1433;Database=SignalRadio;User Id=sa;Password=SignalRadio123!;TrustServerCertificate=true;
     volumes:
       # Temporary processing (named volume)
       - temp:/app/temp
@@ -21,6 +38,7 @@ services:
       - signalradio-network
     depends_on:
       - trunk-recorder
+      - sqlserver
     restart: unless-stopped
 
   # Trunk Recorder Service
@@ -63,4 +81,6 @@ volumes:
   temp:
     driver: local
   logs:
+    driver: local
+  sqlserver-data:
     driver: local

@@ -10,11 +10,16 @@ public class RecordingController : ControllerBase
 {
     private readonly ILogger<RecordingController> _logger;
     private readonly IStorageService _storageService;
+    private readonly ICallService _callService;
 
-    public RecordingController(ILogger<RecordingController> logger, IStorageService storageService)
+    public RecordingController(
+        ILogger<RecordingController> logger, 
+        IStorageService storageService,
+        ICallService callService)
     {
         _logger = logger;
         _storageService = storageService;
+        _callService = callService;
     }
 
     [HttpPost("upload")]
@@ -50,12 +55,26 @@ public class RecordingController : ControllerBase
                 _logger.LogInformation("Files received: M4A only ({M4aSize:N0} bytes)", m4aFile!.Length);
             }
 
+            // Process the call (create or find existing)
+            var call = await _callService.ProcessCallAsync(request);
+
             var uploadedFiles = new List<RecordingMetadata>();
             var storageResults = new List<StorageResult>();
+            var recordings = new List<Recording>();
 
             // Process WAV file if provided
             if (hasWav)
             {
+                // Create recording record in database
+                var wavRecording = await _callService.AddRecordingToCallAsync(
+                    call.Id,
+                    audioFile!.FileName,
+                    "WAV",
+                    audioFile.ContentType,
+                    audioFile.Length);
+
+                recordings.Add(wavRecording);
+
                 var wavMetadata = new RecordingMetadata
                 {
                     TalkgroupId = request.TalkgroupId,
@@ -76,6 +95,12 @@ public class RecordingController : ControllerBase
 
                 if (wavResult.IsSuccess)
                 {
+                    // Update recording with blob information
+                    await _callService.MarkRecordingUploadedAsync(
+                        wavRecording.Id, 
+                        wavResult.BlobUri, 
+                        wavResult.BlobName);
+
                     wavMetadata.BlobUri = wavResult.BlobUri;
                     wavMetadata.BlobName = wavResult.BlobName;
                     uploadedFiles.Add(wavMetadata);
@@ -92,6 +117,16 @@ public class RecordingController : ControllerBase
             // Process M4A file if provided
             if (hasM4a)
             {
+                // Create recording record in database
+                var m4aRecording = await _callService.AddRecordingToCallAsync(
+                    call.Id,
+                    m4aFile!.FileName,
+                    "M4A",
+                    m4aFile.ContentType,
+                    m4aFile.Length);
+
+                recordings.Add(m4aRecording);
+
                 var m4aMetadata = new RecordingMetadata
                 {
                     TalkgroupId = request.TalkgroupId,
@@ -112,6 +147,12 @@ public class RecordingController : ControllerBase
 
                 if (m4aResult.IsSuccess)
                 {
+                    // Update recording with blob information
+                    await _callService.MarkRecordingUploadedAsync(
+                        m4aRecording.Id, 
+                        m4aResult.BlobUri, 
+                        m4aResult.BlobName);
+
                     m4aMetadata.BlobUri = m4aResult.BlobUri;
                     m4aMetadata.BlobName = m4aResult.BlobName;
                     uploadedFiles.Add(m4aMetadata);
@@ -151,11 +192,13 @@ public class RecordingController : ControllerBase
             return Ok(new
             {
                 Message = "Recording processed successfully",
+                CallId = call.Id,
+                RecordingIds = recordings.Select(r => r.Id).ToArray(),
                 UploadedFiles = uploadedFiles,
                 FileCount = uploadedFiles.Count,
                 HasDualFormat = hasWav && hasM4a,
                 TotalUploadedBytes = totalUploadedBytes,
-                Status = "Phase3-AzureStorage",
+                Status = "Phase4-DatabaseIntegration",
                 StorageResults = storageResults.Select(r => new 
                 { 
                     Success = r.IsSuccess, 
@@ -251,8 +294,8 @@ public class RecordingController : ControllerBase
         {
             Status = "Healthy",
             Service = "SignalRadio.Api",
-            Phase = "3-AzureStorage",
-            Features = new[] { "WAV Upload", "M4A Upload", "Dual Format Support", "Azure Blob Storage", "Recording Management" }
+            Phase = "4-DatabaseIntegration",
+            Features = new[] { "WAV Upload", "M4A Upload", "Dual Format Support", "Azure Blob Storage", "SQL Server Database", "Call Tracking", "Recording Management" }
         });
     }
 
