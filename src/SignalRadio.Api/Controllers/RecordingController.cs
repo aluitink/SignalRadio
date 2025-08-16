@@ -22,7 +22,7 @@ public class RecordingController : ControllerBase
             var hasWav = audioFile != null && audioFile.Length > 0;
             var hasM4a = m4aFile != null && m4aFile.Length > 0;
 
-            _logger.LogInformation("Recording upload - TalkgroupId={TalkgroupId}, System={SystemName}, Frequency={Frequency}, Timestamp={Timestamp}", 
+            _logger.LogInformation("Recording upload - TalkgroupId={TalkgroupId}, System={SystemName}, Frequency={Frequency}, Timestamp={Timestamp}",
                 request.TalkgroupId, request.SystemName, request.Frequency, request.Timestamp);
 
             // Check if at least one audio file is provided
@@ -35,7 +35,7 @@ public class RecordingController : ControllerBase
             // Log received files
             if (hasWav && hasM4a)
             {
-                _logger.LogInformation("Files received: WAV ({WavSize:N0} bytes) + M4A ({M4aSize:N0} bytes)", 
+                _logger.LogInformation("Files received: WAV ({WavSize:N0} bytes) + M4A ({M4aSize:N0} bytes)",
                     audioFile!.Length, m4aFile!.Length);
             }
             else if (hasWav)
@@ -83,8 +83,9 @@ public class RecordingController : ControllerBase
 
             // TODO Phase 3: Add Azure Blob Storage upload
 
-            return Ok(new { 
-                Message = "Recording received successfully", 
+            return Ok(new
+            {
+                Message = "Recording received successfully",
                 UploadedFiles = uploadedFiles,
                 FileCount = uploadedFiles.Count,
                 HasDualFormat = hasWav && hasM4a,
@@ -101,9 +102,10 @@ public class RecordingController : ControllerBase
     [HttpGet("health")]
     public IActionResult Health()
     {
-        return Ok(new { 
-            Status = "Healthy", 
-            Service = "SignalRadio.Api", 
+        return Ok(new
+        {
+            Status = "Healthy",
+            Service = "SignalRadio.Api",
             Phase = "2-DualFileHandling",
             Features = new[] { "WAV Upload", "M4A Upload", "Dual Format Support", "Enhanced Logging" }
         });
