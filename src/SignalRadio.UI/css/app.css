@@ -24,8 +24,8 @@ body {
 
 .call-item {
     border-bottom: 1px solid #e9ecef;
-    padding: 15px;
-    transition: all 0.3s ease;
+    padding: 12px 16px;
+    transition: all 0.2s ease;
     cursor: pointer;
 }
 
@@ -33,14 +33,31 @@ body {
     background-color: #f8f9fa;
 }
 
-.call-item.subscribed {
-    background-color: #e8f5e8;
-    border-left: 4px solid var(--success-color);
-}
-
 .call-item.new-call {
     animation: slideInFromTop 0.5s ease-out;
-    background-color: #fff3cd;
+    /* Temporarily override background for new calls */
+    background-color: #fff3cd !important;
+}
+
+/* Remove the new-call background override after animation */
+.call-item:not(.new-call).age-fresh {
+    background-color: #ffffff; /* Bright white for fresh calls */
+}
+
+.call-item:not(.new-call).age-recent {
+    background-color: #fafafa; /* Very light gray for recent calls */
+}
+
+.call-item:not(.new-call).age-medium {
+    background-color: #f5f5f5; /* Light gray for medium age */
+}
+
+.call-item:not(.new-call).age-old {
+    background-color: #f0f0f0; /* Slightly darker for old calls */
+}
+
+.call-item:not(.new-call).age-very-old {
+    background-color: #e8e8e8; /* Darker gray for very old calls */
 }
 
 .call-item.playing {
@@ -59,52 +76,109 @@ body {
     }
 }
 
-/* Call item content */
-.call-header {
+/* Call item content - Simplified */
+.call-container {
     display: flex;
-    justify-content: between;
+    justify-content: space-between;
     align-items: center;
-    margin-bottom: 8px;
+    gap: 15px;
+    position: relative;
 }
 
-.call-talkgroup {
-    font-weight: bold;
-    font-size: 1.1em;
-    color: var(--dark-color);
-}
-
-.call-time {
-    font-size: 0.9em;
-    color: #6c757d;
-}
-
-.call-details {
+.call-main-content {
+    flex: 1;
     display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    align-items: center;
-    margin-bottom: 10px;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
 }
 
-.call-detail-item {
-    font-size: 0.85em;
-    color: #6c757d;
+.call-meta-info {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    flex-shrink: 0;
 }
 
 .call-actions {
     display: flex;
-    gap: 8px;
+    gap: 6px;
     align-items: center;
+    flex-shrink: 0;
 }
 
-.btn-subscribe {
-    font-size: 0.8em;
-    padding: 4px 12px;
+.call-title {
+    font-size: 1.1em;
+    color: #212529;
+    font-weight: 600;
+    line-height: 1.2;
+    margin: 0;
 }
 
-.btn-play {
+.call-details {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 0.85em;
+    color: #6c757d;
+    flex-wrap: wrap;
+}
+
+.call-detail-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+}
+
+.call-time {
     font-size: 0.8em;
-    padding: 4px 8px;
+    color: #6c757d;
+    text-align: right;
+}
+
+.call-actions .btn {
+    min-width: unset;
+    width: 28px;
+    height: 28px;
+    font-size: 0.8em;
+    padding: 0;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.call-actions .btn i {
+    margin: 0 !important;
+}
+
+
+
+.call-description {
+    font-size: 0.85em;
+    color: #495057;
+    padding: 10px 12px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    border-left: 4px solid #007bff;
+    margin-top: 8px;
+    line-height: 1.4;
+}
+
+.system-name {
+    font-weight: 500;
+    color: var(--dark-color);
+}
+
+/* Subscription status colors - simple red/green system */
+.call-item.subscribed {
+    border-left: 4px solid var(--success-color) !important; /* Green for subscribed */
+    background-color: rgba(40, 167, 69, 0.05) !important; /* Light green tint for subscribed */
+}
+
+.call-item:not(.subscribed) {
+    border-left: 4px solid var(--danger-color) !important; /* Red for not subscribed */
 }
 
 /* Connection status */
@@ -189,21 +263,139 @@ body {
     background: #a8a8a8;
 }
 
+/* Medium screens - tablet/narrow desktop */
+@media (max-width: 1024px) {
+    .call-container {
+        gap: 15px;
+    }
+    
+    .call-left-section {
+        padding-right: 75px;
+    }
+    
+    .call-right-section {
+        min-width: 160px;
+    }
+    
+    .call-info-row {
+        gap: 15px;
+    }
+    
+    .call-actions .btn {
+        width: 28px;
+        height: 28px;
+        font-size: 0.8em;
+    }
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
-    .call-details {
+    .call-container {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .call-left-section {
+        padding-right: 70px;
+    }
+    
+    .call-header-row {
         flex-direction: column;
         align-items: flex-start;
-        gap: 5px;
+        gap: 6px;
+        margin-bottom: 6px;
+    }
+    
+    .call-description-primary {
+        font-size: 1.0em;
+        margin-bottom: 2px;
+    }
+    
+    .talkgroup-tags {
+        align-self: flex-start;
+    }
+    
+    .call-info-row {
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-bottom: 6px;
+    }
+    
+    .call-talkgroup-info,
+    .call-frequency-info,
+    .call-duration-primary {
+        font-size: 0.85em;
+    }
+    
+    .call-right-section {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        min-width: unset;
+        width: 100%;
+        margin-top: 4px;
     }
     
     .call-actions {
-        width: 100%;
-        justify-content: flex-start;
+        position: static;
+        width: auto;
+        justify-content: flex-end;
+        margin-top: 6px;
+        gap: 3px;
     }
     
-    .call-stream {
-        max-height: 60vh;
+    .call-actions .btn {
+        width: 28px;
+        height: 28px;
+        font-size: 0.75em;
+    }
+    
+    .call-time-info {
+        text-align: right;
+        font-size: 0.8em;
+    }
+    
+    .call-detail-item {
+        font-size: 0.8em;
+    }
+}
+
+/* Very small screens */
+@media (max-width: 480px) {
+    .call-item {
+        padding: 8px 10px;
+    }
+    
+    .call-container {
+        gap: 6px;
+    }
+    
+    .call-left-section {
+        padding-right: 65px;
+    }
+    
+    .call-description-primary {
+        font-size: 0.95em;
+    }
+    
+    .call-info-row {
+        gap: 8px;
+    }
+    
+    .call-actions {
+        gap: 2px;
+    }
+    
+    .call-actions .btn {
+        width: 26px;
+        height: 26px;
+        font-size: 0.7em;
+    }
+    
+    .talkgroup-tags .badge {
+        font-size: 0.65em;
+        padding: 1px 4px;
     }
 }
 
@@ -243,10 +435,11 @@ body {
     align-items: center;
     gap: 4px;
     font-size: 0.75em;
-    padding: 2px 6px;
+    padding: 4px 8px;
     border-radius: 12px;
     background-color: #e9ecef;
     color: #6c757d;
+    font-weight: 500;
 }
 
 .recording-indicator.has-recordings {
@@ -264,9 +457,14 @@ body {
     font-family: 'Courier New', monospace;
     font-size: 0.85em;
     background-color: #f8f9fa;
-    padding: 2px 6px;
-    border-radius: 4px;
+    padding: 4px 8px;
+    border-radius: 6px;
     border: 1px solid #dee2e6;
+    font-weight: 500;
+    color: var(--dark-color);
+    display: flex;
+    align-items: center;
+    gap: 4px;
 }
 
 /* Duration display */
