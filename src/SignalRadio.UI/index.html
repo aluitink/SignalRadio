@@ -75,6 +75,7 @@
                             <div>Active Calls: <span id="active-calls-count" class="badge bg-primary">0</span></div>
                             <div>Subscriptions: <span id="subscriptions-count" class="badge bg-success">0</span></div>
                             <div>Total Received: <span id="total-calls-count" class="badge bg-info">0</span></div>
+                            <div>Queue Length: <span id="queue-count" class="badge bg-warning">0</span></div>
                         </div>
                     </div>
                 </div>
@@ -90,6 +91,24 @@
                     <div class="card-body">
                         <div id="subscribed-list">
                             <div class="text-muted small">No subscriptions</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Playback Queue -->
+                <div class="card mt-3">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h6 class="card-title mb-0">
+                            <i class="bi bi-list-ol me-2"></i>
+                            Playback Queue
+                        </h6>
+                        <button type="button" class="btn btn-outline-danger btn-sm" onclick="app.clearQueue()" id="clear-queue">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div id="queue-list">
+                            <div class="text-muted small">No calls queued</div>
                         </div>
                     </div>
                 </div>

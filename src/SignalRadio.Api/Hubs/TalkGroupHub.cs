@@ -29,6 +29,22 @@ public class TalkGroupHub : Hub
         await Clients.Caller.SendAsync("UnsubscriptionConfirmed", talkGroupId);
     }
 
+    public async Task SubscribeToAllCallsStream()
+    {
+        await Groups.AddToGroupAsync(Context.ConnectionId, "all_calls_monitor");
+        _logger.LogInformation("Client {ConnectionId} subscribed to all calls stream", Context.ConnectionId);
+        
+        await Clients.Caller.SendAsync("AllCallsStreamSubscribed");
+    }
+
+    public async Task UnsubscribeFromAllCallsStream()
+    {
+        await Groups.RemoveFromGroupAsync(Context.ConnectionId, "all_calls_monitor");
+        _logger.LogInformation("Client {ConnectionId} unsubscribed from all calls stream", Context.ConnectionId);
+        
+        await Clients.Caller.SendAsync("AllCallsStreamUnsubscribed");
+    }
+
     public override async Task OnConnectedAsync()
     {
         _logger.LogInformation("Client {ConnectionId} connected to TalkGroupHub", Context.ConnectionId);

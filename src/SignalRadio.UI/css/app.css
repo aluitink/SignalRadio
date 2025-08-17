@@ -274,3 +274,47 @@ body {
     font-weight: 500;
     color: var(--primary-color);
 }
+
+/* Queue styles */
+.queue-item {
+    display: flex;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid #e9ecef;
+    font-size: 0.85em;
+}
+
+.queue-item:last-child {
+    border-bottom: none;
+}
+
+.queue-position {
+    font-weight: bold;
+    color: var(--primary-color);
+    margin-right: 8px;
+    min-width: 20px;
+}
+
+.queue-talkgroup {
+    font-weight: 500;
+    margin-right: 8px;
+    min-width: 60px;
+}
+
+.queue-time {
+    color: #6c757d;
+    font-size: 0.8em;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.queue-item .btn {
+    margin-left: auto;
+}
+
+#queue-list {
+    max-height: 200px;
+    overflow-y: auto;
+}

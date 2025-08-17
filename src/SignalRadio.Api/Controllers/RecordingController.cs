@@ -224,14 +224,15 @@ public class RecordingController : ControllerBase
                     })
                 };
 
-                // Broadcast to all clients (for the main call stream)
-                await _hubContext.Clients.All.SendAsync("NewCall", callNotification);
+                // Broadcast to all clients monitoring the general call stream
+                await _hubContext.Clients.Group("all_calls_monitor")
+                    .SendAsync("AllCallsStreamUpdate", callNotification);
 
-                // Also broadcast to clients subscribed to this specific talk group
+                // Broadcast to clients subscribed to this specific talk group
                 await _hubContext.Clients.Group($"talkgroup_{call.TalkgroupId}")
                     .SendAsync("NewCall", callNotification);
 
-                _logger.LogInformation("Broadcasted new call notification for talk group {TalkgroupId}", call.TalkgroupId);
+                _logger.LogInformation("Broadcasted call notification for talk group {TalkgroupId} to subscribed clients and all-calls monitors", call.TalkgroupId);
             }
             catch (Exception ex)
             {
