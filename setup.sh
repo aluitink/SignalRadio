@@ -54,13 +54,65 @@ fi
 chmod +x scripts/*.sh
 
 echo ""
-echo "🚀 Setup complete! Starting SignalRadio..."
+echo "� Building and starting services..."
+echo ""
+
+# Build the services first
+if ! docker-compose build; then
+    echo "❌ Failed to build Docker services."
+    exit 1
+fi
+
+# Start database service first
+echo "🗄️  Starting database service..."
+if ! docker-compose up -d sqlserver; then
+    echo "❌ Failed to start database service."
+    exit 1
+fi
+
+# Wait for SQL Server to be ready
+echo "⏳ Waiting for SQL Server to initialize (30 seconds)..."
+sleep 30
+
+# Check if dotnet EF tools are available
+if ! command -v dotnet &> /dev/null; then
+    echo "❌ .NET SDK is not installed. Database initialization skipped."
+    echo "   Please install .NET SDK to enable database setup."
+    echo "   Visit: https://dotnet.microsoft.com/download"
+else
+    echo "🗃️  Initializing database..."
+    
+    # Navigate to API project
+    cd src/SignalRadio.Api
+    
+    # Install EF tools if not already installed
+    if ! dotnet tool list -g | grep -q dotnet-ef; then
+        echo "📦 Installing Entity Framework tools..."
+        dotnet tool install --global dotnet-ef
+    fi
+    
+    # Apply database migrations
+    echo "🔄 Applying database migrations..."
+    if dotnet ef database update; then
+        echo "✅ Database initialized successfully!"
+    else
+        echo "⚠️  Database migration failed, but continuing with service startup..."
+        echo "   You may need to run 'dotnet ef database update' manually later."
+    fi
+    
+    # Return to root directory
+    cd ../..
+fi
+
+echo ""
+echo "🚀 Starting all services..."
 echo ""
 
 # Start the services
 if docker-compose up --build -d; then
     echo ""
-    echo "✅ SignalRadio is starting up!"
+    echo "✅ SignalRadio is running!"
+    echo "✅ Database has been initialized with migrations"
     echo ""
     echo "📊 Monitor the startup:"
     echo "   docker-compose logs -f"
@@ -70,6 +122,9 @@ if docker-compose up --build -d; then
     echo ""
     echo "🏥 API Health Check:"
     echo "   http://localhost:5000/health"
+    echo ""
+    echo "🗄️  Database Management:"
+    echo "   cd src/SignalRadio.Api && dotnet ef migrations list"
     echo ""
     echo "🛑 To stop the services:"
     echo "   docker-compose down"
