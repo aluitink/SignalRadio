@@ -1,320 +1,645 @@
-// Configuration
-// Use relative URLs when served through nginx proxy, absolute for development
-const API_BASE_URL = window.location.origin.includes('localhost:3000') 
-    ? 'http://localhost:5000'   // Development: direct API access
-    : '';                       // Production: nginx proxy
-
-const SIGNALR_HUB_URL = `${API_BASE_URL}/hubs/talkgroups`;
-
-// Global state
-let connection = null;
-let subscribedGroups = new Set();
-let audioPlayer = null;
-let isAutoPlayEnabled = true;
-
-// Initialize the application
-document.addEventListener('DOMContentLoaded', async function() {
-    initializeUI();
-    await initializeSignalR();
-    loadRecentCalls();
-});
-
-// Initialize UI components
-function initializeUI() {
-    audioPlayer = document.getElementById('audioPlayer');
-    
-    // Setup volume control
-    const volumeSlider = document.getElementById('volumeSlider');
-    const volumeDisplay = document.getElementById('volumeDisplay');
-    
-    volumeSlider.addEventListener('input', function() {
-        const volume = this.value;
-        volumeDisplay.textContent = `${volume}%`;
-        if (audioPlayer) {
-            audioPlayer.volume = volume / 100;
-        }
-    });
-    
-    // Setup auto-play checkbox
-    const autoPlayCheckbox = document.getElementById('autoPlay');
-    autoPlayCheckbox.addEventListener('change', function() {
-        isAutoPlayEnabled = this.checked;
-    });
-    
-    // Setup enter key for talk group input
-    const talkgroupInput = document.getElementById('talkgroupInput');
-    talkgroupInput.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            subscribeTalkGroup();
-        }
-    });
-    
-    // Initialize audio player volume
-    audioPlayer.volume = 0.5;
-}
-
-// Initialize SignalR connection
-async function initializeSignalR() {
-    connection = new signalR.HubConnectionBuilder()
-        .withUrl(SIGNALR_HUB_URL)
-        .withAutomaticReconnect()
-        .build();
-
-    // Setup event handlers
-    connection.on('SubscriptionConfirmed', function(talkGroupId) {
-        console.log(`Subscription confirmed for talk group: ${talkGroupId}`);
-        updateGroupDisplay();
-    });
-
-    connection.on('UnsubscriptionConfirmed', function(talkGroupId) {
-        console.log(`Unsubscription confirmed for talk group: ${talkGroupId}`);
-        subscribedGroups.delete(talkGroupId);
-        updateGroupDisplay();
-    });
-
-    connection.on('NewCall', function(call) {
-        console.log('New call received:', call);
-        displayNewCall(call);
+// SignalRadio UI Application
+class SignalRadioApp {
+    constructor() {
+        this.connection = null;
+        this.subscriptions = new Set();
+        this.activeCalls = new Map();
+        this.totalCallsReceived = 0;
+        this.audioPlayer = document.getElementById('audio-player');
+        this.autoPlay = false;
+        this.currentlyPlaying = null;
         
-        if (isAutoPlayEnabled && call.recordings && call.recordings.length > 0) {
-            playCallAudio(call.recordings[0]);
-        }
-    });
-
-    // Connection state change handlers
-    connection.onclose(function() {
-        updateConnectionStatus('disconnected', 'Disconnected');
-    });
-
-    connection.onreconnecting(function() {
-        updateConnectionStatus('connecting', 'Reconnecting...');
-    });
-
-    connection.onreconnected(function() {
-        updateConnectionStatus('connected', 'Connected');
-        // Re-subscribe to all groups after reconnection
-        resubscribeAll();
-    });
-
-    // Start the connection
-    try {
-        updateConnectionStatus('connecting', 'Connecting...');
-        await connection.start();
-        updateConnectionStatus('connected', 'Connected');
-        console.log('SignalR connection established');
-    } catch (err) {
-        console.error('SignalR connection failed:', err);
-        updateConnectionStatus('disconnected', 'Connection failed');
+        this.initializeApp();
     }
-}
 
-// Subscribe to a talk group
-async function subscribeTalkGroup() {
-    const input = document.getElementById('talkgroupInput');
-    const talkGroupId = input.value.trim();
-    
-    if (!talkGroupId) {
-        alert('Please enter a talk group ID');
-        return;
+    async initializeApp() {
+        this.setupEventListeners();
+        this.loadSettings();
+        await this.initializeSignalR();
+        this.loadRecentCalls();
     }
-    
-    if (subscribedGroups.has(talkGroupId)) {
-        alert('Already subscribed to this talk group');
-        return;
-    }
-    
-    if (!connection || connection.state !== signalR.HubConnectionState.Connected) {
-        alert('Not connected to server. Please wait for connection.');
-        return;
-    }
-    
-    try {
-        await connection.invoke('SubscribeToTalkGroup', talkGroupId);
-        subscribedGroups.add(talkGroupId);
-        input.value = '';
-        updateGroupDisplay();
-        console.log(`Subscribed to talk group: ${talkGroupId}`);
-    } catch (err) {
-        console.error('Failed to subscribe:', err);
-        alert('Failed to subscribe to talk group');
-    }
-}
 
-// Unsubscribe from a talk group
-async function unsubscribeTalkGroup(talkGroupId) {
-    if (!connection || connection.state !== signalR.HubConnectionState.Connected) {
-        return;
-    }
-    
-    try {
-        await connection.invoke('UnsubscribeFromTalkGroup', talkGroupId);
-        subscribedGroups.delete(talkGroupId);
-        updateGroupDisplay();
-        console.log(`Unsubscribed from talk group: ${talkGroupId}`);
-    } catch (err) {
-        console.error('Failed to unsubscribe:', err);
-    }
-}
+    setupEventListeners() {
+        // Auto-play toggle
+        document.getElementById('auto-play-toggle').addEventListener('change', (e) => {
+            this.autoPlay = e.target.checked;
+            this.saveSettings();
+        });
 
-// Re-subscribe to all groups (after reconnection)
-async function resubscribeAll() {
-    for (const talkGroupId of subscribedGroups) {
+        // Volume control
+        document.getElementById('volume-control').addEventListener('input', (e) => {
+            this.audioPlayer.volume = e.target.value / 100;
+            this.saveSettings();
+        });
+
+        // Clear subscriptions
+        document.getElementById('clear-subscriptions').addEventListener('click', () => {
+            this.clearAllSubscriptions();
+        });
+
+        // Refresh calls
+        document.getElementById('refresh-calls').addEventListener('click', () => {
+            this.loadRecentCalls();
+        });
+
+        // Clear stream
+        document.getElementById('clear-stream').addEventListener('click', () => {
+            this.clearCallStream();
+        });
+
+        // Audio player events
+        this.audioPlayer.addEventListener('ended', () => {
+            this.onAudioEnded();
+        });
+
+        this.audioPlayer.addEventListener('timeupdate', () => {
+            this.updateAudioProgress();
+        });
+
+        this.audioPlayer.addEventListener('loadedmetadata', () => {
+            this.updateAudioDuration();
+        });
+
+        this.audioPlayer.addEventListener('error', (e) => {
+            console.error('Audio playback error:', e);
+            this.showToast('Audio playback failed', 'error');
+        });
+    }
+
+    loadSettings() {
+        const settings = JSON.parse(localStorage.getItem('signalradio-settings') || '{}');
+        
+        this.autoPlay = settings.autoPlay || false;
+        document.getElementById('auto-play-toggle').checked = this.autoPlay;
+        
+        const volume = settings.volume || 50;
+        document.getElementById('volume-control').value = volume;
+        this.audioPlayer.volume = volume / 100;
+
+        this.subscriptions = new Set(settings.subscriptions || []);
+        this.updateSubscriptionsDisplay();
+    }
+
+    saveSettings() {
+        const settings = {
+            autoPlay: this.autoPlay,
+            volume: document.getElementById('volume-control').value,
+            subscriptions: Array.from(this.subscriptions)
+        };
+        localStorage.setItem('signalradio-settings', JSON.stringify(settings));
+    }
+
+    async initializeSignalR() {
         try {
-            await connection.invoke('SubscribeToTalkGroup', talkGroupId);
-        } catch (err) {
-            console.error(`Failed to re-subscribe to ${talkGroupId}:`, err);
+            this.connection = new signalR.HubConnectionBuilder()
+                .withUrl('/hubs/talkgroup')
+                .withAutomaticReconnect()
+                .build();
+
+            // Handle connection events
+            this.connection.onclose(() => {
+                this.updateConnectionStatus('disconnected');
+            });
+
+            this.connection.onreconnecting(() => {
+                this.updateConnectionStatus('connecting');
+                this.showToast('Reconnecting to server...', 'warning');
+            });
+
+            this.connection.onreconnected(() => {
+                this.updateConnectionStatus('connected');
+                this.showToast('Reconnected to server', 'success');
+                this.resubscribeToTalkGroups();
+            });
+
+            // Handle SignalR events
+            this.connection.on('NewCall', (callData) => {
+                this.handleNewCall(callData);
+            });
+
+            this.connection.on('CallUpdated', (callData) => {
+                this.handleCallUpdate(callData);
+            });
+
+            this.connection.on('SubscriptionConfirmed', (talkGroupId) => {
+                this.subscriptions.add(talkGroupId);
+                this.updateSubscriptionsDisplay();
+                this.saveSettings();
+                this.showToast(`Subscribed to talk group ${talkGroupId}`, 'success');
+            });
+
+            this.connection.on('UnsubscriptionConfirmed', (talkGroupId) => {
+                this.subscriptions.delete(talkGroupId);
+                this.updateSubscriptionsDisplay();
+                this.saveSettings();
+                this.showToast(`Unsubscribed from talk group ${talkGroupId}`, 'info');
+            });
+
+            // Start connection
+            this.updateConnectionStatus('connecting');
+            await this.connection.start();
+            this.updateConnectionStatus('connected');
+            this.showToast('Connected to SignalRadio', 'success');
+
+            // Resubscribe to saved talk groups
+            await this.resubscribeToTalkGroups();
+
+        } catch (error) {
+            console.error('SignalR connection failed:', error);
+            this.updateConnectionStatus('disconnected');
+            this.showToast('Failed to connect to server', 'error');
         }
     }
-}
 
-// Update connection status display
-function updateConnectionStatus(status, text) {
-    const indicator = document.getElementById('statusIndicator');
-    const statusText = document.getElementById('statusText');
-    
-    indicator.className = `status-indicator ${status}`;
-    statusText.textContent = text;
-}
-
-// Update subscribed groups display
-function updateGroupDisplay() {
-    const groupsList = document.getElementById('groupsList');
-    
-    if (subscribedGroups.size === 0) {
-        groupsList.innerHTML = '<p class="no-subscriptions">No talk groups subscribed yet</p>';
-        return;
-    }
-    
-    const groupsHtml = Array.from(subscribedGroups).map(talkGroupId => `
-        <div class="group-item">
-            <div class="group-info">
-                <div class="group-id">Talk Group ${talkGroupId}</div>
-                <div class="group-status">Active</div>
-            </div>
-            <button class="unsubscribe-btn" onclick="unsubscribeTalkGroup('${talkGroupId}')">
-                Unsubscribe
-            </button>
-        </div>
-    `).join('');
-    
-    groupsList.innerHTML = groupsHtml;
-}
-
-// Display a new call in the live feed
-function displayNewCall(call) {
-    const callsFeed = document.getElementById('callsFeed');
-    
-    // Remove "no calls" message if present
-    const noCallsMsg = callsFeed.querySelector('.no-calls');
-    if (noCallsMsg) {
-        noCallsMsg.remove();
-    }
-    
-    const callElement = createCallElement(call, true);
-    callsFeed.insertBefore(callElement, callsFeed.firstChild);
-    
-    // Keep only the most recent 20 calls in the live feed
-    const callItems = callsFeed.querySelectorAll('.call-item');
-    if (callItems.length > 20) {
-        callItems[callItems.length - 1].remove();
-    }
-}
-
-// Create a call element
-function createCallElement(call, isNew = false) {
-    const div = document.createElement('div');
-    div.className = `call-item ${isNew ? 'new-call' : ''}`;
-    
-    const recordingTime = new Date(call.recordingTime);
-    const duration = call.duration ? formatDuration(call.duration) : 'Unknown';
-    
-    div.innerHTML = `
-        <div class="call-header">
-            <div class="call-talkgroup">Talk Group ${call.talkgroupId}</div>
-            <div class="call-time">${recordingTime.toLocaleString()}</div>
-        </div>
-        <div class="call-details">
-            System: ${call.systemName} | Frequency: ${call.frequency} | Duration: ${duration}
-        </div>
-        <div class="call-actions">
-            ${call.recordings && call.recordings.length > 0 ? 
-                `<button class="play-btn" onclick="playCallAudio(${JSON.stringify(call.recordings[0]).replace(/"/g, '&quot;')})">
-                    ▶ Play
-                </button>` : 
-                '<span style="color: #666;">No recording available</span>'
+    async resubscribeToTalkGroups() {
+        for (const talkGroupId of this.subscriptions) {
+            try {
+                await this.connection.invoke('SubscribeToTalkGroup', talkGroupId);
+            } catch (error) {
+                console.error(`Failed to resubscribe to ${talkGroupId}:`, error);
             }
-        </div>
-    `;
-    
-    return div;
-}
-
-// Play audio for a call recording
-async function playCallAudio(recording) {
-    if (!recording || !recording.blobName) {
-        alert('No audio file available for this call');
-        return;
-    }
-    
-    try {
-        // Get the audio file URL from the API
-        const audioUrl = `${API_BASE_URL}/api/Recording/stream/${recording.id}`;
-        
-        audioPlayer.src = audioUrl;
-        await audioPlayer.play();
-        
-        console.log(`Playing audio for recording: ${recording.fileName}`);
-    } catch (err) {
-        console.error('Failed to play audio:', err);
-        alert('Failed to play audio file');
-    }
-}
-
-// Load recent calls from the API
-async function loadRecentCalls() {
-    const recentCallsContainer = document.getElementById('recentCalls');
-    recentCallsContainer.innerHTML = '<p class="loading">Loading recent calls...</p>';
-    
-    try {
-        const response = await fetch(`${API_BASE_URL}/api/calls?limit=20`);
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
         }
+    }
+
+    updateConnectionStatus(status) {
+        const statusElement = document.getElementById('connection-status');
+        const statusMap = {
+            'connected': { class: 'bg-success', text: 'Connected', icon: 'circle-fill' },
+            'connecting': { class: 'bg-warning', text: 'Connecting...', icon: 'circle-fill' },
+            'disconnected': { class: 'bg-danger', text: 'Disconnected', icon: 'circle' }
+        };
+
+        const config = statusMap[status];
+        statusElement.className = `badge ${config.class}`;
+        statusElement.innerHTML = `<i class="bi bi-${config.icon} me-1"></i>${config.text}`;
+    }
+
+    async loadRecentCalls() {
+        try {
+            const response = await fetch('/api/calls?limit=50');
+            if (!response.ok) throw new Error('Failed to load calls');
+            
+            const data = await response.json();
+            this.displayCalls(data.calls || []);
+            
+        } catch (error) {
+            console.error('Failed to load recent calls:', error);
+            this.showToast('Failed to load recent calls', 'error');
+        }
+    }
+
+    handleNewCall(callData) {
+        this.totalCallsReceived++;
+        this.activeCalls.set(callData.id, callData);
+        this.addCallToStream(callData, true);
+        this.updateStatistics();
+
+        // Auto-play if subscribed and auto-play is enabled
+        if (this.autoPlay && this.subscriptions.has(callData.talkgroupId)) {
+            setTimeout(() => this.playCall(callData), 100);
+        }
+    }
+
+    handleCallUpdate(callData) {
+        this.activeCalls.set(callData.id, callData);
+        this.updateCallInStream(callData);
+    }
+
+    displayCalls(calls) {
+        const streamContainer = document.getElementById('call-stream');
+        streamContainer.innerHTML = '';
+
+        calls.forEach(call => {
+            this.activeCalls.set(call.id, call);
+            this.addCallToStream(call, false);
+        });
+
+        this.updateStatistics();
+    }
+
+    addCallToStream(call, isNew = false) {
+        const streamContainer = document.getElementById('call-stream');
+        const callElement = this.createCallElement(call, isNew);
         
-        const data = await response.json();
-        const calls = data.calls || [];
+        if (isNew) {
+            streamContainer.insertBefore(callElement, streamContainer.firstChild);
+        } else {
+            streamContainer.appendChild(callElement);
+        }
+
+        // Remove new-call class after animation
+        if (isNew) {
+            setTimeout(() => {
+                callElement.classList.remove('new-call');
+            }, 500);
+        }
+    }
+
+    createCallElement(call, isNew = false) {
+        const isSubscribed = this.subscriptions.has(call.talkgroupId);
+        const hasRecordings = call.recordings && call.recordings.length > 0;
+        const duration = call.duration ? this.formatDuration(call.duration) : 'Unknown';
         
-        if (calls.length === 0) {
-            recentCallsContainer.innerHTML = '<p class="no-calls">No recent calls found</p>';
+        const callElement = document.createElement('div');
+        callElement.className = `call-item${isNew ? ' new-call' : ''}${isSubscribed ? ' subscribed' : ''}`;
+        callElement.dataset.callId = call.id;
+        callElement.dataset.talkgroupId = call.talkgroupId;
+
+        callElement.innerHTML = `
+            <div class="call-header">
+                <div class="call-talkgroup">
+                    <i class="bi bi-broadcast-pin me-2"></i>
+                    Talk Group ${call.talkgroupId}
+                </div>
+                <div class="call-time">
+                    ${this.formatDateTime(call.recordingTime)}
+                </div>
+            </div>
+            
+            <div class="call-details">
+                <div class="call-detail-item">
+                    <i class="bi bi-pc-display me-1"></i>
+                    ${call.systemName}
+                </div>
+                <div class="call-detail-item">
+                    <span class="frequency-display">${call.frequency}</span>
+                </div>
+                <div class="call-detail-item">
+                    <i class="bi bi-clock me-1"></i>
+                    <span class="duration-display">${duration}</span>
+                </div>
+                <div class="call-detail-item">
+                    <span class="recording-indicator ${hasRecordings ? 'has-recordings' : ''}">
+                        <i class="bi bi-file-earmark-music"></i>
+                        ${call.recordingCount || 0} recordings
+                    </span>
+                </div>
+            </div>
+
+            <div class="call-actions">
+                <button type="button" class="btn btn-outline-primary btn-subscribe btn-sm ${isSubscribed ? 'd-none' : ''}" 
+                        onclick="app.toggleSubscription('${call.talkgroupId}', this)">
+                    <i class="bi bi-bookmark-plus me-1"></i>
+                    Subscribe
+                </button>
+                <button type="button" class="btn btn-outline-warning btn-unsubscribe btn-sm ${!isSubscribed ? 'd-none' : ''}" 
+                        onclick="app.toggleSubscription('${call.talkgroupId}', this)">
+                    <i class="bi bi-bookmark-dash me-1"></i>
+                    Unsubscribe
+                </button>
+                ${hasRecordings ? `
+                    <button type="button" class="btn btn-outline-success btn-play btn-sm" 
+                            onclick="app.playCall(${JSON.stringify(call).replace(/"/g, '&quot;')})">
+                        <i class="bi bi-play-fill me-1"></i>
+                        Play
+                    </button>
+                ` : ''}
+            </div>
+
+            <div id="audio-controls-${call.id}" class="audio-controls d-none">
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="app.toggleAudioPlayback()">
+                    <i class="bi bi-pause-fill"></i>
+                </button>
+                <div class="audio-progress">
+                    <div class="audio-progress-bar" style="width: 0%"></div>
+                </div>
+                <div class="audio-time">0:00</div>
+            </div>
+        `;
+
+        return callElement;
+    }
+
+    updateCallInStream(call) {
+        const existingElement = document.querySelector(`[data-call-id="${call.id}"]`);
+        if (existingElement) {
+            const newElement = this.createCallElement(call);
+            existingElement.replaceWith(newElement);
+        }
+    }
+
+    async toggleSubscription(talkGroupId, buttonElement) {
+        if (!this.connection) {
+            this.showToast('Not connected to server', 'error');
             return;
         }
+
+        try {
+            const isCurrentlySubscribed = this.subscriptions.has(talkGroupId);
+            
+            if (isCurrentlySubscribed) {
+                await this.connection.invoke('UnsubscribeFromTalkGroup', talkGroupId);
+            } else {
+                await this.connection.invoke('SubscribeToTalkGroup', talkGroupId);
+            }
+
+            // Update UI immediately (will be confirmed by SignalR event)
+            this.updateCallSubscriptionUI(talkGroupId, !isCurrentlySubscribed);
+
+        } catch (error) {
+            console.error('Failed to toggle subscription:', error);
+            this.showToast('Failed to update subscription', 'error');
+        }
+    }
+
+    updateCallSubscriptionUI(talkGroupId, isSubscribed) {
+        const callElements = document.querySelectorAll(`[data-talkgroup-id="${talkGroupId}"]`);
         
-        const callsHtml = calls.map(call => createCallElement(call).outerHTML).join('');
-        recentCallsContainer.innerHTML = callsHtml;
+        callElements.forEach(element => {
+            if (isSubscribed) {
+                element.classList.add('subscribed');
+                element.querySelector('.btn-subscribe')?.classList.add('d-none');
+                element.querySelector('.btn-unsubscribe')?.classList.remove('d-none');
+            } else {
+                element.classList.remove('subscribed');
+                element.querySelector('.btn-subscribe')?.classList.remove('d-none');
+                element.querySelector('.btn-unsubscribe')?.classList.add('d-none');
+            }
+        });
+    }
+
+    async playCall(call) {
+        if (!call.recordings || call.recordings.length === 0) {
+            this.showToast('No recordings available for this call', 'warning');
+            return;
+        }
+
+        // Find the best recording (prefer M4A, then WAV)
+        let recording = call.recordings.find(r => r.format === 'M4A' && r.isUploaded);
+        if (!recording) {
+            recording = call.recordings.find(r => r.format === 'WAV' && r.isUploaded);
+        }
+        if (!recording) {
+            this.showToast('No playable recordings available', 'warning');
+            return;
+        }
+
+        try {
+            // Stop current playback
+            this.stopCurrentPlayback();
+
+            // Set up new playback
+            this.currentlyPlaying = call.id;
+            const audioUrl = `/api/recording/${recording.id}/download`;
+            
+            console.log('Setting audio source to:', audioUrl);
+            
+            // Add audio event listeners for debugging
+            this.audioPlayer.onerror = (e) => {
+                console.error('Audio error event:', e);
+                console.error('Audio error details:', {
+                    error: this.audioPlayer.error,
+                    networkState: this.audioPlayer.networkState,
+                    readyState: this.audioPlayer.readyState,
+                    src: this.audioPlayer.src
+                });
+            };
+            
+            this.audioPlayer.oncanplaythrough = () => {
+                console.log('Audio can play through');
+            };
+            
+            this.audioPlayer.onloadstart = () => {
+                console.log('Audio load start');
+            };
+            
+            this.audioPlayer.onloadeddata = () => {
+                console.log('Audio loaded data');
+            };
+            
+            this.audioPlayer.src = audioUrl;
+            this.audioPlayer.load();
+            
+            // Show audio controls
+            this.showAudioControls(call.id);
+            
+            // Mark call as playing
+            const callElement = document.querySelector(`[data-call-id="${call.id}"]`);
+            if (callElement) {
+                callElement.classList.add('playing');
+            }
+
+            // Wait for the audio to be ready before playing
+            await new Promise((resolve, reject) => {
+                const handleCanPlay = () => {
+                    this.audioPlayer.removeEventListener('canplay', handleCanPlay);
+                    this.audioPlayer.removeEventListener('error', handleError);
+                    resolve();
+                };
+                
+                const handleError = (e) => {
+                    this.audioPlayer.removeEventListener('canplay', handleCanPlay);
+                    this.audioPlayer.removeEventListener('error', handleError);
+                    reject(e);
+                };
+                
+                this.audioPlayer.addEventListener('canplay', handleCanPlay);
+                this.audioPlayer.addEventListener('error', handleError);
+                
+                // If already ready, resolve immediately
+                if (this.audioPlayer.readyState >= 3) {
+                    handleCanPlay();
+                }
+            });
+
+            await this.audioPlayer.play();
+            this.showToast(`Playing call from talk group ${call.talkgroupId}`, 'info');
+
+        } catch (error) {
+            console.error('Failed to play audio:', error);
+            this.showToast('Failed to play audio', 'error');
+            this.stopCurrentPlayback();
+        }
+    }
+
+    stopCurrentPlayback() {
+        if (this.currentlyPlaying) {
+            this.audioPlayer.pause();
+            this.audioPlayer.currentTime = 0;
+            
+            // Hide audio controls
+            this.hideAudioControls(this.currentlyPlaying);
+            
+            // Remove playing class
+            const callElement = document.querySelector(`[data-call-id="${this.currentlyPlaying}"]`);
+            if (callElement) {
+                callElement.classList.remove('playing');
+            }
+            
+            this.currentlyPlaying = null;
+        }
+    }
+
+    toggleAudioPlayback() {
+        if (this.audioPlayer.paused) {
+            this.audioPlayer.play();
+        } else {
+            this.audioPlayer.pause();
+        }
+    }
+
+    onAudioEnded() {
+        this.stopCurrentPlayback();
+    }
+
+    showAudioControls(callId) {
+        const controlsElement = document.getElementById(`audio-controls-${callId}`);
+        if (controlsElement) {
+            controlsElement.classList.remove('d-none');
+        }
+    }
+
+    hideAudioControls(callId) {
+        const controlsElement = document.getElementById(`audio-controls-${callId}`);
+        if (controlsElement) {
+            controlsElement.classList.add('d-none');
+        }
+    }
+
+    updateAudioProgress() {
+        if (!this.currentlyPlaying) return;
+
+        const progress = (this.audioPlayer.currentTime / this.audioPlayer.duration) * 100;
+        const controlsElement = document.getElementById(`audio-controls-${this.currentlyPlaying}`);
         
-    } catch (err) {
-        console.error('Failed to load recent calls:', err);
-        recentCallsContainer.innerHTML = '<p class="error">Failed to load recent calls</p>';
+        if (controlsElement) {
+            const progressBar = controlsElement.querySelector('.audio-progress-bar');
+            const timeDisplay = controlsElement.querySelector('.audio-time');
+            
+            if (progressBar) {
+                progressBar.style.width = `${progress}%`;
+            }
+            
+            if (timeDisplay) {
+                timeDisplay.textContent = this.formatAudioTime(this.audioPlayer.currentTime);
+            }
+        }
+    }
+
+    updateAudioDuration() {
+        // This will be called when metadata loads
+    }
+
+    clearAllSubscriptions() {
+        if (confirm('Are you sure you want to clear all subscriptions?')) {
+            this.subscriptions.forEach(talkGroupId => {
+                if (this.connection) {
+                    this.connection.invoke('UnsubscribeFromTalkGroup', talkGroupId).catch(console.error);
+                }
+            });
+            
+            this.subscriptions.clear();
+            this.updateSubscriptionsDisplay();
+            this.saveSettings();
+            
+            // Update all call UIs
+            document.querySelectorAll('.call-item').forEach(element => {
+                element.classList.remove('subscribed');
+                element.querySelector('.btn-subscribe')?.classList.remove('d-none');
+                element.querySelector('.btn-unsubscribe')?.classList.add('d-none');
+            });
+            
+            this.showToast('All subscriptions cleared', 'info');
+        }
+    }
+
+    clearCallStream() {
+        if (confirm('Clear the call stream?')) {
+            document.getElementById('call-stream').innerHTML = '';
+            this.activeCalls.clear();
+            this.updateStatistics();
+            this.showToast('Call stream cleared', 'info');
+        }
+    }
+
+    updateSubscriptionsDisplay() {
+        const container = document.getElementById('subscribed-list');
+        
+        if (this.subscriptions.size === 0) {
+            container.innerHTML = '<div class="text-muted small">No subscriptions</div>';
+        } else {
+            container.innerHTML = Array.from(this.subscriptions).map(talkGroupId => `
+                <div class="subscribed-item">
+                    <span class="subscribed-talkgroup">Talk Group ${talkGroupId}</span>
+                    <button type="button" class="btn btn-outline-danger btn-unsubscribe btn-sm" 
+                            onclick="app.toggleSubscription('${talkGroupId}', this)">
+                        <i class="bi bi-x"></i>
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        document.getElementById('subscriptions-count').textContent = this.subscriptions.size;
+    }
+
+    updateStatistics() {
+        document.getElementById('active-calls-count').textContent = this.activeCalls.size;
+        document.getElementById('total-calls-count').textContent = this.totalCallsReceived;
+    }
+
+    formatDateTime(dateString) {
+        const date = new Date(dateString);
+        return date.toLocaleString();
+    }
+
+    formatDuration(duration) {
+        // Duration comes as "HH:MM:SS" or TimeSpan format
+        if (typeof duration === 'string') {
+            return duration.split('.')[0]; // Remove milliseconds if present
+        }
+        return duration;
+    }
+
+    formatAudioTime(seconds) {
+        const minutes = Math.floor(seconds / 60);
+        const remainingSeconds = Math.floor(seconds % 60);
+        return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+    }
+
+    showToast(message, type = 'info') {
+        const toastContainer = document.getElementById('toast-container');
+        const toastId = 'toast-' + Date.now();
+        
+        const typeMap = {
+            'success': { class: 'text-bg-success', icon: 'check-circle-fill' },
+            'error': { class: 'text-bg-danger', icon: 'exclamation-triangle-fill' },
+            'warning': { class: 'text-bg-warning', icon: 'exclamation-triangle' },
+            'info': { class: 'text-bg-info', icon: 'info-circle-fill' }
+        };
+
+        const config = typeMap[type] || typeMap.info;
+
+        const toastHtml = `
+            <div id="${toastId}" class="toast ${config.class}" role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="toast-body">
+                    <i class="bi bi-${config.icon} me-2"></i>
+                    ${message}
+                </div>
+            </div>
+        `;
+
+        toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+        
+        const toastElement = document.getElementById(toastId);
+        const toast = new bootstrap.Toast(toastElement, {
+            autohide: true,
+            delay: type === 'error' ? 5000 : 3000
+        });
+        
+        toast.show();
+        
+        // Remove toast element after it's hidden
+        toastElement.addEventListener('hidden.bs.toast', () => {
+            toastElement.remove();
+        });
     }
 }
 
-// Utility function to format duration
-function formatDuration(duration) {
-    // Duration comes as "00:00:30.1234567" format from C#
-    const parts = duration.split(':');
-    if (parts.length >= 3) {
-        const seconds = parseFloat(parts[2]);
-        const minutes = parseInt(parts[1]);
-        const hours = parseInt(parts[0]);
-        
-        if (hours > 0) {
-            return `${hours}h ${minutes}m ${Math.floor(seconds)}s`;
-        } else if (minutes > 0) {
-            return `${minutes}m ${Math.floor(seconds)}s`;
-        } else {
-            return `${Math.floor(seconds)}s`;
-        }
-    }
-    return duration;
-}
+// Initialize the application when the page loads
+let app;
+document.addEventListener('DOMContentLoaded', () => {
+    app = new SignalRadioApp();
+});
+
+// Make sure the app is available globally for onclick handlers
+window.app = app;

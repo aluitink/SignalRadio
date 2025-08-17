@@ -1,0 +1,276 @@
+/* SignalRadio UI Styles */
+
+:root {
+    --primary-color: #0066cc;
+    --success-color: #28a745;
+    --warning-color: #ffc107;
+    --danger-color: #dc3545;
+    --info-color: #17a2b8;
+    --dark-color: #343a40;
+    --light-color: #f8f9fa;
+}
+
+body {
+    background-color: #f5f5f5;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Call Stream Styles */
+.call-stream {
+    max-height: 70vh;
+    overflow-y: auto;
+    background-color: white;
+}
+
+.call-item {
+    border-bottom: 1px solid #e9ecef;
+    padding: 15px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.call-item:hover {
+    background-color: #f8f9fa;
+}
+
+.call-item.subscribed {
+    background-color: #e8f5e8;
+    border-left: 4px solid var(--success-color);
+}
+
+.call-item.new-call {
+    animation: slideInFromTop 0.5s ease-out;
+    background-color: #fff3cd;
+}
+
+.call-item.playing {
+    background-color: #cce5ff;
+    border-left: 4px solid var(--primary-color);
+}
+
+@keyframes slideInFromTop {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Call item content */
+.call-header {
+    display: flex;
+    justify-content: between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.call-talkgroup {
+    font-weight: bold;
+    font-size: 1.1em;
+    color: var(--dark-color);
+}
+
+.call-time {
+    font-size: 0.9em;
+    color: #6c757d;
+}
+
+.call-details {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.call-detail-item {
+    font-size: 0.85em;
+    color: #6c757d;
+}
+
+.call-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.btn-subscribe {
+    font-size: 0.8em;
+    padding: 4px 12px;
+}
+
+.btn-play {
+    font-size: 0.8em;
+    padding: 4px 8px;
+}
+
+/* Connection status */
+.badge.connected {
+    background-color: var(--success-color) !important;
+}
+
+.badge.disconnected {
+    background-color: var(--danger-color) !important;
+}
+
+.badge.connecting {
+    background-color: var(--warning-color) !important;
+}
+
+/* Audio controls */
+.audio-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.audio-progress {
+    flex: 1;
+    height: 4px;
+    background-color: #e9ecef;
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.audio-progress-bar {
+    height: 100%;
+    background-color: var(--primary-color);
+    transition: width 0.1s ease;
+}
+
+.audio-time {
+    font-size: 0.75em;
+    color: #6c757d;
+    min-width: 40px;
+}
+
+/* Subscribed list */
+.subscribed-item {
+    display: flex;
+    justify-content: between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.subscribed-item:last-child {
+    border-bottom: none;
+}
+
+.subscribed-talkgroup {
+    font-weight: 500;
+    color: var(--dark-color);
+}
+
+.btn-unsubscribe {
+    font-size: 0.7em;
+    padding: 2px 8px;
+}
+
+/* Scrollbar styling */
+.call-stream::-webkit-scrollbar {
+    width: 8px;
+}
+
+.call-stream::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.call-stream::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+}
+
+.call-stream::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .call-details {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
+    }
+    
+    .call-actions {
+        width: 100%;
+        justify-content: flex-start;
+    }
+    
+    .call-stream {
+        max-height: 60vh;
+    }
+}
+
+/* Toast notifications */
+.toast {
+    --bs-toast-max-width: 350px;
+}
+
+/* Empty state */
+#empty-state {
+    display: none;
+}
+
+.call-stream:empty + #empty-state {
+    display: block;
+}
+
+/* Loading animation */
+.loading-spinner {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid var(--primary-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Recording indicators */
+.recording-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.75em;
+    padding: 2px 6px;
+    border-radius: 12px;
+    background-color: #e9ecef;
+    color: #6c757d;
+}
+
+.recording-indicator.has-recordings {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.recording-indicator.downloading {
+    background-color: #cce5ff;
+    color: #004085;
+}
+
+/* Frequency display */
+.frequency-display {
+    font-family: 'Courier New', monospace;
+    font-size: 0.85em;
+    background-color: #f8f9fa;
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid #dee2e6;
+}
+
+/* Duration display */
+.duration-display {
+    font-weight: 500;
+    color: var(--primary-color);
+}

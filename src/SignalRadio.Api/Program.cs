@@ -4,6 +4,7 @@ using SignalRadio.Core.Data;
 using SignalRadio.Core.Repositories;
 using SignalRadio.Api.Hubs;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.FileProviders;
 using DotNetEnv;
 
 // Load .env file if it exists
@@ -50,10 +51,12 @@ builder.Services.Configure<AzureStorageOptions>(
 // Register repositories
 builder.Services.AddScoped<ICallRepository, CallRepository>();
 builder.Services.AddScoped<IRecordingRepository, RecordingRepository>();
+builder.Services.AddScoped<ITalkGroupRepository, TalkGroupRepository>();
 
 // Register services
 builder.Services.AddScoped<IStorageService, AzureBlobStorageService>();
 builder.Services.AddScoped<ICallService, CallService>();
+builder.Services.AddScoped<ITalkGroupService, TalkGroupService>();
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
@@ -90,7 +93,7 @@ app.UseAuthorization();
 app.MapControllers();
 
 // Map SignalR hub
-app.MapHub<TalkGroupHub>("/hubs/talkgroups");
+app.MapHub<TalkGroupHub>("/hubs/talkgroup");
 
 // Add health check endpoint
 app.MapGet("/health", () => Results.Ok(new { status = "healthy", timestamp = DateTime.UtcNow }));

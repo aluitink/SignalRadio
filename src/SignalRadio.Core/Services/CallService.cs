@@ -132,7 +132,7 @@ public class CallService : ICallService
 
     public async Task<IEnumerable<Call>> GetRecentCallsAsync(int limit = 50)
     {
-        return await _callRepository.GetRecentCallsAsync(limit);
+        return await _callRepository.GetRecentAsync(limit);
     }
 
     public async Task<IEnumerable<Call>> GetCallsByTalkgroupAsync(string talkgroupId, int? limit = null)

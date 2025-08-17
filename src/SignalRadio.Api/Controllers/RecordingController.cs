@@ -198,7 +198,7 @@ public class RecordingController : ControllerBase
 
             var totalUploadedBytes = storageResults.Where(r => r.IsSuccess).Sum(r => r.UploadedBytes);
 
-            // Broadcast new call to SignalR clients subscribed to this talk group
+            // Broadcast new call to SignalR clients
             try 
             {
                 var callNotification = new
@@ -210,6 +210,8 @@ public class RecordingController : ControllerBase
                     call.Frequency,
                     call.Duration,
                     call.CreatedAt,
+                    call.UpdatedAt,
+                    RecordingCount = recordings.Count,
                     Recordings = recordings.Select(r => new
                     {
                         r.Id,
@@ -217,10 +219,15 @@ public class RecordingController : ControllerBase
                         r.Format,
                         r.FileSize,
                         r.IsUploaded,
-                        r.BlobName
+                        r.BlobName,
+                        r.UploadedAt
                     })
                 };
 
+                // Broadcast to all clients (for the main call stream)
+                await _hubContext.Clients.All.SendAsync("NewCall", callNotification);
+
+                // Also broadcast to clients subscribed to this specific talk group
                 await _hubContext.Clients.Group($"talkgroup_{call.TalkgroupId}")
                     .SendAsync("NewCall", callNotification);
 
@@ -342,6 +349,39 @@ public class RecordingController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to download recording: {BlobName}", blobName);
+            return StatusCode(500, "Failed to download recording");
+        }
+    }
+
+    [HttpGet("{recordingId:int}/download")]
+    public async Task<IActionResult> DownloadRecordingById(int recordingId)
+    {
+        try
+        {
+            var recording = await _callService.GetRecordingByIdAsync(recordingId);
+            if (recording == null)
+            {
+                return NotFound($"Recording not found: {recordingId}");
+            }
+
+            if (!recording.IsUploaded || string.IsNullOrEmpty(recording.BlobName))
+            {
+                return BadRequest("Recording is not available for download");
+            }
+
+            var stream = await _storageService.DownloadRecordingAsync(recording.BlobName);
+            if (stream == null)
+            {
+                return NotFound($"Recording file not found: {recording.BlobName}");
+            }
+
+            var contentType = GetContentType(recording.FileName);
+
+            return File(stream, contentType, recording.FileName);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to download recording: {RecordingId}", recordingId);
             return StatusCode(500, "Failed to download recording");
         }
     }

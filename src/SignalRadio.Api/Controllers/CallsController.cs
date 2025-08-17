@@ -58,6 +58,27 @@ public class CallsController : ControllerBase
         }
     }
 
+    [HttpGet("activity-statistics")]
+    public async Task<IActionResult> GetActivityStatistics()
+    {
+        try
+        {
+            var recentCalls = await _callService.GetRecentCallsAsync(1000);
+            
+            // Return activity count per talkgroup as a simple dictionary
+            var activityStats = recentCalls
+                .GroupBy(c => c.TalkgroupId)
+                .ToDictionary(g => g.Key, g => g.Count());
+
+            return Ok(activityStats);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to retrieve activity statistics");
+            return StatusCode(500, "Failed to retrieve activity statistics");
+        }
+    }
+
     [HttpGet("{id}")]
     public async Task<IActionResult> GetCall(int id)
     {

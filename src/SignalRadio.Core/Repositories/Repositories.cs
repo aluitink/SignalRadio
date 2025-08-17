@@ -59,12 +59,12 @@ public class CallRepository : ICallRepository
         return await query.ToListAsync();
     }
 
-    public async Task<IEnumerable<Call>> GetRecentCallsAsync(int limit = 50)
+    public async Task<IEnumerable<Call>> GetRecentAsync(int count = 50)
     {
         return await _context.Calls
             .Include(c => c.Recordings)
             .OrderByDescending(c => c.RecordingTime)
-            .Take(limit)
+            .Take(count)
             .ToListAsync();
     }
 
@@ -245,5 +245,94 @@ public class RecordingRepository : IRecordingRepository
             .GroupBy(r => r.Format)
             .Select(g => new { Format = g.Key, TotalSize = g.Sum(r => r.FileSize) })
             .ToDictionaryAsync(x => x.Format, x => x.TotalSize);
+    }
+}
+
+public class TalkGroupRepository : ITalkGroupRepository
+{
+    private readonly SignalRadioDbContext _context;
+
+    public TalkGroupRepository(SignalRadioDbContext context)
+    {
+        _context = context;
+    }
+
+    public async Task<TalkGroup> CreateAsync(TalkGroup talkGroup)
+    {
+        _context.TalkGroups.Add(talkGroup);
+        await _context.SaveChangesAsync();
+        return talkGroup;
+    }
+
+    public async Task<TalkGroup?> GetByIdAsync(int id)
+    {
+        return await _context.TalkGroups.FindAsync(id);
+    }
+
+    public async Task<TalkGroup?> GetByDecimalAsync(string decimalId)
+    {
+        return await _context.TalkGroups
+            .FirstOrDefaultAsync(tg => tg.Decimal == decimalId);
+    }
+
+    public async Task<IEnumerable<TalkGroup>> GetAllAsync()
+    {
+        return await _context.TalkGroups
+            .OrderBy(tg => tg.Category)
+            .ThenBy(tg => tg.AlphaTag)
+            .ToListAsync();
+    }
+
+    public async Task<IEnumerable<TalkGroup>> GetByCategoryAsync(string category)
+    {
+        return await _context.TalkGroups
+            .Where(tg => tg.Category == category)
+            .OrderBy(tg => tg.AlphaTag)
+            .ToListAsync();
+    }
+
+    public async Task<IEnumerable<TalkGroup>> SearchAsync(string searchTerm)
+    {
+        var term = searchTerm.ToLower();
+        return await _context.TalkGroups
+            .Where(tg => 
+                tg.Decimal.Contains(searchTerm) ||
+                tg.AlphaTag.ToLower().Contains(term) ||
+                (tg.Description != null && tg.Description.ToLower().Contains(term)) ||
+                (tg.Category != null && tg.Category.ToLower().Contains(term)) ||
+                (tg.Tag != null && tg.Tag.ToLower().Contains(term)))
+            .OrderBy(tg => tg.Category)
+            .ThenBy(tg => tg.AlphaTag)
+            .ToListAsync();
+    }
+
+    public async Task<TalkGroup> UpdateAsync(TalkGroup talkGroup)
+    {
+        talkGroup.UpdatedAt = DateTime.UtcNow;
+        _context.TalkGroups.Update(talkGroup);
+        await _context.SaveChangesAsync();
+        return talkGroup;
+    }
+
+    public async Task DeleteAsync(int id)
+    {
+        var talkGroup = await _context.TalkGroups.FindAsync(id);
+        if (talkGroup != null)
+        {
+            _context.TalkGroups.Remove(talkGroup);
+            await _context.SaveChangesAsync();
+        }
+    }
+
+    public async Task DeleteAllAsync()
+    {
+        _context.TalkGroups.RemoveRange(_context.TalkGroups);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task BulkInsertAsync(IEnumerable<TalkGroup> talkGroups)
+    {
+        _context.TalkGroups.AddRange(talkGroups);
+        await _context.SaveChangesAsync();
     }
 }
