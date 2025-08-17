@@ -60,6 +60,26 @@ export class UIManager {
         document.getElementById('clear-stream').addEventListener('click', () => {
             this.app.clearCallStream();
         });
+
+        // Event delegation for dynamically created buttons
+        document.addEventListener('click', (e) => {
+            // Handle play button clicks
+            if (e.target.closest('.btn-play')) {
+                const button = e.target.closest('.btn-play');
+                const callData = button.dataset.call;
+                if (callData) {
+                    try {
+                        const call = JSON.parse(callData);
+                        this.app.playCall(call);
+                    } catch (error) {
+                        console.error('Failed to parse call data:', error);
+                        this.showToast('Failed to play recording', 'error');
+                    }
+                }
+                e.preventDefault();
+                return false;
+            }
+        });
     }
 
     // Helper method to setup synced controls between mobile and desktop versions
@@ -217,7 +237,7 @@ export class UIManager {
                     </button>
                     ${hasRecordings ? `
                         <button type="button" class="btn btn-outline-success btn-play btn-sm" 
-                                onclick="app.playCall(${JSON.stringify(call).replace(/"/g, '&quot;')})"
+                                data-call='${JSON.stringify(call)}'
                                 title="Play recording">
                             <i class="bi bi-play-fill"></i>
                         </button>

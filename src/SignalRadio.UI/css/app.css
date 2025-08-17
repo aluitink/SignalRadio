@@ -48,17 +48,30 @@ body {
 }
 
 /* Priority badges */
-.priority-high {
+.badge.priority-high {
     background-color: var(--danger-color) !important;
 }
 
-.priority-medium {
+.badge.priority-medium {
     background-color: var(--warning-color) !important;
     color: #000 !important;
 }
 
-.priority-low {
+.badge.priority-low {
     background-color: var(--info-color) !important;
+}
+
+/* Priority borders for call items - only when not subscribed */
+.call-item.priority-high:not(.subscribed) {
+    border-left: 4px solid var(--danger-color) !important;
+}
+
+.call-item.priority-medium:not(.subscribed) {
+    border-left: 4px solid var(--warning-color) !important;
+}
+
+.call-item.priority-low:not(.subscribed) {
+    border-left: 4px solid var(--info-color) !important;
 }
 
 /* Admin panel styles */
@@ -269,14 +282,14 @@ body {
     color: var(--dark-color);
 }
 
-/* Subscription status colors - simple red/green system */
+/* Subscription status colors - subscribed always gets green border */
 .call-item.subscribed {
-    border-left: 4px solid var(--success-color) !important; /* Green for subscribed */
+    border-left: 4px solid var(--success-color) !important; /* Green for all subscribed */
     background-color: rgba(40, 167, 69, 0.05) !important; /* Light green tint for subscribed */
 }
 
-.call-item:not(.subscribed) {
-    border-left: 4px solid var(--danger-color) !important; /* Red for not subscribed */
+.call-item:not(.subscribed):not(.priority-high):not(.priority-medium):not(.priority-low) {
+    border-left: 4px solid var(--danger-color) !important; /* Red for not subscribed with no priority */
 }
 
 /* Connection status */

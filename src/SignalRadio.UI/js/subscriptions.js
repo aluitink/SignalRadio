@@ -141,6 +141,17 @@ class SubscriptionsManager {
         
         // Refresh button
         document.getElementById('refresh-data').addEventListener('click', () => this.refreshData());
+        
+        // Event delegation for talk group card buttons
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('.btn-view-stream')) {
+                const talkgroupId = e.target.closest('.btn-view-stream').dataset.talkgroupId;
+                this.viewTalkgroupStream(talkgroupId);
+            } else if (e.target.closest('.btn-toggle-subscription')) {
+                const talkgroupId = e.target.closest('.btn-toggle-subscription').dataset.talkgroupId;
+                this.toggleSubscription(talkgroupId, e.target.closest('.btn-toggle-subscription'));
+            }
+        });
     }
 
     async loadTalkGroups() {
@@ -311,13 +322,13 @@ class SubscriptionsManager {
                         ${tg.description ? `<p class="card-text small">${this.escapeHtml(tg.description)}</p>` : ''}
                         
                         <div class="d-flex gap-2">
-                            <button class="btn btn-outline-info btn-sm" 
-                                    onclick="subscriptionsManager.viewTalkgroupStream('${tg.decimal}')">
+                            <button class="btn btn-outline-info btn-sm btn-view-stream" 
+                                    data-talkgroup-id="${tg.decimal}">
                                 <i class="bi bi-list-ul me-1"></i>
                                 View Stream
                             </button>
-                            <button class="btn ${isSubscribed ? 'btn-outline-danger' : 'btn-outline-success'} btn-sm flex-fill" 
-                                    onclick="subscriptionsManager.toggleSubscription('${tg.decimal}', this)">
+                            <button class="btn ${isSubscribed ? 'btn-outline-danger' : 'btn-outline-success'} btn-sm flex-fill btn-toggle-subscription" 
+                                    data-talkgroup-id="${tg.decimal}">
                                 <i class="bi bi-${isSubscribed ? 'bookmark-dash' : 'bookmark-plus'} me-1"></i>
                                 ${isSubscribed ? 'Unsubscribe' : 'Subscribe'}
                             </button>
@@ -357,12 +368,12 @@ class SubscriptionsManager {
                 </td>
                 <td>
                     <div class="btn-group" role="group">
-                        <button class="btn btn-outline-info btn-sm" 
-                                onclick="subscriptionsManager.viewTalkgroupStream('${tg.decimal}')">
+                        <button class="btn btn-outline-info btn-sm btn-view-stream" 
+                                data-talkgroup-id="${tg.decimal}">
                             <i class="bi bi-list-ul"></i>
                         </button>
-                        <button class="btn ${isSubscribed ? 'btn-outline-danger' : 'btn-outline-success'} btn-sm" 
-                                onclick="subscriptionsManager.toggleSubscription('${tg.decimal}', this)">
+                        <button class="btn ${isSubscribed ? 'btn-outline-danger' : 'btn-outline-success'} btn-sm btn-toggle-subscription" 
+                                data-talkgroup-id="${tg.decimal}">
                             <i class="bi bi-${isSubscribed ? 'bookmark-dash' : 'bookmark-plus'} me-1"></i>
                             ${isSubscribed ? 'Unsubscribe' : 'Subscribe'}
                         </button>
@@ -533,25 +544,57 @@ class SubscriptionsManager {
     }
 
     showToast(message, type = 'info') {
-        const toastElement = document.getElementById('toast');
-        const toastBody = toastElement.querySelector('.toast-body');
+        const toastContainer = document.getElementById('toast-container');
+        if (!toastContainer) {
+            console.warn('Toast container not found, message:', message);
+            return;
+        }
         
-        toastBody.textContent = message;
+        const toastId = 'toast-' + Date.now();
         
-        // Update toast styling based on type
-        toastElement.className = `toast ${type === 'error' ? 'bg-danger text-white' : 
-                                          type === 'success' ? 'bg-success text-white' :
-                                          type === 'warning' ? 'bg-warning text-dark' : 'bg-info text-white'}`;
+        const typeMap = {
+            'success': { class: 'text-bg-success', icon: 'check-circle-fill' },
+            'error': { class: 'text-bg-danger', icon: 'exclamation-triangle-fill' },
+            'warning': { class: 'text-bg-warning', icon: 'exclamation-triangle' },
+            'info': { class: 'text-bg-info', icon: 'info-circle-fill' }
+        };
+
+        const config = typeMap[type] || typeMap.info;
+
+        const toastHtml = `
+            <div id="${toastId}" class="toast ${config.class}" role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="toast-body">
+                    <i class="bi bi-${config.icon} me-2"></i>
+                    ${message}
+                </div>
+            </div>
+        `;
+
+        toastContainer.insertAdjacentHTML('beforeend', toastHtml);
         
-        const toast = new bootstrap.Toast(toastElement);
+        const toastElement = document.getElementById(toastId);
+        const toast = new bootstrap.Toast(toastElement, {
+            autohide: true,
+            delay: type === 'error' ? 5000 : 3000
+        });
+        
         toast.show();
+        
+        // Remove toast element after it's hidden
+        toastElement.addEventListener('hidden.bs.toast', () => {
+            toastElement.remove();
+        });
     }
 
     // Navigation method
     viewTalkgroupStream(talkgroupId) {
+        console.log('viewTalkgroupStream called with talkgroupId:', talkgroupId);
+        
         // Navigate to the main page with talkgroup parameter
         const url = new URL(window.location.origin + '/index.html');
         url.searchParams.set('talkgroup', talkgroupId);
+        
+        console.log('Navigating to:', url.toString());
         
         // Navigate to the main page
         window.location.href = url.toString();
@@ -564,8 +607,13 @@ class SubscriptionsManager {
     }
 }
 
-// Initialize the application
-const subscriptionsManager = new SubscriptionsManager();
-
-// Make it globally available for inline event handlers
-window.subscriptionsManager = subscriptionsManager;
+// Initialize the application when DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+    const subscriptionsManager = new SubscriptionsManager();
+    
+    // Make it globally available for inline event handlers
+    window.subscriptionsManager = subscriptionsManager;
+    
+    // Debug: Test that the global is available
+    console.log('SubscriptionsManager initialized and available globally:', window.subscriptionsManager);
+});
