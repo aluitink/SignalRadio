@@ -8,9 +8,11 @@ export class AudioManager {
         this.currentlyPlaying = null;
         this.userHasInteracted = false;
         this.audioContextReady = false;
+        this.currentCall = null;
         
         this.setupAudioEvents();
         this.setupUserInteractionDetection();
+        this.setupBackgroundPlayback();
     }
 
     setupUserInteractionDetection() {
@@ -20,12 +22,15 @@ export class AudioManager {
                 this.userHasInteracted = true;
                 this.audioContextReady = true;
                 
+                // Initialize media session manager after user interaction
+                if (this.app.mediaSessionManager) {
+                    this.app.mediaSessionManager.init();
+                }
+                
                 // Remove listeners after first interaction
                 document.removeEventListener('click', markUserInteraction);
                 document.removeEventListener('keydown', markUserInteraction);
                 document.removeEventListener('touchstart', markUserInteraction);
-                
-                this.app.uiManager.showToast('Audio playback ready', 'success');
             }
         };
 
@@ -33,6 +38,28 @@ export class AudioManager {
         document.addEventListener('click', markUserInteraction);
         document.addEventListener('keydown', markUserInteraction);
         document.addEventListener('touchstart', markUserInteraction);
+    }
+
+    setupBackgroundPlayback() {
+        // Handle page visibility changes
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'hidden') {
+                console.log('Page hidden - maintaining audio playback');
+                // Audio should continue playing in background
+            } else {
+                console.log('Page visible - resuming UI updates');
+            }
+        });
+
+        // Handle before unload to maintain playback
+        window.addEventListener('beforeunload', (event) => {
+            if (this.currentlyPlaying && !this.audioPlayer.paused) {
+                // Show warning if audio is playing
+                event.preventDefault();
+                event.returnValue = 'Audio is currently playing. Are you sure you want to leave?';
+                return event.returnValue;
+            }
+        });
     }
 
     setupAudioEvents() {
@@ -53,6 +80,18 @@ export class AudioManager {
             this.app.uiManager.showToast('Audio playback failed', 'error');
             this.processNextInQueue();
         });
+
+        this.audioPlayer.addEventListener('play', () => {
+            if (this.app.mediaSessionManager && this.currentCall) {
+                this.app.mediaSessionManager.onCallStarted(this.currentCall);
+            }
+        });
+
+        this.audioPlayer.addEventListener('pause', () => {
+            if (this.app.mediaSessionManager) {
+                this.app.mediaSessionManager.onCallPaused();
+            }
+        });
     }
 
     async playCall(call) {
@@ -61,14 +100,12 @@ export class AudioManager {
 
     queueCall(call) {
         if (!call.recordings || call.recordings.length === 0) {
-            this.app.uiManager.showToast('No recordings available for this call', 'warning');
             return;
         }
 
         // Check if call is already in queue
         const alreadyQueued = this.audioQueue.some(queuedCall => queuedCall.id === call.id);
         if (alreadyQueued) {
-            this.app.uiManager.showToast('Call is already queued for playback', 'info');
             return;
         }
 
@@ -78,8 +115,6 @@ export class AudioManager {
         // If not currently processing, start processing the queue
         if (!this.isProcessingQueue) {
             this.processQueue();
-        } else {
-            this.app.uiManager.showToast(`Call queued for playback (${this.audioQueue.length} in queue)`, 'info');
         }
     }
 
@@ -120,7 +155,6 @@ export class AudioManager {
 
     async playCallDirectly(call) {
         if (!call.recordings || call.recordings.length === 0) {
-            this.app.uiManager.showToast('No recordings available for this call', 'warning');
             return;
         }
 
@@ -130,7 +164,6 @@ export class AudioManager {
             recording = call.recordings.find(r => r.format === 'WAV' && r.isUploaded);
         }
         if (!recording) {
-            this.app.uiManager.showToast('No playable recordings available', 'warning');
             return;
         }
 
@@ -140,6 +173,7 @@ export class AudioManager {
 
             // Set up new playback
             this.currentlyPlaying = call.id;
+            this.currentCall = call;
             const audioUrl = `/api/recording/${recording.id}/download`;
             
             console.log('Setting audio source to:', audioUrl);
@@ -182,7 +216,6 @@ export class AudioManager {
             });
 
             await this.audioPlayer.play();
-            this.app.uiManager.showToast(`Playing call from talk group ${call.talkgroupId}`, 'info');
 
         } catch (error) {
             console.error('Failed to play audio:', error);
@@ -229,6 +262,11 @@ export class AudioManager {
             this.audioPlayer.pause();
             this.audioPlayer.currentTime = 0;
             
+            // Notify media session manager
+            if (this.app.mediaSessionManager) {
+                this.app.mediaSessionManager.onCallStopped();
+            }
+            
             // Hide audio controls
             this.app.uiManager.hideAudioControls(this.currentlyPlaying);
             
@@ -239,6 +277,7 @@ export class AudioManager {
             }
             
             this.currentlyPlaying = null;
+            this.currentCall = null;
         }
     }
 
@@ -251,6 +290,11 @@ export class AudioManager {
     }
 
     onAudioEnded() {
+        // Notify media session manager
+        if (this.app.mediaSessionManager) {
+            this.app.mediaSessionManager.onCallEnded();
+        }
+        
         this.stopCurrentPlayback();
         this.processNextInQueue();
     }
@@ -287,6 +331,14 @@ export class AudioManager {
                 timeDisplay.textContent = this.app.utils.formatAudioTime(this.audioPlayer.currentTime);
             }
         }
+
+        // Update media session position
+        if (this.app.mediaSessionManager) {
+            this.app.mediaSessionManager.onTimeUpdate(
+                this.audioPlayer.currentTime,
+                this.audioPlayer.duration
+            );
+        }
     }
 
     updateAudioDuration() {
@@ -295,22 +347,24 @@ export class AudioManager {
 
     removeFromQueue(index) {
         if (index >= 0 && index < this.audioQueue.length) {
-            const removedCall = this.audioQueue.splice(index, 1)[0];
+            this.audioQueue.splice(index, 1);
             this.app.uiManager.updateQueueDisplay();
-            this.app.uiManager.showToast(`Removed call from talk group ${removedCall.talkgroupId} from queue`, 'info');
         }
     }
 
     clearQueue() {
         if (this.audioQueue.length === 0) {
-            this.app.uiManager.showToast('Queue is already empty', 'info');
             return;
         }
         
         if (confirm(`Clear all ${this.audioQueue.length} calls from the playback queue?`)) {
             this.audioQueue = [];
             this.app.uiManager.updateQueueDisplay();
-            this.app.uiManager.showToast('Playback queue cleared', 'info');
+            
+            // Notify media session manager if no calls playing
+            if (!this.currentlyPlaying && this.app.mediaSessionManager) {
+                this.app.mediaSessionManager.onCallEnded();
+            }
         }
     }
 

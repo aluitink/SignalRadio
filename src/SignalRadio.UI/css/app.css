@@ -15,6 +15,104 @@ body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
+/* Navigation Styles */
+.navbar-nav .nav-link.active {
+    font-weight: 500;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 0.375rem;
+}
+
+.navbar-toggler:focus {
+    box-shadow: none;
+}
+
+/* Admin and Subscriptions Page Styles */
+.sticky-top {
+    z-index: 1020;
+}
+
+/* Subscription Management Styles */
+.talkgroup-card {
+    transition: all 0.2s ease;
+    border: 2px solid transparent;
+}
+
+.talkgroup-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.talkgroup-card.subscribed {
+    border-color: var(--success-color);
+    background-color: #f8fff9;
+}
+
+/* Priority badges */
+.priority-high {
+    background-color: var(--danger-color) !important;
+}
+
+.priority-medium {
+    background-color: var(--warning-color) !important;
+    color: #000 !important;
+}
+
+.priority-low {
+    background-color: var(--info-color) !important;
+}
+
+/* Admin panel styles */
+.upload-zone {
+    border: 2px dashed #dee2e6;
+    border-radius: 0.5rem;
+    transition: all 0.2s ease;
+}
+
+.upload-zone:hover, .upload-zone.dragover {
+    border-color: var(--primary-color);
+    background-color: #f0f8ff;
+}
+
+.danger-zone {
+    background-color: #fdf2f2;
+}
+
+/* Log display styles */
+.log-entry {
+    font-family: 'Courier New', monospace;
+    font-size: 0.875rem;
+    line-height: 1.4;
+}
+
+.log-entry.level-error {
+    border-left: 4px solid var(--danger-color);
+}
+
+.log-entry.level-warning {
+    border-left: 4px solid var(--warning-color);
+}
+
+.log-entry.level-info {
+    border-left: 4px solid var(--info-color);
+}
+
+/* Statistics cards */
+.stat-card {
+    border-left: 4px solid var(--primary-color);
+}
+
+.stat-card .display-6 {
+    font-weight: 700;
+    color: var(--primary-color);
+}
+
+/* Filter sidebar */
+.filter-sidebar {
+    background-color: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
 /* Call Stream Styles */
 .call-stream {
     max-height: 70vh;
@@ -238,6 +336,11 @@ body {
 .subscribed-talkgroup {
     font-weight: 500;
     color: var(--dark-color);
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    margin-right: 8px;
 }
 
 .btn-unsubscribe {
@@ -496,7 +599,10 @@ body {
 .queue-talkgroup {
     font-weight: 500;
     margin-right: 8px;
-    min-width: 60px;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .queue-time {
@@ -515,4 +621,212 @@ body {
 #queue-list {
     max-height: 200px;
     overflow-y: auto;
+}
+
+/* Mobile Accordion Enhancements */
+.accordion-button {
+    padding: 0.75rem 1rem;
+    font-size: 0.9rem;
+}
+
+.accordion-button:not(.collapsed) {
+    background-color: var(--bs-primary-bg-subtle);
+    border-color: var(--bs-primary-border-subtle);
+}
+
+.accordion-body {
+    padding: 1rem;
+}
+
+/* Badge positioning in accordion headers */
+.accordion-button .accordion-badge {
+    margin-left: auto;
+    margin-right: 0.5rem;
+    position: absolute;
+    right: 2rem; /* Position to the left of the chevron */
+}
+
+/* Ensure the accordion button text doesn't overlap with badge */
+.accordion-button {
+    padding-right: 4rem; /* Extra space for badge and chevron */
+}
+
+/* Call stream header statistics */
+.card-header .small.text-muted {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-top: 0.25rem;
+}
+
+.card-header .small.text-muted span {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+/* Ensure accordion items stack nicely on mobile */
+@media (max-width: 768px) {
+    .accordion {
+        margin-bottom: 1rem;
+    }
+    
+    .accordion-item {
+        border: 1px solid rgba(0,0,0,.125);
+        margin-bottom: 0.5rem;
+        border-radius: 0.375rem !important;
+    }
+    
+    .accordion-item:not(:last-of-type) {
+        border-bottom: 1px solid rgba(0,0,0,.125);
+    }
+    
+    .accordion-button {
+        padding: 0.65rem 4rem 0.65rem 0.85rem; /* Extra right padding for badge */
+        font-size: 0.85rem;
+    }
+    
+    .accordion-button .accordion-badge {
+        right: 1.75rem; /* Adjust for smaller screen */
+    }
+    
+    .accordion-body {
+        padding: 0.75rem 0.85rem;
+    }
+    
+    /* Compact mobile queue and subscription items */
+    .queue-item,
+    .subscribed-item {
+        padding: 0.4rem 0;
+        font-size: 0.85rem;
+    }
+    
+    .queue-item .btn,
+    .subscribed-item .btn {
+        padding: 0.15rem 0.4rem;
+        font-size: 0.75rem;
+    }
+    
+    /* Mobile stats in header */
+    .card-header .small.text-muted {
+        gap: 0.5rem;
+        font-size: 0.75rem;
+    }
+    
+    .card-header .small.text-muted .badge {
+        font-size: 0.65rem;
+    }
+}
+
+/* Very small screens - further compact accordion */
+@media (max-width: 480px) {
+    .accordion-button {
+        padding: 0.5rem 3.5rem 0.5rem 0.75rem; /* Compact padding with space for badge */
+        font-size: 0.8rem;
+    }
+    
+    .accordion-button .accordion-badge {
+        font-size: 0.65rem;
+        right: 1.5rem; /* Closer positioning on very small screens */
+    }
+    
+    .accordion-body {
+        padding: 0.6rem 0.75rem;
+    }
+    
+    /* Stack stats vertically on very small screens */
+    .card-header .small.text-muted {
+        flex-direction: column;
+        gap: 0.25rem;
+        align-items: flex-start;
+    }
+    
+    .card-header .small.text-muted span {
+        font-size: 0.7rem;
+    }
+}
+
+/* Background Playback and PWA Styles */
+.form-check-label {
+    user-select: none;
+}
+
+.form-check small.text-muted {
+    display: block;
+    margin-top: 0.25rem;
+    margin-left: 0.125rem;
+}
+
+/* Media Session and Background Playback Indicators */
+@media (display-mode: standalone) {
+    /* PWA-specific styles when running as installed app */
+    body {
+        padding-top: env(safe-area-inset-top);
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+}
+
+/* Background mode styles - keep minimal content visible */
+.page-hidden .non-essential {
+    display: none !important;
+}
+
+/* Audio controls remain visible in background mode */
+.audio-controls {
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(8px);
+    border-radius: 8px;
+    padding: 0.5rem;
+}
+
+/* Talkgroup View Styles */
+.talkgroup-view {
+    animation: fadeIn 0.3s ease-in;
+}
+
+.talkgroup-view h4 {
+    color: var(--primary-color);
+}
+
+.talkgroup-view .badge {
+    font-size: 0.75em;
+}
+
+.talkgroup-view .card {
+    border: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.talkgroup-view .btn-talkgroup {
+    color: var(--info-color);
+    border-color: var(--info-color);
+}
+
+.talkgroup-view .btn-talkgroup:hover {
+    background-color: var(--info-color);
+    border-color: var(--info-color);
+    color: white;
+}
+
+#talkgroup-call-stream {
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Responsive adjustments for talkgroup view */
+@media (max-width: 768px) {
+    .talkgroup-view .d-flex.justify-content-between {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 1rem;
+    }
+    
+    .talkgroup-view .btn {
+        width: 100%;
+    }
 }

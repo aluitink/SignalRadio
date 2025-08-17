@@ -5,6 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SignalRadio - Live Call Stream</title>
     
+    <!-- PWA Meta Tags -->
+    <meta name="description" content="Live radio call stream monitoring">
+    <meta name="theme-color" content="#0d6efd">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="SignalRadio">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json">
+    
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
@@ -16,18 +26,43 @@
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container-fluid">
-            <a class="navbar-brand" href="#">
+            <a class="navbar-brand" href="index.html">
                 <i class="bi bi-broadcast"></i>
                 SignalRadio
             </a>
-            <div class="navbar-nav ms-auto">
-                <div class="nav-item">
-                    <span class="navbar-text">
-                        <span id="connection-status" class="badge bg-secondary">
-                            <i class="bi bi-circle-fill me-1"></i>
-                            Connecting...
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="index.html">
+                            <i class="bi bi-activity me-1"></i>
+                            Live Stream
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="subscriptions.html">
+                            <i class="bi bi-bookmark-fill me-1"></i>
+                            Subscriptions
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="admin.html">
+                            <i class="bi bi-gear-fill me-1"></i>
+                            Admin
+                        </a>
+                    </li>
+                </ul>
+                <div class="navbar-nav">
+                    <div class="nav-item">
+                        <span class="navbar-text">
+                            <span id="connection-status" class="badge bg-secondary">
+                                <i class="bi bi-circle-fill me-1"></i>
+                                Connecting...
+                            </span>
                         </span>
-                    </span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -38,77 +73,193 @@
         <div class="row">
             <!-- Sidebar -->
             <div class="col-md-3">
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="card-title mb-0">
-                            <i class="bi bi-gear-fill me-2"></i>
-                            Controls
-                        </h5>
-                    </div>
-                    <div class="card-body">
-                        <!-- Auto-play controls -->
-                        <div class="mb-3">
-                            <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" id="auto-play-toggle">
-                                <label class="form-check-label" for="auto-play-toggle">
-                                    Auto-play subscribed calls
-                                </label>
+                <!-- Mobile/Narrow Screen Accordion -->
+                <div class="accordion d-md-none" id="mobileControlsAccordion">
+                    <!-- Controls Section -->
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#controlsCollapse" aria-expanded="true" aria-controls="controlsCollapse">
+                                <i class="bi bi-gear-fill me-2"></i>
+                                Controls
+                            </button>
+                        </h2>
+                        <div id="controlsCollapse" class="accordion-collapse collapse show" data-bs-parent="#mobileControlsAccordion">
+                            <div class="accordion-body">
+                                <!-- Auto-play controls -->
+                                <div class="mb-3">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="auto-play-toggle">
+                                        <label class="form-check-label" for="auto-play-toggle">
+                                            Auto-play subscribed calls
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <!-- Background playback controls -->
+                                <div class="mb-3">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="background-playback-toggle" checked>
+                                        <label class="form-check-label" for="background-playback-toggle">
+                                            Background playback
+                                        </label>
+                                    </div>
+                                    <small class="text-muted">Continue playing when app is in background</small>
+                                </div>
+
+                                <!-- Wake lock controls -->
+                                <div class="mb-3">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="wake-lock-toggle" checked>
+                                        <label class="form-check-label" for="wake-lock-toggle">
+                                            Keep screen on
+                                        </label>
+                                    </div>
+                                    <small class="text-muted">Prevent screen from turning off during playback</small>
+                                </div>
+
+                                <!-- Volume control -->
+                                <div class="mb-3">
+                                    <label for="volume-control" class="form-label">Volume</label>
+                                    <input type="range" class="form-range" id="volume-control" min="0" max="100" value="50">
+                                </div>
+
+                                <!-- Clear subscriptions -->
+                                <button type="button" class="btn btn-danger btn-sm w-100 mb-3" id="clear-subscriptions">
+                                    <i class="bi bi-x-circle me-1"></i>
+                                    Clear All Subscriptions
+                                </button>
                             </div>
                         </div>
+                    </div>
 
-                        <!-- Volume control -->
-                        <div class="mb-3">
-                            <label for="volume-control" class="form-label">Volume</label>
-                            <input type="range" class="form-range" id="volume-control" min="0" max="100" value="50">
+                    <!-- Subscribed Talk Groups Section -->
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#subscriptionsCollapse" aria-expanded="false" aria-controls="subscriptionsCollapse">
+                                <i class="bi bi-bookmark-fill me-2"></i>
+                                Subscribed Talk Groups
+                                <span id="mobile-subscriptions-count" class="badge bg-success accordion-badge">0</span>
+                            </button>
+                        </h2>
+                        <div id="subscriptionsCollapse" class="accordion-collapse collapse" data-bs-parent="#mobileControlsAccordion">
+                            <div class="accordion-body">
+                                <div id="subscribed-list-mobile">
+                                    <div class="text-muted small">No subscriptions</div>
+                                </div>
+                            </div>
                         </div>
+                    </div>
 
-                        <!-- Clear subscriptions -->
-                        <button type="button" class="btn btn-outline-warning btn-sm w-100 mb-3" id="clear-subscriptions">
-                            <i class="bi bi-x-circle me-1"></i>
-                            Clear All Subscriptions
-                        </button>
-
-                        <!-- Statistics -->
-                        <hr>
-                        <h6>Statistics</h6>
-                        <div class="small text-muted">
-                            <div>Active Calls: <span id="active-calls-count" class="badge bg-primary">0</span></div>
-                            <div>Subscriptions: <span id="subscriptions-count" class="badge bg-success">0</span></div>
-                            <div>Total Received: <span id="total-calls-count" class="badge bg-info">0</span></div>
-                            <div>Queue Length: <span id="queue-count" class="badge bg-warning">0</span></div>
+                    <!-- Playback Queue Section -->
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#queueCollapse" aria-expanded="false" aria-controls="queueCollapse">
+                                <i class="bi bi-list-ol me-2"></i>
+                                Playback Queue
+                                <span id="mobile-queue-count" class="badge bg-warning accordion-badge">0</span>
+                            </button>
+                        </h2>
+                        <div id="queueCollapse" class="accordion-collapse collapse" data-bs-parent="#mobileControlsAccordion">
+                            <div class="accordion-body">
+                                <div class="d-flex justify-content-end align-items-center mb-2">
+                                    <button type="button" class="btn btn-outline-danger btn-sm" onclick="app.clearQueue()" id="clear-queue-mobile">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                                <div id="queue-list-mobile">
+                                    <div class="text-muted small">No calls queued</div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Subscribed Talk Groups -->
-                <div class="card mt-3">
-                    <div class="card-header">
-                        <h6 class="card-title mb-0">
-                            <i class="bi bi-bookmark-fill me-2"></i>
-                            Subscribed Talk Groups
-                        </h6>
-                    </div>
-                    <div class="card-body">
-                        <div id="subscribed-list">
-                            <div class="text-muted small">No subscriptions</div>
+                <!-- Desktop/Wide Screen Cards -->
+                <div class="d-none d-md-block">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="bi bi-gear-fill me-2"></i>
+                                Controls
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <!-- Auto-play controls -->
+                            <div class="mb-3">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="auto-play-toggle-desktop">
+                                    <label class="form-check-label" for="auto-play-toggle-desktop">
+                                        Auto-play subscribed calls
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Background playback controls -->
+                            <div class="mb-3">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="background-playback-toggle-desktop" checked>
+                                    <label class="form-check-label" for="background-playback-toggle-desktop">
+                                        Background playback
+                                    </label>
+                                </div>
+                                <small class="text-muted">Continue playing when app is in background</small>
+                            </div>
+
+                            <!-- Wake lock controls -->
+                            <div class="mb-3">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="wake-lock-toggle-desktop" checked>
+                                    <label class="form-check-label" for="wake-lock-toggle-desktop">
+                                        Keep screen on
+                                    </label>
+                                </div>
+                                <small class="text-muted">Prevent screen from turning off during playback</small>
+                            </div>
+
+                            <!-- Volume control -->
+                            <div class="mb-3">
+                                <label for="volume-control-desktop" class="form-label">Volume</label>
+                                <input type="range" class="form-range" id="volume-control-desktop" min="0" max="100" value="50">
+                            </div>
+
+                            <!-- Clear subscriptions -->
+                            <button type="button" class="btn btn-danger btn-sm w-100 mb-3" id="clear-subscriptions-desktop">
+                                <i class="bi bi-x-circle me-1"></i>
+                                Clear All Subscriptions
+                            </button>
                         </div>
                     </div>
-                </div>
 
-                <!-- Playback Queue -->
-                <div class="card mt-3">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h6 class="card-title mb-0">
-                            <i class="bi bi-list-ol me-2"></i>
-                            Playback Queue
-                        </h6>
-                        <button type="button" class="btn btn-outline-danger btn-sm" onclick="app.clearQueue()" id="clear-queue">
-                            <i class="bi bi-trash"></i>
-                        </button>
+                    <!-- Subscribed Talk Groups -->
+                    <div class="card mt-3">
+                        <div class="card-header">
+                            <h6 class="card-title mb-0">
+                                <i class="bi bi-bookmark-fill me-2"></i>
+                                Subscribed Talk Groups
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div id="subscribed-list-desktop">
+                                <div class="text-muted small">No subscriptions</div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="card-body">
-                        <div id="queue-list">
-                            <div class="text-muted small">No calls queued</div>
+
+                    <!-- Playback Queue -->
+                    <div class="card mt-3">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h6 class="card-title mb-0">
+                                <i class="bi bi-list-ol me-2"></i>
+                                Playback Queue
+                            </h6>
+                            <button type="button" class="btn btn-outline-danger btn-sm" onclick="app.clearQueue()" id="clear-queue-desktop">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div id="queue-list-desktop">
+                                <div class="text-muted small">No calls queued</div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -117,18 +268,22 @@
             <!-- Main Call Stream -->
             <div class="col-md-9">
                 <div class="card">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="card-title mb-0">
-                            <i class="bi bi-activity me-2"></i>
-                            Live Call Stream
-                        </h5>
-                        <div>
-                            <button type="button" class="btn btn-outline-secondary btn-sm" id="refresh-calls">
-                                <i class="bi bi-arrow-clockwise"></i>
-                            </button>
-                            <button type="button" class="btn btn-outline-secondary btn-sm" id="clear-stream">
-                                <i class="bi bi-trash"></i>
-                            </button>
+                    <div class="card-header">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h5 class="card-title mb-0">
+                                    <i class="bi bi-activity me-2"></i>
+                                    Live Call Stream
+                                </h5>
+                            </div>
+                            <div>
+                                <button type="button" class="btn btn-outline-secondary btn-sm" id="refresh-calls">
+                                    <i class="bi bi-arrow-clockwise"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm" id="clear-stream">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
                     <div class="card-body p-0">

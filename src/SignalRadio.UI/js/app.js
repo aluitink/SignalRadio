@@ -4,6 +4,7 @@ import { AudioManager } from './modules/audio-manager.js';
 import { DataManager } from './modules/data-manager.js';
 import { SettingsManager } from './modules/settings-manager.js';
 import { UIManager } from './modules/ui-manager.js';
+import { MediaSessionManager } from './modules/media-session-manager.js';
 import { Utils } from './modules/utils.js';
 
 // SignalRadio UI Application - Refactored
@@ -20,6 +21,7 @@ class SignalRadioApp {
         this.settingsManager = new SettingsManager(this);
         this.dataManager = new DataManager(this);
         this.audioManager = new AudioManager(this);
+        this.mediaSessionManager = new MediaSessionManager(this);
         this.uiManager = new UIManager(this);
         this.connectionManager = new ConnectionManager(this);
         
@@ -29,6 +31,10 @@ class SignalRadioApp {
     async initializeApp() {
         try {
             console.log('Initializing SignalRadio App...');
+            
+            // Register service worker for background playbook
+            await this.registerServiceWorker();
+            
             this.uiManager.setupEventListeners();
             this.settingsManager.loadSettings();
             
@@ -38,8 +44,20 @@ class SignalRadioApp {
             console.log('Initializing SignalR connection...');
             await this.connectionManager.initializeSignalR();
             
-            console.log('Loading recent calls...');
-            this.dataManager.loadRecentCalls();
+            // Handle browser navigation
+            this.setupBrowserNavigation();
+            
+            // Check if we should load a specific talkgroup view
+            const urlParams = new URLSearchParams(window.location.search);
+            const talkgroupId = urlParams.get('talkgroup');
+            
+            if (talkgroupId) {
+                console.log(`Loading talkgroup view for ${talkgroupId}...`);
+                this.loadTalkgroupView(talkgroupId);
+            } else {
+                console.log('Loading recent calls...');
+                this.dataManager.loadRecentCalls();
+            }
             
             console.log('Starting age update timer...');
             this.uiManager.startAgeUpdateTimer();
@@ -48,6 +66,98 @@ class SignalRadioApp {
         } catch (error) {
             console.error('Failed to initialize app:', error);
             this.uiManager.showToast(`App initialization failed: ${error.message}`, 'error');
+        }
+    }
+
+    setupBrowserNavigation() {
+        // Handle browser back/forward buttons
+        window.addEventListener('popstate', (event) => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const talkgroupId = urlParams.get('talkgroup');
+            
+            if (talkgroupId) {
+                this.loadTalkgroupView(talkgroupId);
+            } else {
+                this.uiManager.showMainView();
+            }
+        });
+    }
+
+    async registerServiceWorker() {
+        console.log('🔧 Starting service worker registration process...');
+        console.log('🌐 Browser:', navigator.userAgent);
+        console.log('🔍 Checking service worker support...');
+        console.log('🔍 navigator.serviceWorker exists:', 'serviceWorker' in navigator);
+        console.log('🔍 window.location.protocol:', window.location.protocol);
+        console.log('🔍 window.location.hostname:', window.location.hostname);
+        console.log('🔍 Is secure context:', window.isSecureContext);
+        
+        if ('serviceWorker' in navigator) {
+            try {
+                console.log('✅ Service worker API is supported');
+                console.log('🔄 Registering service worker at /service-worker.js...');
+                
+                const registration = await navigator.serviceWorker.register('/service-worker.js', {
+                    scope: '/'
+                });
+                
+                console.log('✅ Service worker registered successfully:', registration);
+                console.log('📍 Registration scope:', registration.scope);
+                console.log('🔧 Registration state:', registration.installing ? 'installing' : 
+                           registration.waiting ? 'waiting' : 
+                           registration.active ? 'active' : 'unknown');
+                
+                // Check if service worker is already active
+                if (registration.active) {
+                    console.log('✅ Service worker is already active');
+                } else if (registration.installing) {
+                    console.log('⏳ Service worker is installing...');
+                } else if (registration.waiting) {
+                    console.log('⏸️ Service worker is waiting...');
+                }
+                
+                // Handle service worker updates
+                registration.addEventListener('updatefound', () => {
+                    console.log('🔄 Service worker update found');
+                    const newWorker = registration.installing;
+                    
+                    if (newWorker) {
+                        newWorker.addEventListener('statechange', () => {
+                            console.log('🔄 Service worker state changed to:', newWorker.state);
+                            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                // New service worker is available
+                                if (confirm('App update available. Refresh to apply?')) {
+                                    newWorker.postMessage({ type: 'SKIP_WAITING' });
+                                    window.location.reload();
+                                }
+                            }
+                        });
+                    }
+                });
+                
+                // Listen for messages from service worker
+                navigator.serviceWorker.addEventListener('message', (event) => {
+                    const { type, data } = event.data;
+                    console.log('📨 Message from service worker:', type, data);
+                    
+                    switch (type) {
+                        case 'BACKGROUND_SYNC_COMPLETE':
+                            console.log('🔄 Background sync completed:', data);
+                            break;
+                    }
+                });
+                
+                // Additional debugging
+                navigator.serviceWorker.addEventListener('controllerchange', () => {
+                    console.log('🔄 Service worker controller changed');
+                });
+                
+            } catch (error) {
+                console.error('❌ Service worker registration failed:', error);
+                console.error('Error details:', error.message, error.stack);
+            }
+        } else {
+            console.log('❌ Service workers not supported in this browser');
         }
     }
 
@@ -75,7 +185,7 @@ class SignalRadioApp {
         if (this.autoPlay && this.audioManager.userHasInteracted) {
             this.audioManager.queueCall(callData);
         } else if (this.autoPlay && !this.audioManager.userHasInteracted) {
-            this.uiManager.showToast('Click anywhere to enable auto-play', 'info');
+            // Don't show notification for this case
         }
     }
 
@@ -98,12 +208,26 @@ class SignalRadioApp {
 
     displayCalls(calls) {
         const streamContainer = document.getElementById('call-stream');
+        const emptyState = document.getElementById('empty-state');
+        
         streamContainer.innerHTML = '';
 
-        calls.forEach(call => {
-            this.activeCalls.set(call.id, call);
-            this.uiManager.addCallToStream(call, false);
-        });
+        if (calls && calls.length > 0) {
+            calls.forEach(call => {
+                this.activeCalls.set(call.id, call);
+                this.uiManager.addCallToStream(call, false);
+            });
+            
+            // Hide empty state when we have calls
+            if (emptyState) {
+                emptyState.style.display = 'none';
+            }
+        } else {
+            // Show empty state when no calls
+            if (emptyState) {
+                emptyState.style.display = 'block';
+            }
+        }
 
         this.uiManager.updateStatistics();
     }
@@ -152,7 +276,7 @@ class SignalRadioApp {
                 element.querySelector('.btn-unsubscribe')?.classList.add('d-none');
             });
             
-            this.uiManager.showToast('All subscriptions cleared', 'info');
+            this.uiManager.showToast('All subscriptions cleared', 'success');
         }
     }
 
@@ -161,7 +285,6 @@ class SignalRadioApp {
             this.uiManager.clearCallStream();
             this.activeCalls.clear();
             this.uiManager.updateStatistics();
-            this.uiManager.showToast('Call stream cleared', 'info');
         }
     }
 
@@ -180,6 +303,64 @@ class SignalRadioApp {
 
     clearQueue() {
         this.audioManager.clearQueue();
+    }
+
+    // Navigation methods
+    viewTalkgroupStream(talkgroupId) {
+        // Navigate to talkgroup-specific view
+        const talkGroupInfo = this.dataManager.getTalkGroupInfo(talkgroupId);
+        const talkGroupName = talkGroupInfo?.description || `Talk Group ${talkgroupId}`;
+        
+        // Create URL with talkgroup parameter
+        const url = new URL(window.location);
+        url.searchParams.set('talkgroup', talkgroupId);
+        
+        // Update browser history
+        window.history.pushState({ talkgroupId }, `${talkGroupName} - SignalRadio`, url);
+        
+        // Load talkgroup-specific calls
+        this.loadTalkgroupView(talkgroupId);
+    }
+
+    async loadTalkgroupView(talkgroupId) {
+        try {
+            // Update UI to show we're loading
+            this.uiManager.showTalkgroupView(talkgroupId, true);
+            
+            // Fetch calls for this talkgroup (limit to 50 like main stream)
+            const response = await fetch(`/api/calls/talkgroup/${talkgroupId}?limit=50`);
+            if (!response.ok) {
+                if (response.status === 404) {
+                    // No calls found for this talkgroup
+                    this.uiManager.showTalkgroupView(talkgroupId, false, []);
+                    return;
+                }
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            const data = await response.json();
+            console.log(`Loaded ${data.calls?.length || 0} calls for talkgroup ${talkgroupId}`, data);
+            
+            // Update UI with talkgroup calls
+            this.uiManager.showTalkgroupView(talkgroupId, false, data.calls || []);
+            
+        } catch (error) {
+            console.error('Failed to load talkgroup calls:', error);
+            this.uiManager.showTalkgroupView(talkgroupId, false, []); // Show empty state
+            this.uiManager.showToast(`Failed to load calls for talk group ${talkgroupId}: ${error.message}`, 'error');
+        }
+    }
+
+    returnToMainStream() {
+        // Clear talkgroup parameter
+        const url = new URL(window.location);
+        url.searchParams.delete('talkgroup');
+        
+        // Update browser history
+        window.history.pushState({}, 'SignalRadio - Live Call Stream', url);
+        
+        // Return to main view
+        this.uiManager.showMainView();
     }
 }
 

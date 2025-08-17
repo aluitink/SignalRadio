@@ -37,11 +37,11 @@ export class ConnectionManager {
     setupConnectionEvents() {
         this.connection.onclose(() => {
             this.app.uiManager.updateConnectionStatus('disconnected');
+            this.app.uiManager.showToast('Disconnected from server', 'error');
         });
 
         this.connection.onreconnecting(() => {
             this.app.uiManager.updateConnectionStatus('connecting');
-            this.app.uiManager.showToast('Reconnecting to server...', 'warning');
         });
 
         this.connection.onreconnected(() => {
@@ -68,22 +68,22 @@ export class ConnectionManager {
             this.app.subscriptions.add(talkGroupId);
             this.app.uiManager.updateSubscriptionsDisplay();
             this.app.settingsManager.saveSettings();
-            this.app.uiManager.showToast(`Subscribed to talk group ${talkGroupId}`, 'success');
+            // Removed toast notification for less clutter
         });
 
         this.connection.on('UnsubscriptionConfirmed', (talkGroupId) => {
             this.app.subscriptions.delete(talkGroupId);
             this.app.uiManager.updateSubscriptionsDisplay();
             this.app.settingsManager.saveSettings();
-            this.app.uiManager.showToast(`Unsubscribed from talk group ${talkGroupId}`, 'info');
+            // Removed toast notification for less clutter
         });
 
         this.connection.on('AllCallsStreamSubscribed', () => {
-            this.app.uiManager.showToast('Subscribed to all calls stream', 'info');
+            // Removed notification for less clutter
         });
 
         this.connection.on('AllCallsStreamUnsubscribed', () => {
-            this.app.uiManager.showToast('Unsubscribed from all calls stream', 'info');
+            // Removed notification for less clutter
         });
     }
 

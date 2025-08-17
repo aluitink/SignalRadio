@@ -29,7 +29,6 @@ export class DataManager {
             
         } catch (error) {
             console.error('Failed to load talk group data:', error);
-            this.app.uiManager.showToast('Failed to load talk group information', 'warning');
         }
     }
 
@@ -48,13 +47,11 @@ export class DataManager {
             
             if (!data.calls) {
                 console.warn('No calls array in response:', data);
-                this.app.uiManager.showToast('No calls data received', 'warning');
                 return;
             }
             
             this.app.displayCalls(data.calls);
             console.log(`Successfully loaded ${data.calls.length} recent calls`);
-            this.app.uiManager.showToast(`Loaded ${data.calls.length} recent calls`, 'success');
             
         } catch (error) {
             console.error('Failed to load recent calls:', error);

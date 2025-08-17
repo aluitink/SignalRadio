@@ -9,11 +9,13 @@ namespace SignalRadio.Api.Controllers;
 public class TalkGroupController : ControllerBase
 {
     private readonly ITalkGroupService _talkGroupService;
+    private readonly ICallService _callService;
     private readonly ILogger<TalkGroupController> _logger;
 
-    public TalkGroupController(ITalkGroupService talkGroupService, ILogger<TalkGroupController> logger)
+    public TalkGroupController(ITalkGroupService talkGroupService, ICallService callService, ILogger<TalkGroupController> logger)
     {
         _talkGroupService = talkGroupService;
+        _callService = callService;
         _logger = logger;
     }
 
@@ -58,7 +60,7 @@ public class TalkGroupController : ControllerBase
     }
 
     [HttpGet("{decimalId}")]
-    public async Task<IActionResult> GetTalkGroup(string decimalId)
+    public async Task<IActionResult> GetTalkGroup(string decimalId, [FromQuery] int? callLimit = 10)
     {
         try
         {
@@ -68,17 +70,51 @@ public class TalkGroupController : ControllerBase
                 return NotFound(new { error = $"Talk group {decimalId} not found" });
             }
 
+            // Get recent calls for this talk group
+            var recentCalls = await _callService.GetCallsByTalkgroupAsync(decimalId, callLimit);
+
             return Ok(new
             {
-                talkGroup.Id,
-                talkGroup.Decimal,
-                talkGroup.Hex,
-                talkGroup.Mode,
-                talkGroup.AlphaTag,
-                talkGroup.Description,
-                talkGroup.Tag,
-                talkGroup.Category,
-                talkGroup.Priority
+                TalkGroup = new
+                {
+                    talkGroup.Id,
+                    talkGroup.Decimal,
+                    talkGroup.Hex,
+                    talkGroup.Mode,
+                    talkGroup.AlphaTag,
+                    talkGroup.Description,
+                    talkGroup.Tag,
+                    talkGroup.Category,
+                    talkGroup.Priority
+                },
+                RecentCalls = recentCalls.Select(c => new
+                {
+                    c.Id,
+                    c.TalkgroupId,
+                    c.SystemName,
+                    c.RecordingTime,
+                    c.Frequency,
+                    c.Duration,
+                    c.CreatedAt,
+                    RecordingCount = c.Recordings.Count,
+                    Recordings = c.Recordings.Select(r => new
+                    {
+                        r.Id,
+                        r.FileName,
+                        r.Format,
+                        r.FileSize,
+                        r.IsUploaded,
+                        r.BlobName,
+                        r.BlobUri,
+                        r.UploadedAt
+                    })
+                }),
+                CallStats = new
+                {
+                    TotalCalls = recentCalls.Count(),
+                    TotalRecordings = recentCalls.Sum(c => c.Recordings.Count),
+                    CallLimit = callLimit
+                }
             });
         }
         catch (Exception ex)
