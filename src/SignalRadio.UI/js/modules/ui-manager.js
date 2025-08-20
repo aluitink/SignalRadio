@@ -211,6 +211,8 @@ export class UIManager {
                         </div>
                         ` : ''}
                     </div>
+                    
+                    ${this.createTranscriptionSection(call)}
                 </div>
                 
                 <div class="call-meta-info">
@@ -257,6 +259,67 @@ export class UIManager {
         `;
 
         return callElement;
+    }
+
+    createTranscriptionSection(call) {
+        // Check if any recordings have transcriptions
+        const transcribedRecordings = call.recordings?.filter(r => r.hasTranscription) || [];
+        
+        if (transcribedRecordings.length === 0) {
+            return ''; // No transcriptions available
+        }
+
+        // Get the best transcription (highest confidence)
+        const bestTranscription = transcribedRecordings.reduce((best, current) => {
+            const currentConfidence = current.transcriptionConfidence || 0;
+            const bestConfidence = best.transcriptionConfidence || 0;
+            return currentConfidence > bestConfidence ? current : best;
+        });
+
+        if (!bestTranscription.transcriptionText) {
+            return ''; // No transcription text available
+        }
+
+        const confidencePercent = Math.round((bestTranscription.transcriptionConfidence || 0) * 100);
+        const confidenceClass = confidencePercent >= 80 ? 'bg-success' : 
+                               confidencePercent >= 60 ? 'bg-warning text-dark' : 'bg-danger';
+
+        // Truncate long transcriptions for the card view
+        const maxLength = 150;
+        const transcriptionText = bestTranscription.transcriptionText;
+        const truncatedText = transcriptionText.length > maxLength ? 
+            transcriptionText.substring(0, maxLength) + '...' : transcriptionText;
+
+        return `
+            <div class="transcription-section mt-2">
+                <div class="d-flex align-items-center mb-1">
+                    <i class="bi bi-chat-quote text-primary me-1"></i>
+                    <small class="text-muted me-2">Transcription</small>
+                    <span class="badge ${confidenceClass} badge-sm">${confidencePercent}% confidence</span>
+                    ${bestTranscription.transcriptionLanguage ? 
+                        `<span class="badge bg-info badge-sm ms-1">${bestTranscription.transcriptionLanguage.toUpperCase()}</span>` : ''}
+                </div>
+                <div class="transcription-text border-start border-primary border-2 ps-2 py-1 bg-light">
+                    <small class="text-dark">${this.escapeHtml(truncatedText)}</small>
+                    ${transcriptionText.length > maxLength ? `
+                        <button type="button" class="btn btn-link btn-sm p-0 ms-1" 
+                                onclick="this.style.display='none'; this.nextElementSibling.style.display='block';"
+                                title="Show full transcription">
+                            <small>Show more</small>
+                        </button>
+                        <div style="display: none;">
+                            <small class="text-dark">${this.escapeHtml(transcriptionText)}</small>
+                        </div>
+                    ` : ''}
+                </div>
+            </div>
+        `;
+    }
+
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 
     updateCallInStream(call) {

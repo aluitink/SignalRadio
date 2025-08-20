@@ -36,7 +36,7 @@ fi
 
 # Parse JSON metadata using simple grep/sed (since jq might not be available)
 TALKGROUP=$(grep -o '"talkgroup":[[:space:]]*[0-9]*' "$JSON_FILE" | sed 's/.*://g' | tr -d ' ')
-FREQUENCY=$(grep -o '"freq":[[:space:]]*[0-9.]*' "$JSON_FILE" | sed 's/.*://g' | tr -d ' ')
+FREQUENCY=$(grep -o '"freq":[[:space:]]*[0-9.]*' "$JSON_FILE" | head -1 | sed 's/.*://g' | tr -d ' ')
 START_TIME=$(grep -o '"start_time":[[:space:]]*[0-9]*' "$JSON_FILE" | sed 's/.*://g' | tr -d ' ')
 STOP_TIME=$(grep -o '"stop_time":[[:space:]]*[0-9]*' "$JSON_FILE" | sed 's/.*://g' | tr -d ' ')
 CALL_LENGTH=$(grep -o '"call_length":[[:space:]]*[0-9.]*' "$JSON_FILE" | sed 's/.*://g' | tr -d ' ')

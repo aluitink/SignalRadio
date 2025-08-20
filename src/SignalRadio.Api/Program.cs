@@ -48,6 +48,10 @@ builder.Services.AddDbContext<SignalRadioDbContext>(options =>
 builder.Services.Configure<AzureStorageOptions>(
     builder.Configuration.GetSection(AzureStorageOptions.Section));
 
+// Configure ASR Settings
+builder.Services.Configure<AsrOptions>(
+    builder.Configuration.GetSection(AsrOptions.SectionName));
+
 // Register repositories
 builder.Services.AddScoped<ICallRepository, CallRepository>();
 builder.Services.AddScoped<IRecordingRepository, RecordingRepository>();
@@ -57,6 +61,14 @@ builder.Services.AddScoped<ITalkGroupRepository, TalkGroupRepository>();
 builder.Services.AddScoped<IStorageService, AzureBlobStorageService>();
 builder.Services.AddScoped<ICallService, CallService>();
 builder.Services.AddScoped<ITalkGroupService, TalkGroupService>();
+builder.Services.AddScoped<ISearchService, FullTextSearchService>();
+
+// Register ASR services
+builder.Services.AddHttpClient<WhisperAsrService>();
+builder.Services.AddScoped<IAsrService, WhisperAsrService>();
+
+// Register background services
+builder.Services.AddHostedService<SignalRadio.Api.Services.TranscriptionBackgroundService>();
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();

@@ -44,7 +44,11 @@ public class CallsController : ControllerBase
                         r.FileSize,
                         r.IsUploaded,
                         r.BlobName,
-                        r.UploadedAt
+                        r.UploadedAt,
+                        r.HasTranscription,
+                        r.TranscriptionText,
+                        r.TranscriptionConfidence,
+                        r.TranscriptionLanguage
                     })
                 }),
                 Count = calls.Count(),
@@ -112,7 +116,12 @@ public class CallsController : ControllerBase
                     r.BlobName,
                     r.BlobUri,
                     r.UploadedAt,
-                    r.CreatedAt
+                    r.CreatedAt,
+                    r.HasTranscription,
+                    r.TranscriptionText,
+                    r.TranscriptionConfidence,
+                    r.TranscriptionLanguage,
+                    r.TranscriptionProcessedAt
                 })
             });
         }

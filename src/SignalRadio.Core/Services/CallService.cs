@@ -19,6 +19,11 @@ public interface ICallService
     Task UpdateCallDurationAsync(int callId, TimeSpan duration);
     Task<IEnumerable<Recording>> GetFailedUploadsAsync(int maxAttempts = 3);
     Task<Dictionary<string, object>> GetRecordingStatsAsync();
+    
+    // ASR-related methods
+    Task<Call?> GetCallWithRecordingByIdAsync(int recordingId);
+    Task UpdateRecordingTranscriptionAsync(int recordingId, TranscriptionResult? transcriptionResult, string? errorMessage);
+    Task<IEnumerable<Call>> GetRecordingsNeedingTranscriptionAsync();
 }
 
 public class CallService : ICallService
@@ -184,6 +189,49 @@ public class CallService : ICallService
             ["FailedUploads"] = failedUploads.Count(),
             ["AverageFileSizeMB"] = totalRecordings > 0 ? Math.Round(totalStorage / 1024.0 / 1024.0 / totalRecordings, 2) : 0
         };
+    }
+
+    public async Task<Call?> GetCallWithRecordingByIdAsync(int recordingId)
+    {
+        var recording = await _recordingRepository.GetByIdAsync(recordingId);
+        if (recording == null)
+            return null;
+
+        var call = await _callRepository.GetByIdAsync(recording.CallId);
+        if (call != null)
+        {
+            // Get all recordings for this call
+            var recordings = await _recordingRepository.GetByCallIdAsync(call.Id);
+            call.Recordings = recordings.ToList();
+        }
+
+        return call;
+    }
+
+    public async Task UpdateRecordingTranscriptionAsync(int recordingId, TranscriptionResult? transcriptionResult, string? errorMessage)
+    {
+        await _recordingRepository.UpdateRecordingTranscriptionAsync(recordingId, transcriptionResult, errorMessage);
+    }
+
+    public async Task<IEnumerable<Call>> GetRecordingsNeedingTranscriptionAsync()
+    {
+        var recordings = await _recordingRepository.GetRecordingsNeedingTranscriptionAsync();
+        var callIds = recordings.Select(r => r.CallId).Distinct();
+        
+        var calls = new List<Call>();
+        foreach (var callId in callIds)
+        {
+            var call = await _callRepository.GetByIdAsync(callId);
+            if (call != null)
+            {
+                // Load only the recordings that need transcription for this call
+                var callRecordings = recordings.Where(r => r.CallId == callId).ToList();
+                call.Recordings = callRecordings;
+                calls.Add(call);
+            }
+        }
+        
+        return calls;
     }
 
     private static string SanitizeFrequency(string frequency)

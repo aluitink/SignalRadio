@@ -117,6 +117,28 @@ public class AzureBlobStorageService : IStorageService
         }
     }
 
+    public async Task<byte[]?> DownloadFileAsync(string blobName, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var blobClient = _containerClient.GetBlobClient(blobName);
+            
+            if (!await blobClient.ExistsAsync(cancellationToken))
+            {
+                _logger.LogWarning("Blob not found: {BlobName}", blobName);
+                return null;
+            }
+
+            var response = await blobClient.DownloadContentAsync(cancellationToken);
+            return response.Value.Content.ToArray();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to download file: {BlobName}", blobName);
+            return null;
+        }
+    }
+
     public async Task<bool> DeleteRecordingAsync(string blobName)
     {
         try

@@ -14,17 +14,20 @@ public class RecordingController : ControllerBase
     private readonly IStorageService _storageService;
     private readonly ICallService _callService;
     private readonly IHubContext<TalkGroupHub> _hubContext;
+    private readonly IAsrService _asrService;
 
     public RecordingController(
         ILogger<RecordingController> logger, 
         IStorageService storageService,
         ICallService callService,
-        IHubContext<TalkGroupHub> hubContext)
+        IHubContext<TalkGroupHub> hubContext,
+        IAsrService asrService)
     {
         _logger = logger;
         _storageService = storageService;
         _callService = callService;
         _hubContext = hubContext;
+        _asrService = asrService;
     }
 
     [HttpPost("upload")]
@@ -481,5 +484,202 @@ public class RecordingController : ControllerBase
             ".ogg" => "audio/ogg",
             _ => "application/octet-stream"
         };
+    }
+
+    /// <summary>
+    /// Trigger transcription for a specific recording
+    /// </summary>
+    [HttpPost("{id}/transcribe")]
+    public async Task<IActionResult> TranscribeRecording(int id)
+    {
+        try
+        {
+            var call = await _callService.GetCallWithRecordingByIdAsync(id);
+            if (call == null)
+            {
+                return NotFound(new { Error = "Recording not found" });
+            }
+
+            var recording = call.Recordings.FirstOrDefault(r => r.Id == id);
+            if (recording == null)
+            {
+                return NotFound(new { Error = "Recording not found" });
+            }
+
+            // Check if already transcribed
+            if (recording.HasTranscription)
+            {
+                return BadRequest(new { Error = "Recording already has transcription", TranscriptionText = recording.TranscriptionText });
+            }
+
+            // Only transcribe WAV files
+            if (!recording.FileName.EndsWith(".wav", StringComparison.OrdinalIgnoreCase))
+            {
+                return BadRequest(new { Error = "Only WAV files can be transcribed" });
+            }
+
+            // Download the audio file
+            var downloadResult = await _storageService.DownloadFileAsync(recording.BlobName ?? recording.FileName);
+            if (downloadResult == null)
+            {
+                return BadRequest(new { Error = "Could not download audio file for transcription" });
+            }
+
+            // Perform transcription
+            try
+            {
+                var transcriptionResult = await _asrService.TranscribeAsync(downloadResult, recording.FileName);
+                
+                // Store the transcription result
+                await _callService.UpdateRecordingTranscriptionAsync(id, transcriptionResult, null);
+
+                _logger.LogInformation("Successfully transcribed recording {RecordingId}", id);
+
+                // Broadcast the updated call with transcription to connected clients
+                try
+                {
+                    var updatedCall = await _callService.GetCallByIdAsync(recording.CallId);
+                    if (updatedCall != null)
+                    {
+                        var callNotification = new
+                        {
+                            updatedCall.Id,
+                            updatedCall.TalkgroupId,
+                            updatedCall.SystemName,
+                            updatedCall.RecordingTime,
+                            updatedCall.Frequency,
+                            updatedCall.Duration,
+                            updatedCall.CreatedAt,
+                            updatedCall.UpdatedAt,
+                            RecordingCount = updatedCall.Recordings?.Count ?? 0,
+                            Recordings = updatedCall.Recordings?.Select(r => new
+                            {
+                                r.Id,
+                                r.FileName,
+                                r.Format,
+                                r.FileSize,
+                                r.IsUploaded,
+                                r.BlobName,
+                                r.UploadedAt,
+                                r.HasTranscription,
+                                r.TranscriptionText,
+                                r.TranscriptionLanguage,
+                                r.TranscriptionConfidence,
+                                r.TranscriptionProcessedAt
+                            }) ?? Enumerable.Empty<object>()
+                        };
+
+                        // Broadcast to all clients monitoring the general call stream
+                        await _hubContext.Clients.Group("all_calls_monitor")
+                            .SendAsync("CallUpdated", callNotification);
+
+                        // Broadcast to clients subscribed to this specific talk group
+                        await _hubContext.Clients.Group($"talkgroup_{updatedCall.TalkgroupId}")
+                            .SendAsync("CallUpdated", callNotification);
+
+                        _logger.LogDebug("Broadcasted transcription update for call {CallId} to SignalR clients", updatedCall.Id);
+                    }
+                }
+                catch (Exception broadcastEx)
+                {
+                    _logger.LogWarning(broadcastEx, "Failed to broadcast transcription update for recording {RecordingId}, but transcription was successful", id);
+                }
+
+                return Ok(new 
+                { 
+                    Message = "Transcription completed",
+                    RecordingId = id,
+                    TranscriptionText = transcriptionResult.Text,
+                    Language = transcriptionResult.Language,
+                    Confidence = transcriptionResult.Segments.Any() && 
+                        transcriptionResult.Segments.Any(s => s.Confidence.HasValue) ? 
+                        transcriptionResult.Segments.Where(s => s.Confidence.HasValue).Average(s => s.Confidence!.Value) : (double?)null
+                });
+            }
+            catch (Exception transcriptionEx)
+            {
+                // Store the error in the database
+                await _callService.UpdateRecordingTranscriptionAsync(id, null, transcriptionEx.Message);
+                return BadRequest(new { Error = transcriptionEx.Message });
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error transcribing recording {RecordingId}", id);
+            return StatusCode(500, new { Error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Get transcription status and result for a specific recording
+    /// </summary>
+    [HttpGet("{id}/transcription")]
+    public async Task<IActionResult> GetTranscription(int id)
+    {
+        try
+        {
+            var call = await _callService.GetCallWithRecordingByIdAsync(id);
+            if (call == null)
+            {
+                return NotFound(new { Error = "Recording not found" });
+            }
+
+            var recording = call.Recordings.FirstOrDefault(r => r.Id == id);
+            if (recording == null)
+            {
+                return NotFound(new { Error = "Recording not found" });
+            }
+
+            var response = new
+            {
+                RecordingId = id,
+                HasTranscription = recording.HasTranscription,
+                TranscriptionText = recording.TranscriptionText,
+                Language = recording.TranscriptionLanguage,
+                Confidence = recording.TranscriptionConfidence,
+                ProcessedAt = recording.TranscriptionProcessedAt,
+                SegmentCount = !string.IsNullOrEmpty(recording.TranscriptionSegments) ? 
+                    System.Text.Json.JsonSerializer.Deserialize<object[]>(recording.TranscriptionSegments)?.Length : 0,
+                ErrorMessage = recording.LastTranscriptionError
+            };
+
+            return Ok(response);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting transcription for recording {RecordingId}", id);
+            return StatusCode(500, new { Error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Get all recordings that need transcription (WAV files without transcription)
+    /// </summary>
+    [HttpGet("pending-transcription")]
+    public async Task<IActionResult> GetPendingTranscriptions()
+    {
+        try
+        {
+            var pendingCalls = await _callService.GetRecordingsNeedingTranscriptionAsync();
+            
+            var response = pendingCalls.SelectMany(call => 
+                call.Recordings.Select(recording => new
+                {
+                    RecordingId = recording.Id,
+                    FileName = recording.FileName,
+                    TalkGroup = call.TalkgroupId,
+                    UploadedAt = recording.UploadedAt,
+                    Duration = recording.Duration,
+                    FileSize = recording.FileSize
+                })
+            );
+
+            return Ok(response);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting pending transcriptions");
+            return StatusCode(500, new { Error = ex.Message });
+        }
     }
 }

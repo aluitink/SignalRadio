@@ -55,6 +55,23 @@ public class Recording
     public int UploadAttempts { get; set; } = 0;
     public string? LastUploadError { get; set; }
     
+    // Transcription/ASR fields
+    public bool HasTranscription { get; set; } = false;
+    
+    public string? TranscriptionText { get; set; } // Main transcript text
+    
+    public double? TranscriptionConfidence { get; set; } // Overall confidence (0.0 to 1.0)
+    
+    [MaxLength(10)]
+    public string? TranscriptionLanguage { get; set; } // Detected language code (e.g., "en")
+    
+    public DateTime? TranscriptionProcessedAt { get; set; } // When transcription was completed
+    
+    public string? TranscriptionSegments { get; set; } // JSON string of detailed segments
+    
+    public int TranscriptionAttempts { get; set; } = 0;
+    public string? LastTranscriptionError { get; set; }
+    
     // Metadata
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
@@ -68,4 +85,11 @@ public class Recording
     
     [NotMapped]
     public bool IsHighQuality => Quality == "HIGH" || (Bitrate >= 128 && Format == "M4A") || (Bitrate >= 256 && Format == "WAV");
+    
+    [NotMapped]
+    public string TranscriptionStatus => HasTranscription ? "Completed" : 
+        TranscriptionAttempts > 0 ? "Failed" : "Pending";
+    
+    [NotMapped]
+    public bool IsEligibleForTranscription => Format.ToUpper() == "WAV" && IsUploaded && !HasTranscription;
 }

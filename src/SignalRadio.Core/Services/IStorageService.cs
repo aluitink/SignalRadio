@@ -12,6 +12,8 @@ public interface IStorageService
     
     Task<Stream?> DownloadRecordingAsync(string blobName);
     
+    Task<byte[]?> DownloadFileAsync(string blobName, CancellationToken cancellationToken = default);
+    
     Task<bool> DeleteRecordingAsync(string blobName);
     
     Task<IEnumerable<RecordingMetadata>> ListRecordingsAsync(

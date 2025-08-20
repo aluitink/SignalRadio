@@ -1,7 +1,9 @@
 services:
-  # SQL Server Database
+  # SQL Server Database with Full Text Search
   sqlserver:
-    image: mcr.microsoft.com/mssql/server:2022-latest
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.mssql
     container_name: signalradio-sqlserver
     environment:
       - ACCEPT_EULA=Y
@@ -29,6 +31,9 @@ services:
       - AzureStorage__ConnectionString=${AzureStorage__ConnectionString}
       - AzureStorage__ContainerName=${AzureStorage__ContainerName}
       - ConnectionStrings__DefaultConnection=Server=sqlserver,1433;Database=SignalRadio;User Id=sa;Password=SignalRadio123!;TrustServerCertificate=true;
+      - AsrSettings__Enabled=${ASR_ENABLED:-true}
+      - AsrSettings__WhisperServiceUrl=http://whisper-asr:9000
+      - AsrSettings__AutoTranscribe=${ASR_AUTO_TRANSCRIBE:-true}
     volumes:
       # Temporary processing (named volume)
       - temp:/app/temp
@@ -89,6 +94,27 @@ services:
       - /dev/bus/usb:/dev/bus/usb:rwm
     privileged: true
 
+  # Whisper ASR Service
+  whisper-asr:
+    image: onerahmet/openai-whisper-asr-webservice:latest
+    container_name: signalradio-whisper
+    environment:
+      - ASR_MODEL=small
+      - ASR_ENGINE=openai_whisper
+      - ASR_DEVICE=cpu
+    ports:
+      - "9000:9000"
+    volumes:
+      # Model cache to avoid re-downloading
+      - whisper-cache:/root/.cache
+    networks:
+      - signalradio-network
+    depends_on:
+      - sqlserver
+    restart: unless-stopped
+    # Memory limit for Whisper models
+    mem_limit: 4g
+
 networks:
   signalradio-network:
     driver: bridge
@@ -102,4 +128,6 @@ volumes:
   logs:
     driver: local
   sqlserver-data:
+    driver: local
+  whisper-cache:
     driver: local

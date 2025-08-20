@@ -246,6 +246,74 @@ public class RecordingRepository : IRecordingRepository
             .Select(g => new { Format = g.Key, TotalSize = g.Sum(r => r.FileSize) })
             .ToDictionaryAsync(x => x.Format, x => x.TotalSize);
     }
+
+    public async Task<IEnumerable<Recording>> GetRecordingsNeedingTranscriptionAsync(int limit = 10)
+    {
+        return await _context.Recordings
+            .Include(r => r.Call)
+            .Where(r => r.Format.ToUpper() == "WAV" 
+                && r.IsUploaded 
+                && !r.HasTranscription 
+                && r.TranscriptionAttempts < 3) // Max 3 attempts
+            .OrderByDescending(r => r.CreatedAt) // Process newest recordings first
+            .Take(limit)
+            .ToListAsync();
+    }
+
+    public async Task<IEnumerable<Recording>> GetTranscriptionsAsync(int? callId = null, int limit = 50)
+    {
+        var query = _context.Recordings
+            .Include(r => r.Call)
+            .Where(r => r.HasTranscription);
+
+        if (callId.HasValue)
+        {
+            query = query.Where(r => r.CallId == callId.Value);
+        }
+
+        return await query
+            .OrderByDescending(r => r.TranscriptionProcessedAt)
+            .Take(limit)
+            .ToListAsync();
+    }
+
+    public async Task UpdateRecordingTranscriptionAsync(int recordingId, TranscriptionResult? transcriptionResult, string? errorMessage)
+    {
+        var recording = await GetByIdAsync(recordingId);
+        if (recording == null)
+            throw new ArgumentException($"Recording with ID {recordingId} not found");
+
+        if (transcriptionResult != null)
+        {
+            recording.HasTranscription = true;
+            recording.TranscriptionText = transcriptionResult.Text;
+            recording.TranscriptionLanguage = transcriptionResult.Language;
+            
+            // Calculate overall confidence from segments
+            if (transcriptionResult.Segments.Any())
+            {
+                var confidenceValues = transcriptionResult.Segments
+                    .Where(s => s.Confidence.HasValue)
+                    .Select(s => s.Confidence!.Value);
+                
+                recording.TranscriptionConfidence = confidenceValues.Any() 
+                    ? confidenceValues.Average()
+                    : null;
+            }
+            
+            recording.TranscriptionProcessedAt = DateTime.UtcNow;
+            recording.TranscriptionSegments = System.Text.Json.JsonSerializer.Serialize(transcriptionResult.Segments);
+            recording.LastTranscriptionError = null;
+        }
+        else
+        {
+            recording.LastTranscriptionError = errorMessage;
+            recording.TranscriptionProcessedAt = DateTime.UtcNow;
+            recording.TranscriptionAttempts++;
+        }
+
+        await UpdateAsync(recording);
+    }
 }
 
 public class TalkGroupRepository : ITalkGroupRepository

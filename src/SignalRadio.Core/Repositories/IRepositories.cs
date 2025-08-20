@@ -27,6 +27,9 @@ public interface IRecordingRepository
     Task<IEnumerable<Recording>> GetFailedUploadsAsync(int maxAttempts = 3);
     Task<Dictionary<string, int>> GetRecordingStatsByFormatAsync();
     Task<Dictionary<string, long>> GetStorageStatsByFormatAsync();
+    Task<IEnumerable<Recording>> GetRecordingsNeedingTranscriptionAsync(int limit = 10);
+    Task<IEnumerable<Recording>> GetTranscriptionsAsync(int? callId = null, int limit = 50);
+    Task UpdateRecordingTranscriptionAsync(int recordingId, TranscriptionResult? transcriptionResult, string? errorMessage);
 }
 
 public interface ITalkGroupRepository
