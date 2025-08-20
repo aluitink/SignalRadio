@@ -7,13 +7,13 @@ services:
       - ACCEPT_EULA=Y
       - SA_PASSWORD=SignalRadio123!
       - MSSQL_PID=Express
-    ports:
-      - "1433:1433"
     volumes:
       - sqlserver-data:/var/opt/mssql
     networks:
       - signalradio-network
     restart: unless-stopped
+    # Memory limit set to 2GB
+    mem_limit: 2g
 
   # SignalRadio API Service
   signalradio-api:
@@ -50,6 +50,8 @@ services:
       - "80"
     ports:
       - "3000:80"
+    environment:
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-Password1}
     networks:
       - signalradio-network
     depends_on:

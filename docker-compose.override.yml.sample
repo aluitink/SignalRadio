@@ -3,6 +3,10 @@
 
 services:
   signalradio-ui:
+    # Admin password configuration
+    # environment:
+    #   - ADMIN_PASSWORD=YourSecurePassword123
+    
     # Example: External nginx-proxy configuration
     # Uncomment and modify the following lines if using nginx-proxy + acme-companion
     # environment:
