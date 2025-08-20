@@ -1,0 +1,54 @@
+# Sample Docker Compose Override File
+# Copy this file to docker-compose.override.yml and customize for your environment
+
+services:
+  signalradio-ui:
+    # Example: External nginx-proxy configuration
+    # Uncomment and modify the following lines if using nginx-proxy + acme-companion
+    # environment:
+    #   VIRTUAL_HOST: your-domain.com
+    #   VIRTUAL_PORT: 80
+    #   LETSENCRYPT_HOST: your-domain.com
+    #   LETSENCRYPT_EMAIL: your-email@example.com
+    # networks:
+    #   - signalradio-network
+    #   - nginx-proxy
+    # external_links:
+    #   - nginx-proxy
+
+    # Example: Custom port mapping (if not using nginx-proxy)
+    # ports:
+    #   - "8080:80"
+
+    # Example: Development environment variables
+    # environment:
+    #   - NODE_ENV=development
+
+  signalradio-api:
+    # Example: Development database connection
+    # environment:
+    #   - ConnectionStrings__DefaultConnection=Server=localhost,1433;Database=SignalRadio;User Id=sa;Password=YourPassword;TrustServerCertificate=true;
+
+    # Example: Azure Storage configuration
+    # environment:
+    #   - AzureStorage__ConnectionString=your-azure-storage-connection-string
+    #   - AzureStorage__ContainerName=your-container-name
+
+  # Example: External database (comment out sqlserver service in main compose if using external DB)
+  # sqlserver:
+  #   environment:
+  #     - SA_PASSWORD=YourCustomPassword123!
+
+# Example: External networks configuration
+# networks:
+#   nginx-proxy:
+#     external: true
+
+# Example: Development volumes for live code changes
+# volumes:
+#   api-source:
+#     driver: local
+#     driver_opts:
+#       type: none
+#       o: bind
+#       device: ./src/SignalRadio.Api

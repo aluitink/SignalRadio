@@ -14,12 +14,6 @@ services:
     networks:
       - signalradio-network
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P 'SignalRadio123!' -Q 'SELECT 1'"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 60s
 
   # SignalRadio API Service
   signalradio-api:
@@ -43,10 +37,7 @@ services:
     networks:
       - signalradio-network
     depends_on:
-      trunk-recorder:
-        condition: service_started
-      sqlserver:
-        condition: service_healthy
+      - sqlserver
     restart: unless-stopped
 
   # SignalRadio UI Service
@@ -55,6 +46,8 @@ services:
       context: ./src/SignalRadio.UI
       dockerfile: Dockerfile
     container_name: signalradio-ui
+    expose:
+      - "80"
     ports:
       - "3000:80"
     networks:
@@ -86,6 +79,8 @@ services:
       - API_ENDPOINT=http://signalradio-api:8080/api/recording/upload
     networks:
       - signalradio-network
+    depends_on:
+      - signalradio-api
     restart: unless-stopped
     # Note: trunk-recorder needs RTL-SDR hardware access
     devices:

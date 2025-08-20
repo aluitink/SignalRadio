@@ -69,7 +69,52 @@ Create environment file for Azure storage (optional for testing):
 echo "AZURE_STORAGE_CONNECTION_STRING=your_connection_string_here" > .env
 ```
 
-### 5. Start the System
+### 5. Docker Override Configuration (Optional)
+
+For custom deployments (reverse proxy, custom ports, etc.), create a docker-compose override file:
+
+```bash
+# Copy the sample override file
+cp docker-compose.override.yml.sample docker-compose.override.yml
+
+# Edit for your environment
+nano docker-compose.override.yml
+```
+
+**Common override scenarios:**
+
+**nginx-proxy + Let's Encrypt:**
+```yaml
+services:
+  signalradio-ui:
+    environment:
+      VIRTUAL_HOST: radio.yourdomain.com
+      VIRTUAL_PORT: 80
+      LETSENCRYPT_HOST: radio.yourdomain.com
+      LETSENCRYPT_EMAIL: your-email@example.com
+    networks:
+      - signalradio-network
+      - nginx-proxy
+    external_links:
+      - nginx-proxy
+
+networks:
+  nginx-proxy:
+    external: true
+```
+
+**Custom ports:**
+```yaml
+services:
+  signalradio-ui:
+    ports:
+      - "8080:80"
+  signalradio-api:
+    ports:
+      - "8081:8080"
+```
+
+### 6. Start the System
 
 ```bash
 # Start all services
@@ -82,7 +127,7 @@ docker-compose logs -f
 docker-compose ps
 ```
 
-### 6. Verify Operation
+### 7. Verify Operation
 
 - API Health Check: http://localhost:5210/health
 - Check logs: `docker-compose logs signalradio-api`

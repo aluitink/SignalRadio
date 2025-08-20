@@ -237,3 +237,6 @@ yarn-error.log*
 trunk-recorder-data/
 call-data/
 capture/
+
+# Docker override files (keep personal configurations private)
+docker-compose.override.yml
