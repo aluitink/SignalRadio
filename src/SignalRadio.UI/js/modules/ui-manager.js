@@ -22,9 +22,10 @@ export class UIManager {
         const transcriptionText = bestTranscription.transcriptionText || '';
         const lang = bestTranscription.transcriptionLanguage ? bestTranscription.transcriptionLanguage.toUpperCase() : '';
 
+        // Use HTML-escaped transcription to avoid corrupting the DOM when special characters are present
         transcriptionMobile.innerHTML =
-            `<div><strong>Transcription:</strong> ${transcriptionText}</div>` +
-            `<div><span class='badge bg-info'>${lang}</span> <span class='badge bg-success'>${confidencePercent}%</span></div>`;
+            `<div><strong>Transcription:</strong> ${this.escapeHtml(transcriptionText)}</div>` +
+            `<div><span class='badge bg-info'>${this.escapeHtml(lang)}</span> <span class='badge bg-success'>${confidencePercent}%</span></div>`;
     }
     constructor(app) {
         this.app = app;
@@ -95,7 +96,8 @@ export class UIManager {
                 const callData = button.dataset.call;
                 if (callData) {
                     try {
-                        const call = JSON.parse(decodeURIComponent(callData));
+                        const json = this.decodeCallData(callData);
+                        const call = JSON.parse(json);
                         this.app.playCall(call);
                     } catch (error) {
                         console.error('Failed to parse call data:', error);
@@ -104,6 +106,34 @@ export class UIManager {
                 }
                 e.preventDefault();
                 return false;
+            }
+        });
+
+        // Handle transcription "show more" toggles via delegation
+        document.addEventListener('click', (e) => {
+            const toggle = e.target.closest('.transcription-toggle');
+            if (!toggle) return;
+            e.preventDefault();
+
+            const container = toggle.closest('.transcription-text');
+            if (!container) return;
+
+            const full = container.querySelector('.transcription-full');
+            const truncated = toggle.previousElementSibling && toggle.previousElementSibling.tagName === 'SMALL' ? toggle.previousElementSibling : null;
+
+            const state = toggle.getAttribute('data-state');
+            if (state === 'truncated') {
+                // Show full, hide truncated and update button
+                if (truncated) truncated.style.display = 'none';
+                if (full) full.style.display = 'block';
+                toggle.setAttribute('data-state', 'full');
+                toggle.innerHTML = '<small>Show less</small>';
+            } else {
+                // Collapse back to truncated
+                if (truncated) truncated.style.display = '';
+                if (full) full.style.display = 'none';
+                toggle.setAttribute('data-state', 'truncated');
+                toggle.innerHTML = '<small>Show more</small>';
             }
         });
     }
@@ -265,7 +295,7 @@ export class UIManager {
                     </button>
                     ${hasRecordings ? `
                         <button type="button" class="btn btn-outline-success btn-play btn-sm" 
-                                data-call='${encodeURIComponent(JSON.stringify(call))}'
+                                data-call='${this.encodeCallData(JSON.stringify(call))}'
                                 title="Play recording">
                             <i class="bi bi-play-fill"></i>
                         </button>
@@ -328,12 +358,11 @@ export class UIManager {
                 <div class="transcription-text border-start border-primary border-2 ps-2 py-1 bg-light">
                     <small class="text-dark">${this.escapeHtml(truncatedText)}</small>
                     ${transcriptionText.length > maxLength ? `
-                        <button type="button" class="btn btn-link btn-sm p-0 ms-1" 
-                                onclick="this.style.display='none'; this.nextElementSibling.style.display='block';"
-                                title="Show full transcription">
+                        <button type="button" class="btn btn-link btn-sm p-0 ms-1 transcription-toggle" 
+                                data-state="truncated" title="Show full transcription">
                             <small>Show more</small>
                         </button>
-                        <div style="display: none;">
+                        <div class="transcription-full" style="display: none;">
                             <small class="text-dark">${this.escapeHtml(transcriptionText)}</small>
                         </div>
                     ` : ''}
@@ -346,6 +375,41 @@ export class UIManager {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    }
+
+    // Encode JSON string to base64 (Unicode-safe) for embedding in data attributes
+    encodeCallData(jsonString) {
+        try {
+            // Use URL-safe base64 to avoid spaces/quotes issues
+            const utf8Bytes = new TextEncoder().encode(jsonString);
+            let base64String = btoa(String.fromCharCode(...utf8Bytes));
+            return base64String.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+        } catch (e) {
+            console.warn('Failed to encode call data, falling back to URI encoding', e);
+            return encodeURIComponent(jsonString);
+        }
+    }
+
+    // Decode call data produced by encodeCallData; accepts url-encoded fallback as well
+    decodeCallData(data) {
+        try {
+            // Detect URL-encoded fallback
+            if (data.indexOf('%') !== -1) {
+                return decodeURIComponent(data);
+            }
+
+            // Recreate standard base64 from URL-safe base64
+            let base64 = data.replace(/-/g, '+').replace(/_/g, '/');
+            // Pad base64 string length
+            while (base64.length % 4) base64 += '=';
+            const binary = atob(base64);
+            // Convert binary string to Uint8Array
+            const bytes = new Uint8Array([...binary].map(ch => ch.charCodeAt(0)));
+            return new TextDecoder().decode(bytes);
+        } catch (e) {
+            console.error('Failed to decode call data', e);
+            throw e;
+        }
     }
 
     updateCallInStream(call) {
