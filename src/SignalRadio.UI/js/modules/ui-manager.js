@@ -1,5 +1,31 @@
 // UI Management - DOM manipulation and display logic
 export class UIManager {
+    // Dynamically update transcription display for mobile
+    updateTranscriptionDisplay(call) {
+        // Check for transcribed recordings
+        const transcribedRecordings = call.recordings?.filter(r => r.hasTranscription) || [];
+        const transcriptionMobile = document.getElementById('transcription-mobile');
+        if (!transcriptionMobile) return;
+        if (transcribedRecordings.length === 0) {
+            transcriptionMobile.textContent = 'No transcription available';
+            return;
+        }
+
+        // Get best transcription
+        const bestTranscription = transcribedRecordings.reduce((best, current) => {
+            const currentConfidence = current.transcriptionConfidence || 0;
+            const bestConfidence = best.transcriptionConfidence || 0;
+            return currentConfidence > bestConfidence ? current : best;
+        });
+
+        const confidencePercent = Math.round((bestTranscription.transcriptionConfidence || 0) * 100);
+        const transcriptionText = bestTranscription.transcriptionText || '';
+        const lang = bestTranscription.transcriptionLanguage ? bestTranscription.transcriptionLanguage.toUpperCase() : '';
+
+        transcriptionMobile.innerHTML =
+            `<div><strong>Transcription:</strong> ${transcriptionText}</div>` +
+            `<div><span class='badge bg-info'>${lang}</span> <span class='badge bg-success'>${confidencePercent}%</span></div>`;
+    }
     constructor(app) {
         this.app = app;
     }
@@ -69,7 +95,7 @@ export class UIManager {
                 const callData = button.dataset.call;
                 if (callData) {
                     try {
-                        const call = JSON.parse(callData);
+                        const call = JSON.parse(decodeURIComponent(callData));
                         this.app.playCall(call);
                     } catch (error) {
                         console.error('Failed to parse call data:', error);
@@ -239,7 +265,7 @@ export class UIManager {
                     </button>
                     ${hasRecordings ? `
                         <button type="button" class="btn btn-outline-success btn-play btn-sm" 
-                                data-call='${JSON.stringify(call)}'
+                                data-call='${encodeURIComponent(JSON.stringify(call))}'
                                 title="Play recording">
                             <i class="bi bi-play-fill"></i>
                         </button>

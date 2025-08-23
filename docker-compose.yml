@@ -28,15 +28,20 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:8080
+      - StorageType=Local
       - AzureStorage__ConnectionString=${AzureStorage__ConnectionString}
       - AzureStorage__ContainerName=${AzureStorage__ContainerName}
       - ConnectionStrings__DefaultConnection=Server=sqlserver,1433;Database=SignalRadio;User Id=sa;Password=SignalRadio123!;TrustServerCertificate=true;
       - AsrSettings__Enabled=${ASR_ENABLED:-true}
       - AsrSettings__WhisperServiceUrl=http://whisper-asr:9000
       - AsrSettings__AutoTranscribe=${ASR_AUTO_TRANSCRIBE:-true}
+      - LocalFileCache__CacheDirectory=${LOCALFILECACHE__CACHEDIRECTORY:-/tmp/signalradio-cache}
+      - LocalFileCache__CacheDurationMinutes=${LOCALFILECACHE__CACHEDURATIONMINUTES:-10}
     volumes:
       # Temporary processing (named volume)
       - temp:/app/temp
+      # Local recordings storage (make local storage the default mount)
+      - api-recordings:/data/recordings
       # Configuration files (if needed for API settings)
       - ./config:/app/config:ro
     networks:
@@ -76,7 +81,7 @@ services:
       # Scripts (external)
       - ./scripts:/app/scripts:ro
       # Audio recordings (named volume)
-      - recordings:/app/audio
+      - trunk-recordings:/app/audio
       # Temporary processing (named volume)
       - temp:/app/temp
       # Logs
@@ -99,7 +104,7 @@ services:
     image: onerahmet/openai-whisper-asr-webservice:latest
     container_name: signalradio-whisper
     environment:
-      - ASR_MODEL=small
+      - ASR_MODEL=small.en
       - ASR_ENGINE=openai_whisper
       - ASR_DEVICE=cpu
     ports:
@@ -121,7 +126,9 @@ networks:
 
 volumes:
   # Named volumes for persistent data
-  recordings:
+  api-recordings:
+    driver: local
+  trunk-recordings:
     driver: local
   temp:
     driver: local

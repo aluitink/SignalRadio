@@ -38,6 +38,7 @@ services:
     #   - AzureStorage__ConnectionString=your-azure-storage-connection-string
     #   - AzureStorage__ContainerName=your-container-name
 
+
   # Example: External database (comment out sqlserver service in main compose if using external DB)
   # sqlserver:
   #   environment:
@@ -56,3 +57,14 @@ services:
 #       type: none
 #       o: bind
 #       device: ./src/SignalRadio.Api
+  # Example: Bind the named 'recordings' volume to a host path so recordings
+  # are visible on the host. Copy this into docker-compose.override.yml to enable.
+  # volumes:
+  #   api-recordings:
+  #     driver: local
+  #     driver_opts:
+  #       type: none
+  #       device: ${API_RECORDINGS_HOST_PATH:-./data/recordings}
+  #       o: bind
+# Tip: copy this file to docker-compose.override.yml and set API_RECORDINGS_HOST_PATH
+# in your .env (or export it) if you want to store API recordings on the host.

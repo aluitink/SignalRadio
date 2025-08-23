@@ -4,6 +4,7 @@ using SignalRadio.Api.Hubs;
 using SignalRadio.Core.Models;
 using SignalRadio.Core.Repositories;
 using SignalRadio.Core.Services;
+using SignalRadio.Api.Services;
 using System.Text.Json;
 
 namespace SignalRadio.Api.Services;
@@ -16,16 +17,23 @@ public class TranscriptionBackgroundService : BackgroundService
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<TranscriptionBackgroundService> _logger;
     private readonly AsrOptions _asrOptions;
-    private readonly int _processingIntervalSeconds = 2; // Check for new recordings every 2 seconds
+    private readonly int _processingIntervalSeconds; // Delay in seconds when no work (configurable via Transcription:ProcessingIntervalSeconds, default 2)
+    private readonly ILocalFileCacheService _fileCacheService;
+    private readonly int _maxConcurrency;
 
     public TranscriptionBackgroundService(
         IServiceProvider serviceProvider,
         ILogger<TranscriptionBackgroundService> logger,
-        IOptions<AsrOptions> asrOptions)
+        IOptions<AsrOptions> asrOptions,
+        ILocalFileCacheService fileCacheService,
+        IConfiguration configuration)
     {
         _serviceProvider = serviceProvider;
         _logger = logger;
         _asrOptions = asrOptions.Value;
+        _fileCacheService = fileCacheService;
+    _processingIntervalSeconds = configuration.GetValue<int>("Transcription:ProcessingIntervalSeconds", 2);
+    _maxConcurrency = configuration.GetValue<int>("Transcription:MaxConcurrency", 2); // Default to 2
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -42,7 +50,6 @@ public class TranscriptionBackgroundService : BackgroundService
         while (!stoppingToken.IsCancellationRequested)
         {
             bool hadPendingRecordings = false;
-            
             try
             {
                 hadPendingRecordings = await ProcessPendingTranscriptions(stoppingToken);
@@ -50,6 +57,16 @@ public class TranscriptionBackgroundService : BackgroundService
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error occurred during transcription processing");
+            }
+
+            // Clean up expired cache files after each loop
+            try
+            {
+                _fileCacheService.Cleanup();
+            }
+            catch (Exception cleanupEx)
+            {
+                _logger.LogWarning(cleanupEx, "Cache cleanup failed");
             }
 
             // Only delay if there were no pending recordings to process
@@ -66,10 +83,7 @@ public class TranscriptionBackgroundService : BackgroundService
     {
         using var scope = _serviceProvider.CreateScope();
         var recordingRepository = scope.ServiceProvider.GetRequiredService<IRecordingRepository>();
-        var storageService = scope.ServiceProvider.GetRequiredService<IStorageService>();
         var asrService = scope.ServiceProvider.GetRequiredService<IAsrService>();
-        var callService = scope.ServiceProvider.GetRequiredService<ICallService>();
-        var hubContext = scope.ServiceProvider.GetRequiredService<IHubContext<TalkGroupHub>>();
 
         // Check if ASR service is available
         if (!await asrService.IsAvailableAsync())
@@ -79,7 +93,7 @@ public class TranscriptionBackgroundService : BackgroundService
         }
 
         // Get recordings that need transcription (WAV files that are uploaded but not transcribed)
-        var pendingRecordings = await recordingRepository.GetRecordingsNeedingTranscriptionAsync(limit: 5);
+        var pendingRecordings = await recordingRepository.GetRecordingsNeedingTranscriptionAsync(limit: _maxConcurrency);
 
         if (!pendingRecordings.Any())
         {
@@ -89,13 +103,54 @@ public class TranscriptionBackgroundService : BackgroundService
 
         _logger.LogInformation("Processing {Count} recordings for transcription", pendingRecordings.Count());
 
+        var semaphore = new System.Threading.SemaphoreSlim(_maxConcurrency);
+        var tasks = new List<Task>();
         foreach (var recording in pendingRecordings)
         {
             if (cancellationToken.IsCancellationRequested)
                 break;
 
-            await ProcessRecordingTranscription(recording, storageService, asrService, recordingRepository, callService, hubContext, cancellationToken);
+            await semaphore.WaitAsync(cancellationToken);
+            tasks.Add(Task.Run(async () =>
+            {
+                using var taskScope = _serviceProvider.CreateScope();
+                var storageService = taskScope.ServiceProvider.GetRequiredService<IStorageService>();
+                var asrServiceTask = taskScope.ServiceProvider.GetRequiredService<IAsrService>();
+                var recordingRepositoryTask = taskScope.ServiceProvider.GetRequiredService<IRecordingRepository>();
+                var callService = taskScope.ServiceProvider.GetRequiredService<ICallService>();
+                var hubContext = taskScope.ServiceProvider.GetRequiredService<IHubContext<TalkGroupHub>>();
+
+                try
+                {
+                    // Reload the recording from the repository to ensure a fresh context
+                    var freshRecording = await recordingRepositoryTask.GetByIdAsync(recording.Id);
+                    if (freshRecording != null)
+                    {
+                        await ProcessRecordingTranscription(
+                            freshRecording,
+                            storageService,
+                            asrServiceTask,
+                            recordingRepositoryTask,
+                            callService,
+                            hubContext,
+                            cancellationToken);
+                    }
+                    else
+                    {
+                        _logger.LogWarning("Recording {RecordingId} not found for transcription", recording.Id);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, $"Error processing transcription for recording {recording.Id}");
+                }
+                finally
+                {
+                    semaphore.Release();
+                }
+            }, cancellationToken));
         }
+        await Task.WhenAll(tasks);
 
         return true; // Had pending recordings to process
     }
@@ -118,16 +173,30 @@ public class TranscriptionBackgroundService : BackgroundService
 
         try
         {
-            // Download the audio file from storage
-            var audioData = await storageService.DownloadFileAsync(recording.BlobName!, cancellationToken);
-            if (audioData == null || audioData.Length == 0)
+            byte[]? audioData;
+            // Try to get file from local cache first
+            if (_fileCacheService.TryGetFile(recording.FileName, out var cachedPath))
             {
-                throw new InvalidOperationException($"Failed to download audio file: {recording.BlobName}");
+                audioData = await System.IO.File.ReadAllBytesAsync(cachedPath, cancellationToken);
+                _logger.LogInformation("Used cached file for transcription: {FileName}", recording.FileName);
+            }
+            else
+            {
+                // Download the audio file from storage and cache it
+                audioData = await storageService.DownloadFileAsync(recording.BlobName!, cancellationToken);
+                if (audioData == null || audioData.Length == 0)
+                {
+                    throw new InvalidOperationException($"Failed to download audio file: {recording.BlobName}");
+                }
+                // Save to cache for future use
+                await _fileCacheService.SaveFileAsync(recording.FileName, new System.IO.MemoryStream(audioData));
+                _logger.LogInformation("Downloaded and cached file for transcription: {FileName}", recording.FileName);
             }
 
             // Transcribe the audio
             var transcriptionResult = await asrService.TranscribeAsync(audioData, recording.FileName, cancellationToken);
 
+            // ...existing code...
             // Update the recording with transcription results
             recording.HasTranscription = true;
             recording.TranscriptionText = transcriptionResult.Text;
@@ -157,9 +226,14 @@ public class TranscriptionBackgroundService : BackgroundService
 
             await recordingRepository.UpdateAsync(recording);
 
-            _logger.LogInformation("Transcription completed for recording {RecordingId}. Text length: {Length} chars, Language: {Language}",
-                recording.Id, transcriptionResult.Text.Length, transcriptionResult.Language);
+            // Print a summary when we store the transcript
+            _logger.LogInformation("Transcript stored: RecordingId={RecordingId}, TextLength={TextLength}, Language={Language}, Confidence={Confidence}",
+                recording.Id,
+                transcriptionResult.Text?.Length ?? 0,
+                transcriptionResult.Language ?? "unknown",
+                recording.TranscriptionConfidence.HasValue ? recording.TranscriptionConfidence.Value.ToString("F3") : "null");
 
+            // ...existing code...
             // Broadcast the updated call with transcription to connected clients
             try
             {

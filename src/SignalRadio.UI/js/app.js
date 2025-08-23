@@ -172,6 +172,12 @@ class SignalRadioApp {
         if (this.autoPlay && this.subscriptions.has(callData.talkgroupId)) {
             this.audioManager.queueCall(callData);
         }
+
+        // Update transcription display if available
+        this.uiManager.updateTranscriptionDisplay(callData);
+
+        // Update transcription display if available
+        this.uiManager.updateTranscriptionDisplay(callData);
     }
 
     handleSubscribedCall(callData) {
@@ -187,6 +193,12 @@ class SignalRadioApp {
         } else if (this.autoPlay && !this.audioManager.userHasInteracted) {
             // Don't show notification for this case
         }
+
+        // Update transcription display if available
+        this.uiManager.updateTranscriptionDisplay(callData);
+
+        // Update transcription display if available
+        this.uiManager.updateTranscriptionDisplay(callData);
     }
 
     handleAllCallsStreamUpdate(callData) {

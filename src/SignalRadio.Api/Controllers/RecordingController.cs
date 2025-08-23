@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.SignalR;
 using SignalRadio.Core.Models;
 using SignalRadio.Core.Services;
 using SignalRadio.Api.Hubs;
+using SignalRadio.Api.Services;
 
 namespace SignalRadio.Api.Controllers;
 
@@ -15,19 +16,22 @@ public class RecordingController : ControllerBase
     private readonly ICallService _callService;
     private readonly IHubContext<TalkGroupHub> _hubContext;
     private readonly IAsrService _asrService;
+    private readonly ILocalFileCacheService _fileCacheService;
 
     public RecordingController(
         ILogger<RecordingController> logger, 
         IStorageService storageService,
         ICallService callService,
         IHubContext<TalkGroupHub> hubContext,
-        IAsrService asrService)
+        IAsrService asrService,
+        ILocalFileCacheService fileCacheService)
     {
         _logger = logger;
         _storageService = storageService;
         _callService = callService;
         _hubContext = hubContext;
         _asrService = asrService;
+        _fileCacheService = fileCacheService;
     }
 
     [HttpPost("upload")]
@@ -73,6 +77,11 @@ public class RecordingController : ControllerBase
             // Process WAV file if provided
             if (hasWav)
             {
+                // Save to local cache first
+                using (var wavStream = audioFile.OpenReadStream())
+                {
+                    await _fileCacheService.SaveFileAsync(audioFile.FileName, wavStream);
+                }
                 // Create recording record in database
                 var wavRecording = await _callService.AddRecordingToCallAsync(
                     call.Id,
@@ -95,38 +104,51 @@ public class RecordingController : ControllerBase
                     OriginalSize = audioFile.Length
                 };
 
-                using var wavStream = audioFile.OpenReadStream();
-                var wavResult = await _storageService.UploadRecordingAsync(
-                    wavStream, 
-                    audioFile.FileName, 
-                    audioFile.ContentType, 
-                    wavMetadata);
-
-                if (wavResult.IsSuccess)
+                // Use cached file for upload
+                if (_fileCacheService.TryGetFile(audioFile.FileName, out var cachedWavPath))
                 {
-                    // Update recording with blob information
-                    await _callService.MarkRecordingUploadedAsync(
-                        wavRecording.Id, 
-                        wavResult.BlobUri, 
-                        wavResult.BlobName);
+                    using var cachedWavStream = System.IO.File.OpenRead(cachedWavPath);
+                    var wavResult = await _storageService.UploadRecordingAsync(
+                        cachedWavStream,
+                        audioFile.FileName,
+                        audioFile.ContentType,
+                        wavMetadata);
 
-                    wavMetadata.BlobUri = wavResult.BlobUri;
-                    wavMetadata.BlobName = wavResult.BlobName;
-                    uploadedFiles.Add(wavMetadata);
-                    _logger.LogInformation("WAV file uploaded successfully: {BlobName}", wavResult.BlobName);
+                    if (wavResult.IsSuccess)
+                    {
+                        // Update recording with blob information
+                        await _callService.MarkRecordingUploadedAsync(
+                            wavRecording.Id,
+                            wavResult.BlobUri,
+                            wavResult.BlobName);
+
+                        wavMetadata.BlobUri = wavResult.BlobUri;
+                        wavMetadata.BlobName = wavResult.BlobName;
+                        uploadedFiles.Add(wavMetadata);
+                        _logger.LogInformation("WAV file uploaded successfully: {BlobName}", wavResult.BlobName);
+                    }
+                    else
+                    {
+                        await _callService.MarkRecordingUploadFailedAsync(wavRecording.Id, wavResult.ErrorMessage ?? "Unknown error");
+                        _logger.LogError("Failed to upload WAV file: {Error}", wavResult.ErrorMessage);
+                    }
+
+                    storageResults.Add(wavResult);
                 }
                 else
                 {
-                    await _callService.MarkRecordingUploadFailedAsync(wavRecording.Id, wavResult.ErrorMessage ?? "Unknown error");
-                    _logger.LogError("Failed to upload WAV file: {Error}", wavResult.ErrorMessage);
+                    _logger.LogWarning("WAV file not found in cache after save: {FileName}", audioFile.FileName);
                 }
-
-                storageResults.Add(wavResult);
             }
 
             // Process M4A file if provided
             if (hasM4a)
             {
+                // Save to local cache first
+                using (var m4aStream = m4aFile.OpenReadStream())
+                {
+                    await _fileCacheService.SaveFileAsync(m4aFile.FileName, m4aStream);
+                }
                 // Create recording record in database
                 var m4aRecording = await _callService.AddRecordingToCallAsync(
                     call.Id,
@@ -149,33 +171,41 @@ public class RecordingController : ControllerBase
                     OriginalSize = m4aFile.Length
                 };
 
-                using var m4aStream = m4aFile.OpenReadStream();
-                var m4aResult = await _storageService.UploadRecordingAsync(
-                    m4aStream, 
-                    m4aFile.FileName, 
-                    m4aFile.ContentType, 
-                    m4aMetadata);
-
-                if (m4aResult.IsSuccess)
+                // Use cached file for upload
+                if (_fileCacheService.TryGetFile(m4aFile.FileName, out var cachedM4aPath))
                 {
-                    // Update recording with blob information
-                    await _callService.MarkRecordingUploadedAsync(
-                        m4aRecording.Id, 
-                        m4aResult.BlobUri, 
-                        m4aResult.BlobName);
+                    using var cachedM4aStream = System.IO.File.OpenRead(cachedM4aPath);
+                    var m4aResult = await _storageService.UploadRecordingAsync(
+                        cachedM4aStream,
+                        m4aFile.FileName,
+                        m4aFile.ContentType,
+                        m4aMetadata);
 
-                    m4aMetadata.BlobUri = m4aResult.BlobUri;
-                    m4aMetadata.BlobName = m4aResult.BlobName;
-                    uploadedFiles.Add(m4aMetadata);
-                    _logger.LogInformation("M4A file uploaded successfully: {BlobName}", m4aResult.BlobName);
+                    if (m4aResult.IsSuccess)
+                    {
+                        // Update recording with blob information
+                        await _callService.MarkRecordingUploadedAsync(
+                            m4aRecording.Id,
+                            m4aResult.BlobUri,
+                            m4aResult.BlobName);
+
+                        m4aMetadata.BlobUri = m4aResult.BlobUri;
+                        m4aMetadata.BlobName = m4aResult.BlobName;
+                        uploadedFiles.Add(m4aMetadata);
+                        _logger.LogInformation("M4A file uploaded successfully: {BlobName}", m4aResult.BlobName);
+                    }
+                    else
+                    {
+                        await _callService.MarkRecordingUploadFailedAsync(m4aRecording.Id, m4aResult.ErrorMessage ?? "Unknown error");
+                        _logger.LogError("Failed to upload M4A file: {Error}", m4aResult.ErrorMessage);
+                    }
+
+                    storageResults.Add(m4aResult);
                 }
                 else
                 {
-                    await _callService.MarkRecordingUploadFailedAsync(m4aRecording.Id, m4aResult.ErrorMessage ?? "Unknown error");
-                    _logger.LogError("Failed to upload M4A file: {Error}", m4aResult.ErrorMessage);
+                    _logger.LogWarning("M4A file not found in cache after save: {FileName}", m4aFile.FileName);
                 }
-
-                storageResults.Add(m4aResult);
             }
 
             // Check if any uploads failed

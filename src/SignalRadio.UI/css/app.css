@@ -849,16 +849,35 @@ body {
     margin-top: 0.5rem;
     padding-top: 0.5rem;
     border-top: 1px solid #e9ecef;
+    word-break: break-word;
+    font-size: 1rem;
+    padding-bottom: 0.5rem;
 }
 
+
 .transcription-text {
-    font-size: 0.9rem;
-    line-height: 1.4;
+    font-size: 1rem;
+    line-height: 1.5;
     background-color: #f8f9fa;
     border-radius: 0.25rem;
-    max-height: 120px;
-    overflow-y: auto;
+    max-height: none;
+    overflow-y: visible;
+    padding: 0.5rem 0.75rem;
+    word-break: break-word;
 }
+@media (max-width: 576px) {
+    .transcription-section {
+        font-size: 1.05rem;
+        padding-left: 0.25rem;
+        padding-right: 0.25rem;
+    }
+    .transcription-text {
+        font-size: 1.05rem;
+        padding: 0.5rem 0.25rem;
+        max-height: none;
+    }
+}
+
 
 .transcription-text::-webkit-scrollbar {
     width: 4px;
