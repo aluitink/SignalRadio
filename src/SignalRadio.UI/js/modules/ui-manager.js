@@ -186,7 +186,7 @@ export class UIManager {
     }
 
     addCallToStream(call, isNew = false, isSubscribedCall = null) {
-        const streamContainer = document.getElementById('call-stream');
+    const streamContainer = document.getElementById('call-stream');
         const emptyState = document.getElementById('empty-state');
         const callElement = this.createCallElement(call, isNew, isSubscribedCall);
         
@@ -195,10 +195,23 @@ export class UIManager {
             emptyState.style.display = 'none';
         }
         
+        if (!streamContainer) return;
+
         if (isNew) {
             streamContainer.insertBefore(callElement, streamContainer.firstChild);
         } else {
             streamContainer.appendChild(callElement);
+        }
+
+        // Enforce maximum number of call cards in the live stream to avoid memory/DOM bloat
+        const MAX_CALL_CARDS = 100;
+        const callItems = streamContainer.querySelectorAll('.call-item');
+        if (callItems.length > MAX_CALL_CARDS) {
+            // remove oldest cards from the end until we are at the cap
+            for (let i = callItems.length - 1; i >= MAX_CALL_CARDS; i--) {
+                const el = callItems[i];
+                if (el && el.parentNode) el.parentNode.removeChild(el);
+            }
         }
 
         // Remove new-call class after animation
@@ -216,94 +229,82 @@ export class UIManager {
         // Handle both formats: main calls API has 'recordings' array, talkgroup API has 'recordingCount'
         const hasRecordings = (call.recordings && call.recordings.length > 0) || (call.recordingCount && call.recordingCount > 0);
         const recordingCount = call.recordings ? call.recordings.length : (call.recordingCount || 0);
-        
+        console.log(call)
         const duration = call.duration ? this.app.utils.formatDuration(call.duration) : 'Unknown';
-        const relativeTime = this.app.utils.formatRelativeTime(call.recordingTime);
+        const relativeTime = this.app.utils.formatRelativeTime(call.createdAt);
         const formattedFrequency = this.app.utils.formatFrequency(call.frequency);
         const talkGroupInfo = this.app.dataManager.getTalkGroupInfo(call.talkgroupId);
         const priorityClass = this.app.utils.getPriorityClass(talkGroupInfo?.priority);
         const recordingQuality = this.app.utils.getRecordingQuality(call.recordings);
-        const ageClass = this.app.utils.getAgeClass(call.recordingTime);
+        const ageClass = this.app.utils.getAgeClass(call.createdAt);
         
         const callElement = document.createElement('div');
         callElement.className = `call-item${isNew ? ' new-call' : ''}${isSubscribed ? ' subscribed' : ''}${priorityClass ? ` ${priorityClass}` : ''} ${ageClass}`;
         callElement.dataset.callId = call.id;
         callElement.dataset.talkgroupId = call.talkgroupId;
 
+        // Build a cleaner, focused call card layout showing description, createdAt, badges, subscribe/navigate and play
+        const formattedDateTime = this.app.utils.formatDateTime(call.createdAt);
+
         callElement.innerHTML = `
             <div class="call-container">
-                <div class="call-main-content">
-                    <h6 class="call-title">
-                        ${talkGroupInfo?.description || `Talk Group ${call.talkgroupId}`}
-                    </h6>
-                    ${talkGroupInfo?.category || talkGroupInfo?.tag ? `
-                    <div class="call-tags mb-2">
-                        ${talkGroupInfo?.category ? `<span class="badge bg-secondary me-1">${talkGroupInfo.category}</span>` : ''}
-                        ${talkGroupInfo?.tag ? `<span class="badge bg-info">${talkGroupInfo.tag}</span>` : ''}
+                <div class="d-flex">
+                    <div class="call-main-content" style="flex: 0 0 70%; padding-right: 0.75rem;">
+                        <div class="d-flex justify-content-between align-items-start mb-1">
+                            <div>
+                                <h6 class="call-title mb-0">${talkGroupInfo?.description || `Talk Group ${call.talkgroupId}`}</h6>
+                                <div class="text-muted small">${formattedDateTime}</div>
+                            </div>
+                            <div class="text-end">
+                                ${talkGroupInfo?.category ? `<span class="badge bg-secondary me-1">${talkGroupInfo.category}</span>` : ''}
+                                ${talkGroupInfo?.tag ? `<span class="badge bg-info">${talkGroupInfo.tag}</span>` : ''}
+                            </div>
+                        </div>
+
+                        <div class="call-subtitle mb-2 text-muted small">
+                            <strong>TG:</strong> ${call.talkgroupId}
+                            ${formattedFrequency ? `&nbsp;&middot;&nbsp;<strong>Freq:</strong> ${formattedFrequency}` : ''}
+                            &nbsp;&middot;&nbsp;<strong>Dur:</strong> ${duration}
+                            ${hasRecordings ? `&nbsp;&middot;&nbsp;<i class="bi bi-file-earmark-music"></i> ${recordingCount} files ${recordingQuality ? `<span class="badge bg-success ms-1">${recordingQuality}</span>` : ''}` : ''}
+                        </div>
+
+                        ${this.createTranscriptionSection(call)}
                     </div>
-                    ` : ''}
-                    
-                    <div class="call-details">
-                        <div class="call-detail-item">
-                            <i class="bi bi-broadcast-pin"></i>
-                            <strong>${call.talkgroupId}</strong>
+
+                    <div class="call-actions d-flex flex-column gap-2" style="flex: 0 0 30%; align-items: flex-end;">
+                        <div class="w-100 d-flex flex-column">
+                            <button type="button" class="btn btn-outline-secondary btn-wide w-100 mb-2" 
+                                    onclick="app.viewTalkgroupStream('${call.talkgroupId}')" title="Open talkgroup view">
+                                <i class="bi bi-list-ul"></i>
+                                <span class="ms-1">View</span>
+                            </button>
+
+                            <div class="d-flex w-100 gap-2">
+                                <button type="button" class="btn btn-outline-success btn-subscribe btn-wide flex-fill ${isSubscribed ? 'd-none' : ''}" 
+                                        onclick="app.toggleSubscription('${call.talkgroupId}', this)" title="Subscribe to this talk group">
+                                    <i class="bi bi-bookmark-plus"></i>
+                                    <span class="ms-1">Subscribe</span>
+                                </button>
+                                <button type="button" class="btn btn-outline-danger btn-unsubscribe btn-wide flex-fill ${!isSubscribed ? 'd-none' : ''}" 
+                                        onclick="app.toggleSubscription('${call.talkgroupId}', this)" title="Unsubscribe from this talk group">
+                                    <i class="bi bi-bookmark-dash"></i>
+                                    <span class="ms-1">Unsubscribe</span>
+                                </button>
+                            </div>
+
+                            ${hasRecordings ? `
+                                <button type="button" class="btn btn-primary btn-play w-100 mt-2" 
+                                        data-call='${this.encodeCallData(JSON.stringify(call))}' title="Play recording">
+                                    <i class="bi bi-play-fill"></i>
+                                    <span class="ms-1">Play</span>
+                                </button>
+                            ` : ''}
                         </div>
-                        
-                        <div class="call-detail-item">
-                            <i class="bi bi-broadcast"></i>
-                            ${formattedFrequency}
-                        </div>
-                        
-                        <div class="call-detail-item">
-                            <i class="bi bi-clock"></i>
-                            ${duration}
-                        </div>
-                        
-                        ${hasRecordings ? `
-                        <div class="call-detail-item">
-                            <i class="bi bi-file-earmark-music"></i>
-                            ${recordingCount} files
-                            ${recordingQuality ? `<span class="badge bg-success ms-1">${recordingQuality}</span>` : ''}
-                        </div>
-                        ` : ''}
                     </div>
-                    
-                    ${this.createTranscriptionSection(call)}
-                </div>
-                
-                <div class="call-meta-info">
-                    <div class="call-time">
-                        ${relativeTime}
-                    </div>
-                </div>
-                
-                <div class="call-actions">
-                    <button type="button" class="btn btn-outline-info btn-talkgroup btn-sm" 
-                            onclick="app.viewTalkgroupStream('${call.talkgroupId}')"
-                            title="View all calls from this talk group">
-                        <i class="bi bi-list-ul"></i>
-                    </button>
-                    <button type="button" class="btn btn-outline-success btn-subscribe btn-sm ${isSubscribed ? 'd-none' : ''}" 
-                            onclick="app.toggleSubscription('${call.talkgroupId}', this)"
-                            title="Subscribe to this talk group">
-                        <i class="bi bi-bookmark-plus"></i>
-                    </button>
-                    <button type="button" class="btn btn-outline-danger btn-unsubscribe btn-sm ${!isSubscribed ? 'd-none' : ''}" 
-                            onclick="app.toggleSubscription('${call.talkgroupId}', this)"
-                            title="Unsubscribe from this talk group">
-                        <i class="bi bi-bookmark-dash"></i>
-                    </button>
-                    ${hasRecordings ? `
-                        <button type="button" class="btn btn-outline-success btn-play btn-sm" 
-                                data-call='${this.encodeCallData(JSON.stringify(call))}'
-                                title="Play recording">
-                            <i class="bi bi-play-fill"></i>
-                        </button>
-                    ` : ''}
                 </div>
             </div>
 
-            <div id="audio-controls-${call.id}" class="audio-controls d-none">
+            <div id="audio-controls-${call.id}" class="audio-controls d-none mt-2">
                 <button type="button" class="btn btn-sm btn-outline-secondary" onclick="app.toggleAudioPlayback()">
                     <i class="bi bi-pause-fill"></i>
                 </button>
@@ -443,7 +444,7 @@ export class UIManager {
                     // Remove existing age classes
                     element.classList.remove('age-fresh', 'age-recent', 'age-medium', 'age-old', 'age-very-old');
                     // Add current age class
-                    const ageClass = this.app.utils.getAgeClass(call.recordingTime);
+                    const ageClass = this.app.utils.getAgeClass(call.createdAt);
                     element.classList.add(ageClass);
                 }
             }
@@ -475,7 +476,7 @@ export class UIManager {
                 // Remove existing age classes
                 element.classList.remove('age-fresh', 'age-recent', 'age-medium', 'age-old', 'age-very-old');
                 // Add current age class
-                const ageClass = this.app.utils.getAgeClass(call.recordingTime);
+                const ageClass = this.app.utils.getAgeClass(call.createdAt);
                 element.classList.add(ageClass);
             }
         });
@@ -590,7 +591,7 @@ export class UIManager {
                 <div class="queue-item">
                     <span class="queue-position">${index + 1}.</span>
                     <span class="queue-talkgroup" title="${displayText}">${displayText}</span>
-                    <span class="queue-time">${this.app.utils.formatDateTime(call.recordingTime)}</span>
+                    <span class="queue-time">${this.app.utils.formatDateTime(call.createdAt)}</span>
                     <button type="button" class="btn btn-outline-danger btn-sm" 
                             onclick="app.removeFromQueue(${index})">
                         <i class="bi bi-x"></i>

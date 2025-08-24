@@ -5,6 +5,7 @@
     --success-color: #28a745;
     --warning-color: #ffc107;
     --danger-color: #dc3545;
+    --muted-border: #6c757d;
     --info-color: #17a2b8;
     --dark-color: #343a40;
     --light-color: #f8f9fa;
@@ -264,6 +265,35 @@ body {
     margin: 0 !important;
 }
 
+/* Helper for wider buttons that include text labels */
+.btn-wide {
+    padding: 0 8px;
+    min-width: 72px; /* default comfortable width to fit small labels */
+    width: auto !important;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Slightly smaller wide buttons on compact screens */
+@media (max-width: 768px) {
+    .btn-wide {
+        min-width: 60px;
+        height: 28px;
+        padding: 0 6px;
+    }
+}
+
+@media (max-width: 480px) {
+    .btn-wide {
+        min-width: 48px;
+        height: 26px;
+        padding: 0 4px;
+        font-size: 0.8em;
+    }
+}
+
 
 
 .call-description {
@@ -289,7 +319,7 @@ body {
 }
 
 .call-item:not(.subscribed):not(.priority-high):not(.priority-medium):not(.priority-low) {
-    border-left: 4px solid var(--danger-color) !important; /* Red for not subscribed with no priority */
+    border-left: 4px solid var(--muted-border) !important; /* Grey for not subscribed with no priority */
 }
 
 /* Connection status */
@@ -407,7 +437,7 @@ body {
 /* Responsive adjustments */
 @media (max-width: 768px) {
     .call-container {
-        flex-direction: column;
+        /* Keep horizontal layout on narrow screens; removed vertical stacking */
         gap: 8px;
     }
     

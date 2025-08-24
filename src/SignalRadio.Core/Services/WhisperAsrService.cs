@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using SignalRadio.Core.Models;
@@ -62,7 +63,7 @@ public class WhisperAsrService : IAsrService
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase
             });
 
-            if (whisperResponse == null)
+                if (whisperResponse == null)
             {
                 throw new InvalidOperationException("Failed to parse ASR response");
             }
@@ -84,7 +85,13 @@ public class WhisperAsrService : IAsrService
                     Text = s.Text?.Trim() ?? string.Empty,
                     AvgLogprob = s.AvgLogprob,
                     CompressionRatio = s.CompressionRatio,
-                    NoSpeechProb = s.NoSpeechProb
+                    NoSpeechProb = s.NoSpeechProb,
+                    // Compute a confidence value in range 0.0 - 1.0 when possible.
+                    // Prefer converting avg_logprob -> probability via exp(avg_logprob).
+                    // If that's not available, fall back to 1 - no_speech_prob when present.
+                    Confidence = s.AvgLogprob.HasValue
+                        ? Math.Clamp(Math.Exp(s.AvgLogprob.Value), 0.0, 1.0)
+                        : (s.NoSpeechProb.HasValue ? Math.Clamp(1.0 - s.NoSpeechProb.Value, 0.0, 1.0) : (double?)null)
                 }).ToList();
             }
 
@@ -178,8 +185,13 @@ public class WhisperAsrService : IAsrService
     /// </summary>
     private class WhisperResponse
     {
+        [JsonPropertyName("text")]
         public string? Text { get; set; }
+
+        [JsonPropertyName("language")]
         public string? Language { get; set; }
+
+        [JsonPropertyName("segments")]
         public List<WhisperSegment>? Segments { get; set; }
     }
 
@@ -188,12 +200,25 @@ public class WhisperAsrService : IAsrService
     /// </summary>
     private class WhisperSegment
     {
+        [JsonPropertyName("id")]
         public int Id { get; set; }
+
+        [JsonPropertyName("start")]
         public double Start { get; set; }
+
+        [JsonPropertyName("end")]
         public double End { get; set; }
+
+        [JsonPropertyName("text")]
         public string? Text { get; set; }
+
+        [JsonPropertyName("avg_logprob")]
         public double? AvgLogprob { get; set; }
+
+        [JsonPropertyName("compression_ratio")]
         public double? CompressionRatio { get; set; }
+
+        [JsonPropertyName("no_speech_prob")]
         public double? NoSpeechProb { get; set; }
     }
 }

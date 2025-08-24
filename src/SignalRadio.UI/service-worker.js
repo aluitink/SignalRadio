@@ -1,6 +1,7 @@
 // SignalRadio Service Worker
 // Enables background audio playback and caching for mobile devices
 
+// Update this value when deploying to force a new cache (or use a build step to inject a version)
 const CACHE_NAME = 'signalradio-v1';
 const STATIC_ASSETS = [
     '/',
@@ -105,12 +106,32 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
     const { request } = event;
     const url = new URL(request.url);
-    
+
+    // Treat navigation requests (HTML pages) with network-first to avoid stale index.html
+    if (request.mode === 'navigate' || (request.method === 'GET' && request.headers.get('accept')?.includes('text/html'))) {
+        event.respondWith(
+            fetch(request)
+                .then((networkResponse) => {
+                    // Update the cached index.html with the fresh response
+                    if (networkResponse && networkResponse.ok) {
+                        const responseClone = networkResponse.clone();
+                        caches.open(CACHE_NAME).then(cache => cache.put('/index.html', responseClone)).catch(() => {});
+                    }
+                    return networkResponse;
+                })
+                .catch(() => {
+                    // Fall back to cached index.html when offline
+                    return caches.match('/index.html');
+                })
+        );
+        return;
+    }
+
     // Network-first strategy for API calls and audio files
-    if (url.pathname.startsWith('/api/') || 
+    if (url.pathname.startsWith('/api/') ||
         url.pathname.includes('/recording/') ||
         url.pathname.includes('/download')) {
-        
+
         event.respondWith(
             fetch(request)
                 .then((response) => {
@@ -118,7 +139,7 @@ self.addEventListener('fetch', (event) => {
                     if (url.pathname.includes('/download')) {
                         return response;
                     }
-                    
+
                     // Cache API responses briefly
                     if (response.ok) {
                         const responseClone = response.clone();
@@ -129,37 +150,28 @@ self.addEventListener('fetch', (event) => {
                     }
                     return response;
                 })
-                .catch(() => {
-                    // Fall back to cache if network fails
-                    return caches.match(request);
-                })
+                .catch(() => caches.match(request))
         );
+        return;
     }
-    // Cache-first strategy for static assets
-    else {
-        event.respondWith(
-            caches.match(request)
-                .then((response) => {
-                    if (response) {
-                        return response;
-                    }
-                    
-                    // If not in cache, fetch from network
-                    return fetch(request)
-                        .then((response) => {
-                            // Cache the response for future use
-                            if (response.ok) {
-                                const responseClone = response.clone();
-                                caches.open(CACHE_NAME)
-                                    .then((cache) => {
-                                        cache.put(request, responseClone);
-                                    });
-                            }
-                            return response;
-                        });
-                })
-        );
-    }
+
+    // Cache-first strategy for other static assets
+    event.respondWith(
+        caches.match(request)
+            .then((response) => {
+                if (response) {
+                    return response;
+                }
+
+                // If not in cache, fetch from network and cache it
+                return fetch(request).then((networkResponse) => {
+                    if (!networkResponse || !networkResponse.ok) return networkResponse;
+                    const responseClone = networkResponse.clone();
+                    caches.open(CACHE_NAME).then((cache) => cache.put(request, responseClone)).catch(() => {});
+                    return networkResponse;
+                });
+            })
+    );
 });
 
 // Background sync for queued calls (when network is restored)

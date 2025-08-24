@@ -117,10 +117,23 @@ class SignalRadioApp {
                 }
                 
                 // Handle service worker updates
+                // If there's already a waiting worker (from a previous navigation), prompt immediately
+                if (registration.waiting) {
+                    console.log('🔔 Service worker update already waiting');
+                    if (confirm('An update is available. Refresh now to apply the update?')) {
+                        registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+                        // Listen for controllerchange to reload when the new SW takes control
+                        navigator.serviceWorker.addEventListener('controllerchange', () => {
+                            window.location.reload();
+                        });
+                    }
+                }
+
+                // Handle future updates
                 registration.addEventListener('updatefound', () => {
                     console.log('🔄 Service worker update found');
                     const newWorker = registration.installing;
-                    
+
                     if (newWorker) {
                         newWorker.addEventListener('statechange', () => {
                             console.log('🔄 Service worker state changed to:', newWorker.state);
@@ -128,7 +141,9 @@ class SignalRadioApp {
                                 // New service worker is available
                                 if (confirm('App update available. Refresh to apply?')) {
                                     newWorker.postMessage({ type: 'SKIP_WAITING' });
-                                    window.location.reload();
+                                    navigator.serviceWorker.addEventListener('controllerchange', () => {
+                                        window.location.reload();
+                                    });
                                 }
                             }
                         });
