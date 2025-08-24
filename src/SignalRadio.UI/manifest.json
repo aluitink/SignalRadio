@@ -31,9 +31,9 @@
       ]
     },
     {
-      "name": "Subscriptions",
-      "short_name": "Subs",
-      "description": "Manage talk group subscriptions",
+      "name": "Talk Groups",
+      "short_name": "Talks",
+      "description": "Manage talk groups and subscriptions",
       "url": "/subscriptions.html",
       "icons": [
         {

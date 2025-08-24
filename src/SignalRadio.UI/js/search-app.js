@@ -227,73 +227,58 @@ class SearchApp {
     createResultCard(result) {
         const card = document.createElement('div');
         card.className = 'card mb-3';
-        
+
         const talkGroupInfo = this.talkGroups.get(result.call.talkgroupId);
         const recordingTime = new Date(result.call.recordingTime);
         const relativeTime = this.utils.formatRelativeTime(recordingTime);
         const formattedFrequency = this.utils.formatFrequency(result.call.frequency);
-        
+
         // Highlight search terms in transcription
         const highlightedText = this.highlightSearchTerms(result.transcriptionText, this.currentQuery);
-        
-        // Confidence badge
+
+        const confidencePercent = Math.round((result.transcriptionConfidence || 0) * 100);
         const confidenceClass = result.transcriptionConfidence >= 0.8 ? 'bg-success' : 
                                result.transcriptionConfidence >= 0.6 ? 'bg-warning' : 'bg-danger';
-        
+
         card.innerHTML = `
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-8">
-                        <h6 class="card-title">
-                            ${talkGroupInfo?.description || `Talk Group ${result.call.talkgroupId}`}
-                            <span class="badge bg-secondary ms-2">${result.call.talkgroupId}</span>
-                        </h6>
-                        <div class="mb-2">
-                            <small class="text-muted">
-                                <i class="bi bi-calendar-event me-1"></i>
-                                ${relativeTime}
-                                <i class="bi bi-broadcast ms-3 me-1"></i>
-                                ${formattedFrequency}
-                                <i class="bi bi-clock ms-3 me-1"></i>
-                                ${result.call.duration || 'Unknown'}
-                            </small>
-                        </div>
-                        <div class="transcription-text border-start border-primary border-3 ps-3 py-2 bg-light">
-                            <p class="mb-1">${highlightedText}</p>
-                            <div class="d-flex align-items-center justify-content-between">
-                                <small class="text-muted">
-                                    <span class="badge ${confidenceClass}">
-                                        ${Math.round((result.transcriptionConfidence || 0) * 100)}% confidence
-                                    </span>
-                                    ${result.transcriptionLanguage ? `<span class="badge bg-info ms-1">${result.transcriptionLanguage.toUpperCase()}</span>` : ''}
-                                </small>
-                            </div>
-                        </div>
+            <div class="call-container p-3">
+                <div class="call-main-content">
+                    <h6 class="call-title mb-1">${talkGroupInfo?.description || `Talk Group ${result.call.talkgroupId}`}</h6>
+                    <div class="call-meta small text-muted">
+                        <div>${relativeTime}</div>
+                        <div><strong>TG:</strong> ${result.call.talkgroupId}</div>
                     </div>
-                    <div class="col-md-4 text-end">
-                        <div class="btn-group-vertical btn-group-sm" role="group">
-                            <button type="button" class="btn btn-outline-primary" 
-                                    onclick="window.open('index.html?talkgroup=${result.call.talkgroupId}', '_blank')"
-                                    title="View talk group stream">
-                                <i class="bi bi-list-ul me-1"></i>
-                                View Talk Group
+                </div>
+
+                <div class="call-actions d-flex flex-column gap-2 align-items-stretch" style="flex: 0 0 220px; max-width: 220px;">
+                    <div class="w-100 d-flex flex-column">
+                        ${result.blobUri ? `
+                            <button type="button" class="btn btn-primary btn-play w-100 mb-2" onclick="searchApp.playRecording('${result.blobUri}', '${result.fileName}')" title="Play recording">
+                                <i class="bi bi-play-fill"></i>
+                                <span class="ms-1">Play</span>
                             </button>
-                            ${result.blobUri ? `
-                                <button type="button" class="btn btn-outline-success" 
-                                        onclick="searchApp.playRecording('${result.blobUri}', '${result.fileName}')"
-                                        title="Play recording">
-                                    <i class="bi bi-play-fill me-1"></i>
-                                    Play Recording
-                                </button>
-                            ` : ''}
-                        </div>
-                        <div class="mt-2">
-                            <small class="text-muted">
-                                Recording: ${result.fileName}<br>
-                                Format: ${result.format.toUpperCase()}<br>
-                                Duration: ${result.duration}
-                            </small>
-                        </div>
+                        ` : ''}
+
+                        <button type="button" class="btn btn-outline-secondary btn-wide w-100 mb-2" 
+                                onclick="window.open('index.html?talkgroup=${result.call.talkgroupId}', '_blank')" title="View talkgroup view">
+                            <i class="bi bi-list-ul"></i>
+                            <span class="ms-1">View</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Transcription row spans both main content and actions -->
+            <div class="call-transcription-row mt-2 p-3">
+                <div class="transcription-section">
+                    <div class="d-flex align-items-center mb-1">
+                        <i class="bi bi-chat-quote text-primary me-1"></i>
+                        <small class="text-muted me-2">Transcription</small>
+                        <span class="badge ${confidenceClass} badge-sm">${confidencePercent}% confidence</span>
+                        ${result.transcriptionLanguage ? `<span class="badge bg-info badge-sm ms-1">${result.transcriptionLanguage.toUpperCase()}</span>` : ''}
+                    </div>
+                    <div class="transcription-text border-start border-primary border-2 ps-2 py-1 bg-light">
+                        <p class="mb-0">${highlightedText}</p>
                     </div>
                 </div>
             </div>
@@ -341,8 +326,6 @@ class SearchApp {
             console.error('Failed to play audio:', error);
             this.showToast('Failed to play recording', 'error');
         });
-        
-        this.showToast(`Playing: ${fileName}`, 'info');
     }
 
     clearSearch() {

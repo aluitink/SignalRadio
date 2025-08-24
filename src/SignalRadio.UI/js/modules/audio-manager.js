@@ -184,6 +184,10 @@ export class AudioManager {
             this.audioPlayer.load();
             
             // Show audio controls
+            // Update UI title immediately (in case activeCalls map isn't populated yet) and show controls
+            try {
+                if (call && call.talkgroupId) this.app.uiManager.updateLiveStreamTitle(call.talkgroupId);
+            } catch (e) { /* ignore */ }
             this.app.uiManager.showAudioControls(call.id);
             
             // Mark call as playing
@@ -278,6 +282,16 @@ export class AudioManager {
             
             this.currentlyPlaying = null;
             this.currentCall = null;
+
+            // If there are no queued items and nothing will start, reset the live stream title
+            try {
+                const hasQueue = this.audioQueue && this.audioQueue.length > 0;
+                if (!hasQueue) {
+                    this.app.uiManager.clearLiveStreamTitle();
+                }
+            } catch (e) {
+                // ignore
+            }
         }
     }
 

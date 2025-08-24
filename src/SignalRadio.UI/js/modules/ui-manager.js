@@ -29,6 +29,37 @@ export class UIManager {
     }
     constructor(app) {
         this.app = app;
+        // Inject responsive styles so the call card action column isn't a fixed 220px on small screens.
+        // Mobile: main content 60% / actions 40% (3/5 - 2/5). Desktop: keep 220px action column.
+        this.injectResponsiveStyles();
+    }
+
+    injectResponsiveStyles() {
+        try {
+            if (document.getElementById('sr-call-responsive-styles')) return;
+            const style = document.createElement('style');
+            style.id = 'sr-call-responsive-styles';
+            style.textContent = `
+                /* Call card responsive layout */
+                .call-container { display: flex; align-items: flex-start; gap: .75rem; }
+
+                /* Mobile-first: use 60% / 40% split for main/actions */
+                @media (max-width: 767.98px) {
+                    .call-container .call-main-content { flex: 0 0 60%; }
+                    .call-container .call-actions { flex: 0 0 40%; }
+                }
+
+                /* Desktop: allow main to grow and keep actions as 220px fixed */
+                @media (min-width: 768px) {
+                    .call-container .call-main-content { flex: 1 1 auto; }
+                    .call-container .call-actions { flex: 0 0 220px; }
+                }
+            `;
+            document.head.appendChild(style);
+        } catch (e) {
+            // If DOM isn't ready, try again later silently
+            setTimeout(() => this.injectResponsiveStyles(), 200);
+        }
     }
 
     setupEventListeners() {
@@ -248,61 +279,63 @@ export class UIManager {
 
         callElement.innerHTML = `
             <div class="call-container">
-                <div class="d-flex">
-                    <div class="call-main-content" style="flex: 0 0 70%; padding-right: 0.75rem;">
-                        <div class="d-flex justify-content-between align-items-start mb-1">
-                            <div>
-                                <h6 class="call-title mb-0">${talkGroupInfo?.description || `Talk Group ${call.talkgroupId}`}</h6>
-                                <div class="text-muted small">${formattedDateTime}</div>
-                            </div>
-                            <div class="text-end">
-                                ${talkGroupInfo?.category ? `<span class="badge bg-secondary me-1">${talkGroupInfo.category}</span>` : ''}
-                                ${talkGroupInfo?.tag ? `<span class="badge bg-info">${talkGroupInfo.tag}</span>` : ''}
-                            </div>
-                        </div>
-
-                        <div class="call-subtitle mb-2 text-muted small">
-                            <strong>TG:</strong> ${call.talkgroupId}
-                            ${formattedFrequency ? `&nbsp;&middot;&nbsp;<strong>Freq:</strong> ${formattedFrequency}` : ''}
-                            &nbsp;&middot;&nbsp;<strong>Dur:</strong> ${duration}
-                            ${hasRecordings ? `&nbsp;&middot;&nbsp;<i class="bi bi-file-earmark-music"></i> ${recordingCount} files ${recordingQuality ? `<span class="badge bg-success ms-1">${recordingQuality}</span>` : ''}` : ''}
-                        </div>
-
-                        ${this.createTranscriptionSection(call)}
+                <div class="call-main-content" style="padding-right: 0.75rem;">
+                    <div>
+                        <h6 class="call-title mb-0">${talkGroupInfo?.description || `Talk Group ${call.talkgroupId}`}</h6>
                     </div>
 
-                    <div class="call-actions d-flex flex-column gap-2" style="flex: 0 0 30%; align-items: flex-end;">
-                        <div class="w-100 d-flex flex-column">
-                            <button type="button" class="btn btn-outline-secondary btn-wide w-100 mb-2" 
-                                    onclick="app.viewTalkgroupStream('${call.talkgroupId}')" title="Open talkgroup view">
-                                <i class="bi bi-list-ul"></i>
-                                <span class="ms-1">View</span>
+                    <div class="call-meta mb-2 text-muted small">
+                        <div><strong></strong> ${formattedDateTime}</div>
+                        <div><strong>Dur:</strong> ${duration}</div>
+                        <div><strong>TG:</strong> ${call.talkgroupId}</div>
+                        ${formattedFrequency ? `<div><strong>Freq:</strong> ${formattedFrequency}</div>` : ''}
+                    </div>
+
+                    <div class="call-bottom-badges mt-2">
+                        ${talkGroupInfo?.category ? `<span class="badge bg-secondary me-1">${talkGroupInfo.category}</span>` : ''}
+                        ${talkGroupInfo?.tag ? `<span class="badge bg-info">${talkGroupInfo.tag}</span>` : ''}
+                    </div>
+
+                </div>
+
+                <div class="call-actions d-flex flex-column gap-2 align-items-end">
+                    <div class="w-100 d-flex flex-column">
+                        ${hasRecordings ? `
+                            <button type="button" class="btn btn-primary btn-play w-100 mb-2" 
+                                    data-call='${this.encodeCallData(JSON.stringify(call))}' title="Play recording">
+                                <i class="bi bi-play-fill"></i>
+                                <span class="ms-1">Play</span>
                             </button>
+                        ` : ''}
 
-                            <div class="d-flex w-100 gap-2">
-                                <button type="button" class="btn btn-outline-success btn-subscribe btn-wide flex-fill ${isSubscribed ? 'd-none' : ''}" 
-                                        onclick="app.toggleSubscription('${call.talkgroupId}', this)" title="Subscribe to this talk group">
-                                    <i class="bi bi-bookmark-plus"></i>
-                                    <span class="ms-1">Subscribe</span>
-                                </button>
-                                <button type="button" class="btn btn-outline-danger btn-unsubscribe btn-wide flex-fill ${!isSubscribed ? 'd-none' : ''}" 
-                                        onclick="app.toggleSubscription('${call.talkgroupId}', this)" title="Unsubscribe from this talk group">
-                                    <i class="bi bi-bookmark-dash"></i>
-                                    <span class="ms-1">Unsubscribe</span>
-                                </button>
-                            </div>
+                        <button type="button" class="btn btn-outline-secondary btn-wide w-100 mb-2" 
+                                onclick="app.viewTalkgroupStream('${call.talkgroupId}')" title="Open talkgroup view">
+                            <i class="bi bi-list-ul"></i>
+                            <span class="ms-1">View</span>
+                        </button>
 
-                            ${hasRecordings ? `
-                                <button type="button" class="btn btn-primary btn-play w-100 mt-2" 
-                                        data-call='${this.encodeCallData(JSON.stringify(call))}' title="Play recording">
-                                    <i class="bi bi-play-fill"></i>
-                                    <span class="ms-1">Play</span>
-                                </button>
-                            ` : ''}
+                        <div class="d-flex w-100 gap-2">
+                            <button type="button" class="btn btn-outline-success btn-subscribe btn-wide flex-fill ${isSubscribed ? 'd-none' : ''}" 
+                                    onclick="app.toggleSubscription('${call.talkgroupId}', this)" title="Subscribe to this talk group">
+                                <i class="bi bi-bookmark-plus"></i>
+                                <span class="ms-1">Subscribe</span>
+                            </button>
+                            <button type="button" class="btn btn-outline-danger btn-unsubscribe btn-wide flex-fill ${!isSubscribed ? 'd-none' : ''}" 
+                                    onclick="app.toggleSubscription('${call.talkgroupId}', this)" title="Unsubscribe from this talk group">
+                                <i class="bi bi-bookmark-dash"></i>
+                                <span class="ms-1">Unsubscribe</span>
+                            </button>
                         </div>
                     </div>
                 </div>
             </div>
+
+            <!-- Transcription row spans both the main content and actions -->
+            ${this.createTranscriptionSection(call) ? `
+                <div class="call-transcription-row mt-2">
+                    ${this.createTranscriptionSection(call)}
+                </div>
+            ` : ''}
 
             <div id="audio-controls-${call.id}" class="audio-controls d-none mt-2">
                 <button type="button" class="btn btn-sm btn-outline-secondary" onclick="app.toggleAudioPlayback()">
@@ -494,12 +527,55 @@ export class UIManager {
         if (controlsElement) {
             controlsElement.classList.remove('d-none');
         }
+        // Update live stream title to the talkgroup description for this call (if available)
+        try {
+            let call = null;
+            if (this.app && this.app.activeCalls) {
+                // Try direct lookup (handles string IDs), then numeric lookup
+                call = this.app.activeCalls.get(callId);
+                if (!call) {
+                    const num = parseInt(callId);
+                    if (!isNaN(num)) call = this.app.activeCalls.get(num);
+                }
+            }
+
+            // As a final fallback, try to find the DOM element and get its dataset
+            if (!call) {
+                const el = document.querySelector(`[data-call-id="${callId}"]`);
+                if (el && this.app && this.app.activeCalls) {
+                    const ds = el.dataset.callId;
+                    call = this.app.activeCalls.get(ds) || this.app.activeCalls.get(parseInt(ds));
+                }
+            }
+
+            if (call && call.talkgroupId) {
+                this.updateLiveStreamTitle(call.talkgroupId);
+            }
+        } catch (e) {
+            // ignore
+        }
     }
 
     hideAudioControls(callId) {
         const controlsElement = document.getElementById(`audio-controls-${callId}`);
         if (controlsElement) {
             controlsElement.classList.add('d-none');
+        }
+        // If another call is currently playing, keep title in sync with it; otherwise reset
+        try {
+            const currentId = this.app.audioManager && this.app.audioManager.currentlyPlaying ? this.app.audioManager.currentlyPlaying : null;
+            let currentCall = null;
+            if (currentId && this.app && this.app.activeCalls) {
+                currentCall = this.app.activeCalls.get(currentId) || this.app.activeCalls.get(parseInt(currentId));
+            }
+
+            if (currentCall && currentCall.talkgroupId) {
+                this.updateLiveStreamTitle(currentCall.talkgroupId);
+            } else {
+                this.clearLiveStreamTitle();
+            }
+        } catch (e) {
+            // ignore
         }
     }
 
@@ -525,7 +601,7 @@ export class UIManager {
 
     generateSubscriptionsContent() {
         if (this.app.subscriptions.size === 0) {
-            return '<div class="text-muted small">No subscriptions</div>';
+            return '<div class="text-muted small">No talk groups subscribed</div>';
         } else {
             return Array.from(this.app.subscriptions).map(talkGroupId => {
                 const talkGroupInfo = this.app.dataManager.getTalkGroupInfo(talkGroupId);
@@ -819,6 +895,49 @@ export class UIManager {
         
         // Reload recent calls
         this.app.dataManager.loadRecentCalls();
+    }
+
+    // Update the live stream header to show the talkgroup description for the given talkgroup
+    updateLiveStreamTitle(talkgroupId) {
+        // Try to find the primary title element by id
+        let titleEl = document.getElementById('call-stream-title');
+
+        // If not found, try to find the visible card header title
+        if (!titleEl) {
+            titleEl = document.querySelector('.col-md-9 .card-header .card-title');
+        }
+
+        if (!titleEl) return;
+
+        const display = (() => {
+            if (!talkgroupId) return 'Live Call Stream';
+            const talkGroupInfo = this.app.dataManager.getTalkGroupInfo(talkgroupId);
+            return talkGroupInfo?.description || `Talk Group ${talkgroupId}`;
+        })();
+
+        // Preserve any leading icon HTML if present
+        const iconEl = titleEl.querySelector('i');
+        const iconHtml = iconEl ? iconEl.outerHTML + ' ' : '';
+
+        // Safe-escape display text
+        const escapeHtml = (text) => {
+            const d = document.createElement('div');
+            d.textContent = text;
+            return d.innerHTML;
+        };
+
+        titleEl.innerHTML = iconHtml + escapeHtml(display);
+    }
+
+    // Clear the live stream title back to the default when nothing is playing
+    clearLiveStreamTitle() {
+    let titleEl = document.getElementById('call-stream-title');
+    if (!titleEl) titleEl = document.querySelector('.col-md-9 .card-header .card-title');
+    if (!titleEl) return;
+
+    const iconEl = titleEl.querySelector('i');
+    const iconHtml = iconEl ? iconEl.outerHTML + ' ' : '';
+    titleEl.innerHTML = iconHtml + 'Live Call Stream';
     }
 
     clearCallStream() {

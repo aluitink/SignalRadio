@@ -50,7 +50,10 @@ body {
 
 /* Priority badges */
 .badge.priority-high {
-    background-color: var(--danger-color) !important;
+    /* Treat high priority as visually muted in this UI: use the muted border color
+       for the badge background and ensure readable text color. */
+    background-color: var(--muted-border) !important;
+    color: #fff !important;
 }
 
 .badge.priority-medium {
@@ -64,7 +67,9 @@ body {
 
 /* Priority borders for call items - only when not subscribed */
 .call-item.priority-high:not(.subscribed) {
-    border-left: 4px solid var(--danger-color) !important;
+    /* Make high-priority (when not subscribed) show as muted/low-contrast
+       instead of the previous red border. */
+    border-left: 4px solid var(--muted-border) !important;
 }
 
 .call-item.priority-medium:not(.subscribed) {
