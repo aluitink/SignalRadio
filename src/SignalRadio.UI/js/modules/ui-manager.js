@@ -43,16 +43,21 @@ export class UIManager {
                 /* Call card responsive layout */
                 .call-container { display: flex; align-items: flex-start; gap: .75rem; }
 
+                /* Ensure the actions column has space on the right so a vertical scrollbar
+                   doesn't overlap the action buttons. Use box-sizing so padding is included
+                   in the fixed width on desktop. */
+                .call-container .call-actions { box-sizing: border-box; padding-right: 0.75rem; }
+
                 /* Mobile-first: use 60% / 40% split for main/actions */
                 @media (max-width: 767.98px) {
                     .call-container .call-main-content { flex: 0 0 60%; }
-                    .call-container .call-actions { flex: 0 0 40%; }
+                    .call-container .call-actions { flex: 0 0 40%; padding-right: 0.75rem; }
                 }
 
                 /* Desktop: allow main to grow and keep actions as 220px fixed */
                 @media (min-width: 768px) {
                     .call-container .call-main-content { flex: 1 1 auto; }
-                    .call-container .call-actions { flex: 0 0 220px; }
+                    .call-container .call-actions { flex: 0 0 220px; padding-right: 1rem; }
                 }
             `;
             document.head.appendChild(style);
@@ -167,6 +172,49 @@ export class UIManager {
                 toggle.innerHTML = '<small>Show more</small>';
             }
         });
+
+        // Persist mobile 'Controls' accordion state across page loads
+        try {
+            const STORAGE_KEY = 'sr.controlsCollapse.expanded';
+            const controlsId = 'controlsCollapse';
+            const controlsCollapseEl = document.getElementById(controlsId);
+            const toggleButtons = Array.from(document.querySelectorAll(`[data-bs-target="#${controlsId}"], [data-target="#${controlsId}"]`));
+
+            if (controlsCollapseEl) {
+                // Initialize from storage (default: expanded)
+                const stored = localStorage.getItem(STORAGE_KEY);
+                const expanded = stored === null ? true : (stored === 'true');
+
+                if (expanded) {
+                    controlsCollapseEl.classList.add('show');
+                } else {
+                    controlsCollapseEl.classList.remove('show');
+                }
+
+                // Reflect state on any toggle buttons
+                toggleButtons.forEach(btn => {
+                    if (expanded) {
+                        btn.classList.remove('collapsed');
+                        btn.setAttribute('aria-expanded', 'true');
+                    } else {
+                        btn.classList.add('collapsed');
+                        btn.setAttribute('aria-expanded', 'false');
+                    }
+                });
+
+                // Persist changes when Bootstrap emits collapse events
+                controlsCollapseEl.addEventListener('shown.bs.collapse', () => {
+                    try { localStorage.setItem(STORAGE_KEY, 'true'); } catch (e) {}
+                    toggleButtons.forEach(btn => { btn.classList.remove('collapsed'); btn.setAttribute('aria-expanded', 'true'); });
+                });
+                controlsCollapseEl.addEventListener('hidden.bs.collapse', () => {
+                    try { localStorage.setItem(STORAGE_KEY, 'false'); } catch (e) {}
+                    toggleButtons.forEach(btn => { btn.classList.add('collapsed'); btn.setAttribute('aria-expanded', 'false'); });
+                });
+            }
+        } catch (e) {
+            // ignore storage errors (e.g., private mode)
+        }
     }
 
     // Helper method to setup synced controls between mobile and desktop versions

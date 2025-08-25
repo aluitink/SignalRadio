@@ -139,6 +139,15 @@ body {
     background-color: white;
 }
 
+/* Reserve space for the scrollbar where supported and add a small right padding
+   so action buttons won't be overlapped by the vertical scrollbar. The
+   scrollbar-gutter property is the preferred approach; padding-right is a
+   safe fallback for older browsers. */
+.call-stream {
+    scrollbar-gutter: stable both-edges;
+    padding-right: 0.5rem;
+}
+
 .call-item {
     border-bottom: 1px solid #e9ecef;
     padding: 12px 16px;

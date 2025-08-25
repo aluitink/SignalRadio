@@ -82,14 +82,28 @@ export class DataManager {
                 }
                 return;
             }
-            
-            const talkGroup = await response.json();
-            
+            const payload = await response.json();
+
+            // The API returns two shapes:
+            // - GET /api/talkgroup -> [ { decimal, description, ... }, ... ]
+            // - GET /api/talkgroup/{id} -> { TalkGroup: { decimal, description, ... }, RecentCalls: [...] }
+            // Normalize to always cache the actual talk group object.
+            let talkGroup = payload;
+            if (payload && payload.TalkGroup) {
+                talkGroup = payload.TalkGroup;
+            } else if (payload && payload.talkGroup) {
+                talkGroup = payload.talkGroup;
+            }
+
+            // Choose a cache key that matches how the rest of the UI looks up talk groups.
+            // Prefer the decimal property (camelCase from the API), fall back to the provided id.
+            const key = (talkGroup && (talkGroup.decimal || talkGroup.Decimal)) ? (talkGroup.decimal || talkGroup.Decimal) : talkgroupId;
+
             // Add to cache
-            this.talkGroupCache.set(talkgroupId, talkGroup);
-            
+            this.talkGroupCache.set(key, talkGroup);
+
             // Update any existing call cards that use this talk group
-            this.app.uiManager.updateCallCardsForTalkGroup(talkgroupId);
+            this.app.uiManager.updateCallCardsForTalkGroup(key);
             
         } catch (error) {
             console.error(`Failed to fetch talk group ${talkgroupId}:`, error);
