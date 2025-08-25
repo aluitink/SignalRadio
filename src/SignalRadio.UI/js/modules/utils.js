@@ -1,7 +1,32 @@
 // Utility Functions
 export class Utils {
+    // Parse dates coming from the server as UTC when no timezone is present.
+    // This avoids interpreting an ISO string as local time when the server actually
+    // sent a UTC timestamp without a timezone suffix (common source of "Just now").
+    parseDateAsUTC(dateString) {
+        if (!dateString) return new Date(NaN);
+
+        // If already a Date or a numeric timestamp, return as Date
+        if (dateString instanceof Date) return dateString;
+        if (typeof dateString === 'number') return new Date(dateString);
+
+        const s = dateString.toString();
+
+        // If string contains a timezone designator (Z) or an offset (+/-HH:MM or +/-HHMM),
+        // allow the native Date parser to handle it.
+        if (/[zZ]$|[+-]\d{2}:?\d{2}$/.test(s)) {
+            return new Date(s);
+        }
+
+        // If the string uses a space between date and time, convert to 'T' so it's valid ISO
+        let iso = s.replace(' ', 'T');
+
+        // If no timezone info is present, append 'Z' to force parsing as UTC.
+        return new Date(iso + 'Z');
+    }
+
     formatDateTime(dateString) {
-        const date = new Date(dateString);
+        const date = this.parseDateAsUTC(dateString);
         return date.toLocaleString('en-US', {
             month: 'short',
             day: 'numeric',
@@ -13,12 +38,26 @@ export class Utils {
 
     formatRelativeTime(dateString) {
         const now = new Date();
-        const date = new Date(dateString);
+        const date = this.parseDateAsUTC(dateString);
         const diffMs = now - date;
         const diffSeconds = Math.floor(diffMs / 1000);
         const diffMinutes = Math.floor(diffSeconds / 60);
         const diffHours = Math.floor(diffMinutes / 60);
         const diffDays = Math.floor(diffHours / 24);
+        // If the date is slightly in the future (timezone skew, clock skew), show "Just now"
+        // for small offsets. For larger future offsets, show a future label.
+        if (diffSeconds < 0) {
+            const absSeconds = Math.abs(diffSeconds);
+            const absMinutes = Math.floor(absSeconds / 60);
+            const absHours = Math.floor(absMinutes / 60);
+            const absDays = Math.floor(absHours / 24);
+
+            if (absSeconds < 60) return 'Just now';
+            if (absMinutes < 60) return `In ${absMinutes}m`;
+            if (absHours < 24) return `In ${absHours}h`;
+            if (absDays < 7) return `In ${absDays}d`;
+            return date.toLocaleDateString();
+        }
 
         if (diffSeconds < 60) {
             return 'Just now';
@@ -112,7 +151,7 @@ export class Utils {
 
     getAgeClass(dateString) {
         const now = new Date();
-        const date = new Date(dateString);
+    const date = this.parseDateAsUTC(dateString);
         const diffMs = now - date;
         const diffMinutes = Math.floor(diffMs / (1000 * 60));
         

@@ -308,7 +308,6 @@ export class UIManager {
         // Handle both formats: main calls API has 'recordings' array, talkgroup API has 'recordingCount'
         const hasRecordings = (call.recordings && call.recordings.length > 0) || (call.recordingCount && call.recordingCount > 0);
         const recordingCount = call.recordings ? call.recordings.length : (call.recordingCount || 0);
-        console.log(call)
         const duration = call.duration ? this.app.utils.formatDuration(call.duration) : 'Unknown';
         const relativeTime = this.app.utils.formatRelativeTime(call.createdAt);
         const formattedFrequency = this.app.utils.formatFrequency(call.frequency);
@@ -338,7 +337,7 @@ export class UIManager {
                     </div>
 
                     <div class="call-meta mb-2 text-muted small">
-                        <div><strong></strong> ${formattedDateTime}</div>
+                        <div><strong></strong> ${relativeTime}</div>
                         <div><strong>Dur:</strong> ${duration}</div>
                         <div><strong>TG:</strong> ${call.talkgroupId}</div>
                         ${formattedFrequency ? `<div><strong>Freq:</strong> ${formattedFrequency}</div>` : ''}
