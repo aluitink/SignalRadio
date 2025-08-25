@@ -332,16 +332,16 @@ export class UIManager {
                         <h6 class="call-title mb-0">${talkGroupInfo?.description || `Talk Group ${call.talkgroupId}`}</h6>
                     </div>
 
+                    <div class="call-bottom-badges mt-2">
+                        ${talkGroupInfo?.category ? `<span class="badge bg-secondary me-1">${talkGroupInfo.category}</span>` : ''}
+                        ${talkGroupInfo?.tag ? `<span class="badge bg-info">${talkGroupInfo.tag}</span>` : ''}
+                    </div>
+
                     <div class="call-meta mb-2 text-muted small">
                         <div><strong></strong> ${formattedDateTime}</div>
                         <div><strong>Dur:</strong> ${duration}</div>
                         <div><strong>TG:</strong> ${call.talkgroupId}</div>
                         ${formattedFrequency ? `<div><strong>Freq:</strong> ${formattedFrequency}</div>` : ''}
-                    </div>
-
-                    <div class="call-bottom-badges mt-2">
-                        ${talkGroupInfo?.category ? `<span class="badge bg-secondary me-1">${talkGroupInfo.category}</span>` : ''}
-                        ${talkGroupInfo?.tag ? `<span class="badge bg-info">${talkGroupInfo.tag}</span>` : ''}
                     </div>
 
                 </div>
@@ -433,10 +433,16 @@ export class UIManager {
                 <div class="d-flex align-items-center mb-1">
                     <i class="bi bi-chat-quote text-primary me-1"></i>
                     <small class="text-muted me-2">Transcription</small>
-                    <span class="badge ${confidenceClass} badge-sm">${confidencePercent}% confidence</span>
-                    ${bestTranscription.transcriptionLanguage ? 
-                        `<span class="badge bg-info badge-sm ms-1">${bestTranscription.transcriptionLanguage.toUpperCase()}</span>` : ''}
                 </div>
+
+                <!-- Badges row: placed under the label and above the transcription text -->
+                <div class="transcription-badges mb-1">
+                ${bestTranscription.transcriptionLanguage ? 
+                        `<span class="badge bg-info badge-sm">${bestTranscription.transcriptionLanguage.toUpperCase()}</span>` : ''}    
+                <span class="badge ${confidenceClass} badge-sm me-1">${confidencePercent}% confidence</span>
+                    
+                </div>
+
                 <div class="transcription-text border-start border-primary border-2 ps-2 py-1 bg-light">
                     <small class="text-dark">${this.escapeHtml(truncatedText)}</small>
                     ${transcriptionText.length > maxLength ? `
