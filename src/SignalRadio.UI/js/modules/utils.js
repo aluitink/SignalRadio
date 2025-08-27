@@ -26,8 +26,9 @@ export class Utils {
     }
 
     formatDateTime(dateString) {
-        const date = this.parseDateAsUTC(dateString);
-        return date.toLocaleString('en-US', {
+    const date = this.parseDateAsUTC(dateString);
+    if (isNaN(date.getTime())) return '';
+    return date.toLocaleString('en-US', {
             month: 'short',
             day: 'numeric',
             hour: '2-digit',
@@ -39,6 +40,7 @@ export class Utils {
     formatRelativeTime(dateString) {
         const now = new Date();
         const date = this.parseDateAsUTC(dateString);
+    if (isNaN(date.getTime())) return 'Unknown';
         const diffMs = now - date;
         const diffSeconds = Math.floor(diffMs / 1000);
         const diffMinutes = Math.floor(diffSeconds / 60);
@@ -152,6 +154,7 @@ export class Utils {
     getAgeClass(dateString) {
         const now = new Date();
     const date = this.parseDateAsUTC(dateString);
+    if (isNaN(date.getTime())) return 'age-fresh';
         const diffMs = now - date;
         const diffMinutes = Math.floor(diffMs / (1000 * 60));
         

@@ -11,6 +11,20 @@ public class AsrOptions
     public bool WordTimestamps { get; set; } = false;
     public bool VadFilter { get; set; } = false;
     public int TimeoutSeconds { get; set; } = 300;
+    /// <summary>
+    /// ASR provider to use. Supported: "whisper" (default), "azure"
+    /// </summary>
+    public string Provider { get; set; } = "whisper";
+
+    /// <summary>
+    /// Azure Speech subscription key (optional; can also be supplied via AZURE_SPEECH_KEY env var)
+    /// </summary>
+    public string? AzureSpeechKey { get; set; }
+
+    /// <summary>
+    /// Azure Speech region (optional; can also be supplied via AZURE_SPEECH_REGION env var)
+    /// </summary>
+    public string? AzureSpeechRegion { get; set; }
     
     /// <summary>
     /// The full URL for the ASR transcription endpoint

@@ -133,13 +133,198 @@ export class UIManager {
                 if (callData) {
                     try {
                         const json = this.decodeCallData(callData);
-                        const call = JSON.parse(json);
-                        this.app.playCall(call);
+                        let call = JSON.parse(json);
+
+                        // Normalize server-side PascalCase properties if present
+                        // Ensure we have recordings available; talkgroup list endpoints only include RecordingCount/Formats
+                        const hasRecordingsArray = call.recordings && call.recordings.length > 0;
+                        const hasRecordingCount = (call.recordingCount && call.recordingCount > 0) || (call.RecordingCount && call.RecordingCount > 0);
+
+                        // If we're in a talkgroup-specific Recent Calls view, queue the clicked call
+                        // and also queue all calls that appear above it so playback will continue
+                        // until the view is caught up.
+                        const talkgroupStream = button.closest('#talkgroup-call-stream');
+
+                        // Helper to fetch/normalize full call details when only a recordingCount is present
+                        const ensureHasRecordings = async (c) => {
+                            const hasRecArray = c.recordings && c.recordings.length > 0;
+                            const hasRecCount = (c.recordingCount && c.recordingCount > 0) || (c.RecordingCount && c.RecordingCount > 0);
+                            if (hasRecArray) return c;
+                            if (!hasRecCount) return c;
+
+                            try {
+                                const id = c.id || c.Id;
+                                if (!id) throw new Error('Call id missing');
+                                const resp = await fetch(`/api/calls/${id}`);
+                                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                                const payload = await resp.json();
+
+                                return {
+                                    id: payload.id || payload.Id,
+                                    talkgroupId: payload.talkgroupId || payload.TalkgroupId || payload.TalkgroupID || payload.TalkGroupId,
+                                    systemName: payload.systemName || payload.SystemName,
+                                    recordingTime: payload.recordingTime || payload.RecordingTime,
+                                    frequency: payload.frequency || payload.Frequency,
+                                    duration: payload.duration || payload.Duration,
+                                    createdAt: payload.createdAt || payload.CreatedAt,
+                                    updatedAt: payload.updatedAt || payload.UpdatedAt,
+                                    recordings: (payload.recordings || payload.Recordings || []).map(r => ({
+                                        id: r.id || r.Id,
+                                        fileName: r.fileName || r.FileName || r.File,
+                                        format: (r.format || r.Format || '').toUpperCase(),
+                                        fileSize: r.fileSize || r.FileSize || 0,
+                                        isUploaded: r.isUploaded || r.IsUploaded || false,
+                                        blobName: r.blobName || r.BlobName || r.blobUri || r.BlobUri || null,
+                                        uploadedAt: r.uploadedAt || r.UploadedAt || r.createdAt || r.CreatedAt || null,
+                                        hasTranscription: r.hasTranscription || r.HasTranscription || false,
+                                        transcriptionText: r.transcriptionText || r.TranscriptionText || null,
+                                        transcriptionConfidence: r.transcriptionConfidence || r.TranscriptionConfidence || null,
+                                        transcriptionLanguage: r.transcriptionLanguage || r.TranscriptionLanguage || null
+                                    }))
+                                };
+                            } catch (err) {
+                                console.error('Failed to fetch call details for playback:', err);
+                                return null;
+                            }
+                        };
+
+                        if (talkgroupStream && this.app.autoPlay) {
+                            // We're in talkgroup view: queue clicked call first, then queue calls above it
+                            (async () => {
+                                try {
+                                    // Queue the clicked call (ensure it has recordings)
+                                    const mainCall = await ensureHasRecordings(call);
+                                    if (mainCall) this.app.audioManager.queueCall(mainCall);
+
+                                    // Find the call card and collect preceding call cards (nearest above first)
+                                    const currentCard = button.closest('.call-item');
+                                    let prev = currentCard ? currentCard.previousElementSibling : null;
+                                    const aboveCards = [];
+                                    while (prev) {
+                                        if (prev.classList && prev.classList.contains('call-item')) {
+                                            aboveCards.push(prev);
+                                        }
+                                        prev = prev.previousElementSibling;
+                                    }
+
+                                    // Queue each above card in the order collected (nearest above plays first)
+                                    for (const card of aboveCards) {
+                                        const playBtn = card.querySelector('.btn-play');
+                                        if (!playBtn) continue;
+                                        const callDataAttr = playBtn.dataset.call;
+                                        if (!callDataAttr) continue;
+                                        try {
+                                            const decoded = JSON.parse(this.decodeCallData(callDataAttr));
+                                            const resolved = await ensureHasRecordings(decoded);
+                                            if (resolved) this.app.audioManager.queueCall(resolved);
+                                        } catch (e) {
+                                            console.warn('Failed to decode/queue call from talkgroup list', e);
+                                        }
+                                    }
+                                } catch (e) {
+                                    console.error('Failed to queue talkgroup calls for continuous play', e);
+                                    this.showToast('Failed to queue talkgroup calls', 'error');
+                                }
+                            })();
+                        } else {
+                            // Not in talkgroup view: behave as before
+                            if (!hasRecordingsArray && hasRecordingCount) {
+                                // If we only have a recording count but not the recordings array, fetch full call details
+                                (async () => {
+                                    try {
+                                        const id = call.id || call.Id;
+                                        if (!id) throw new Error('Call id missing');
+                                        const resp = await fetch(`/api/calls/${id}`);
+                                        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                                        const payload = await resp.json();
+
+                                        // Normalize payload to expected shape (lowercase keys)
+                                        const normalized = {
+                                            id: payload.id || payload.Id,
+                                            talkgroupId: payload.talkgroupId || payload.TalkgroupId || payload.TalkgroupID || payload.TalkGroupId,
+                                            systemName: payload.systemName || payload.SystemName,
+                                            recordingTime: payload.recordingTime || payload.RecordingTime,
+                                            frequency: payload.frequency || payload.Frequency,
+                                            duration: payload.duration || payload.Duration,
+                                            createdAt: payload.createdAt || payload.CreatedAt,
+                                            updatedAt: payload.updatedAt || payload.UpdatedAt,
+                                            recordings: (payload.recordings || payload.Recordings || []).map(r => ({
+                                                id: r.id || r.Id,
+                                                fileName: r.fileName || r.FileName || r.File, 
+                                                format: (r.format || r.Format || '').toUpperCase(),
+                                                fileSize: r.fileSize || r.FileSize || 0,
+                                                isUploaded: r.isUploaded || r.IsUploaded || false,
+                                                blobName: r.blobName || r.BlobName || r.blobUri || r.BlobUri || null,
+                                                uploadedAt: r.uploadedAt || r.UploadedAt || r.createdAt || r.CreatedAt || null,
+                                                hasTranscription: r.hasTranscription || r.HasTranscription || false,
+                                                transcriptionText: r.transcriptionText || r.TranscriptionText || null,
+                                                transcriptionConfidence: r.transcriptionConfidence || r.TranscriptionConfidence || null,
+                                                transcriptionLanguage: r.transcriptionLanguage || r.TranscriptionLanguage || null
+                                            }))
+                                        };
+
+                                        this.app.playCall(normalized);
+                                    } catch (fetchErr) {
+                                        console.error('Failed to fetch call details for playback:', fetchErr);
+                                        this.showToast('Failed to load recording details', 'error');
+                                    }
+                                })();
+                            } else {
+                                // We already have recordings embedded (or none at all), attempt to play directly
+                                this.app.playCall(call);
+                            }
+                        }
                     } catch (error) {
                         console.error('Failed to parse call data:', error);
                         this.showToast('Failed to play recording', 'error');
                     }
                 }
+                e.preventDefault();
+                return false;
+            }
+
+            // Handle share button clicks
+            if (e.target.closest('.btn-share')) {
+                const btn = e.target.closest('.btn-share');
+                const callId = btn.dataset.callId;
+                if (!callId) {
+                    this.showToast('Unable to share: call id missing', 'error');
+                    return;
+                }
+
+                try {
+                    const url = new URL(window.location.href);
+                    // remove talkgroup param if present to make a direct play link
+                    url.searchParams.delete('talkgroup');
+                    url.searchParams.set('call', String(callId));
+
+                    const shareUrl = url.toString();
+
+                    // Try navigator.share first for native share UIs
+                    if (navigator.share) {
+                        navigator.share({ title: 'SignalRadio - Play Call', url: shareUrl }).catch(() => {});
+                        this.showToast('Share dialog opened', 'success');
+                        return;
+                    }
+
+                    // Fallback: copy to clipboard
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        navigator.clipboard.writeText(shareUrl).then(() => {
+                            this.showToast('Call link copied to clipboard', 'success');
+                        }).catch((err) => {
+                            console.warn('Clipboard write failed', err);
+                            // Fall back to prompt
+                            window.prompt('Copy this link to share the call:', shareUrl);
+                        });
+                    } else {
+                        // Old browsers: prompt with the URL
+                        window.prompt('Copy this link to share the call:', shareUrl);
+                    }
+                } catch (err) {
+                    console.error('Failed to create share link', err);
+                    this.showToast('Failed to create share link', 'error');
+                }
+
                 e.preventDefault();
                 return false;
             }
@@ -301,7 +486,7 @@ export class UIManager {
         }
     }
 
-    createCallElement(call, isNew = false, isSubscribedCall = null) {
+    createCallElement(call, isNew = false, isSubscribedCall = null, minimal = false) {
         // Determine subscription status
         const isSubscribed = isSubscribedCall !== null ? isSubscribedCall : this.app.subscriptions.has(call.talkgroupId);
         
@@ -316,32 +501,63 @@ export class UIManager {
         const recordingQuality = this.app.utils.getRecordingQuality(call.recordings);
         const ageClass = this.app.utils.getAgeClass(call.createdAt);
         
-        const callElement = document.createElement('div');
+    const callElement = document.createElement('div');
         callElement.className = `call-item${isNew ? ' new-call' : ''}${isSubscribed ? ' subscribed' : ''}${priorityClass ? ` ${priorityClass}` : ''} ${ageClass}`;
         callElement.dataset.callId = call.id;
         callElement.dataset.talkgroupId = call.talkgroupId;
 
-        // Build a cleaner, focused call card layout showing description, createdAt, badges, subscribe/navigate and play
+        // Build a cleaner, focused call card layout. When `minimal` is true (talkgroup view)
+        // render a slim card: no badges, truncated meta, and show a first-recording summary if available.
         const formattedDateTime = this.app.utils.formatDateTime(call.createdAt);
+
+        // Prepare file/recording info for display in minimal mode
+        let fileInfoHtml = '';
+        let headerHtml = '';
+        if (call.recordings && call.recordings.length > 0) {
+            const r = call.recordings[0];
+            const fileName = r.fileName || r.FileName || r.file || r.File || 'unknown';
+            const formatUpper = (r.format || r.Format || '').toUpperCase() || (r.fileName && r.fileName.split('.').pop().toUpperCase()) || '';
+            const fileSize = r.fileSize || r.FileSize || 0;
+            const sizeDisplay = fileSize ? this.app.utils.formatFileSize ? this.app.utils.formatFileSize(fileSize) : `${Math.round(fileSize/1024)} KB` : '';
+
+            fileInfoHtml = `
+                <div class="call-file-info small text-muted">
+                    <div><strong>File:</strong> ${this.escapeHtml(fileName)}${formatUpper ? ` <span class="text-uppercase">(${this.escapeHtml(formatUpper)})</span>` : ''}</div>
+                    ${sizeDisplay ? `<div><strong>Size:</strong> ${this.escapeHtml(sizeDisplay)}</div>` : ''}
+                </div>
+            `;
+            // If we're in minimal (talkgroup) mode, use the filename as the header to break up the stream
+            headerHtml = this.escapeHtml(fileName);
+        } else if (recordingCount > 0) {
+            fileInfoHtml = `<div class="call-file-info small text-muted"><strong>Recordings:</strong> ${recordingCount}</div>`;
+        }
 
         callElement.innerHTML = `
             <div class="call-container">
                 <div class="call-main-content" style="padding-right: 0.75rem;">
                     <div>
-                        <h6 class="call-title mb-0">${talkGroupInfo?.description || `Talk Group ${call.talkgroupId}`}</h6>
+                        ${minimal ? (headerHtml ? `<h6 class="call-title mb-0">${headerHtml}</h6>` : '') : `<h6 class="call-title mb-0">${talkGroupInfo?.description || `Talk Group ${call.talkgroupId}`}</h6>`}
                     </div>
 
-                    <div class="call-bottom-badges mt-2">
-                        ${talkGroupInfo?.category ? `<span class="badge bg-secondary me-1">${talkGroupInfo.category}</span>` : ''}
-                        ${talkGroupInfo?.tag ? `<span class="badge bg-info">${talkGroupInfo.tag}</span>` : ''}
-                    </div>
+                    ${minimal ? `
+                        <div class="call-meta mb-2 text-muted small">
+                            <div>${relativeTime}</div>
+                            <div><strong>Dur:</strong> ${duration}</div>
+                            ${fileInfoHtml}
+                        </div>
+                    ` : `
+                        <div class="call-bottom-badges mt-2">
+                            ${talkGroupInfo?.category ? `<span class="badge bg-secondary me-1">${talkGroupInfo.category}</span>` : ''}
+                            ${talkGroupInfo?.tag ? `<span class="badge bg-info">${talkGroupInfo.tag}</span>` : ''}
+                        </div>
 
-                    <div class="call-meta mb-2 text-muted small">
-                        <div><strong></strong> ${relativeTime}</div>
-                        <div><strong>Dur:</strong> ${duration}</div>
-                        <div><strong>TG:</strong> ${call.talkgroupId}</div>
-                        ${formattedFrequency ? `<div><strong>Freq:</strong> ${formattedFrequency}</div>` : ''}
-                    </div>
+                        <div class="call-meta mb-2 text-muted small">
+                            <div><strong></strong> ${relativeTime}</div>
+                            <div><strong>Dur:</strong> ${duration}</div>
+                            <div><strong>TG:</strong> ${call.talkgroupId}</div>
+                            ${formattedFrequency ? `<div><strong>Freq:</strong> ${formattedFrequency}</div>` : ''}
+                        </div>
+                    `}
 
                 </div>
 
@@ -353,8 +569,13 @@ export class UIManager {
                                 <i class="bi bi-play-fill"></i>
                                 <span class="ms-1">Play</span>
                             </button>
+                            <button type="button" class="btn btn-outline-primary btn-share btn-wide w-100 mb-2" 
+                                    data-call-id='${this.escapeHtml(String(call.id))}' title="Share this call">
+                                <i class="bi bi-share"></i>
+                                <span class="ms-1">Share</span>
+                            </button>
                         ` : ''}
-
+                        ${minimal ? '' : `
                         <button type="button" class="btn btn-outline-secondary btn-wide w-100 mb-2" 
                                 onclick="app.viewTalkgroupStream('${call.talkgroupId}')" title="Open talkgroup view">
                             <i class="bi bi-list-ul"></i>
@@ -373,14 +594,15 @@ export class UIManager {
                                 <span class="ms-1">Unsubscribe</span>
                             </button>
                         </div>
+                        `}
                     </div>
                 </div>
             </div>
 
             <!-- Transcription row spans both the main content and actions -->
-            ${this.createTranscriptionSection(call) ? `
+            ${this.createTranscriptionSection(call, minimal) ? `
                 <div class="call-transcription-row mt-2">
-                    ${this.createTranscriptionSection(call)}
+                    ${this.createTranscriptionSection(call, minimal)}
                 </div>
             ` : ''}
 
@@ -398,7 +620,7 @@ export class UIManager {
         return callElement;
     }
 
-    createTranscriptionSection(call) {
+    createTranscriptionSection(call, minimal = false) {
         // Check if any recordings have transcriptions
         const transcribedRecordings = call.recordings?.filter(r => r.hasTranscription) || [];
         
@@ -418,6 +640,7 @@ export class UIManager {
         }
 
         const confidencePercent = Math.round((bestTranscription.transcriptionConfidence || 0) * 100);
+        // Only show confidence/language badges when not in minimal mode
         const confidenceClass = confidencePercent >= 80 ? 'bg-success' : 
                                confidencePercent >= 60 ? 'bg-warning text-dark' : 'bg-danger';
 
@@ -434,13 +657,14 @@ export class UIManager {
                     <small class="text-muted me-2">Transcription</small>
                 </div>
 
+                ${minimal ? '' : `
                 <!-- Badges row: placed under the label and above the transcription text -->
                 <div class="transcription-badges mb-1">
                 ${bestTranscription.transcriptionLanguage ? 
                         `<span class="badge bg-info badge-sm">${bestTranscription.transcriptionLanguage.toUpperCase()}</span>` : ''}    
                 <span class="badge ${confidenceClass} badge-sm me-1">${confidencePercent}% confidence</span>
-                    
                 </div>
+                `}
 
                 <div class="transcription-text border-start border-primary border-2 ps-2 py-1 bg-light">
                     <small class="text-dark">${this.escapeHtml(truncatedText)}</small>
@@ -502,7 +726,8 @@ export class UIManager {
     updateCallInStream(call) {
         const existingElement = document.querySelector(`[data-call-id="${call.id}"]`);
         if (existingElement) {
-            const newElement = this.createCallElement(call);
+            const inTalkgroupStream = existingElement.closest('#talkgroup-call-stream') !== null;
+            const newElement = this.createCallElement(call, false, null, inTalkgroupStream);
             existingElement.replaceWith(newElement);
         }
     }
@@ -535,6 +760,23 @@ export class UIManager {
                 }
             }
         });
+
+        // Also update any talkgroup view header buttons if present
+        try {
+            const headerSubscribe = document.getElementById('talkgroup-subscribe-btn');
+            const headerUnsubscribe = document.getElementById('talkgroup-unsubscribe-btn');
+            if (headerSubscribe && headerUnsubscribe) {
+                if (isSubscribed) {
+                    headerSubscribe.classList.add('d-none');
+                    headerUnsubscribe.classList.remove('d-none');
+                } else {
+                    headerSubscribe.classList.remove('d-none');
+                    headerUnsubscribe.classList.add('d-none');
+                }
+            }
+        } catch (e) {
+            // ignore
+        }
     }
 
     updateCallCardsForTalkGroup(talkgroupId) {
@@ -545,7 +787,8 @@ export class UIManager {
             const callId = element.dataset.callId;
             const call = this.app.activeCalls.get(parseInt(callId));
             if (call) {
-                const newElement = this.createCallElement(call);
+                const inTalkgroupStream = element.closest('#talkgroup-call-stream') !== null;
+                const newElement = this.createCallElement(call, false, null, inTalkgroupStream);
                 element.replaceWith(newElement);
             }
         });
@@ -813,56 +1056,21 @@ export class UIManager {
                                 <span class="badge bg-primary">${calls.length} calls</span>
                             </div>
                         </div>
-                        <button type="button" class="btn btn-outline-secondary" onclick="app.returnToMainStream()">
-                            <i class="bi bi-arrow-left me-1"></i>Back to Live Stream
-                        </button>
-                    </div>
-                    
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <div class="card">
-                                <div class="card-body">
-                                    <h6 class="card-title">Statistics</h6>
-                                    <div class="row">
-                                        <div class="col-6">
-                                            <div class="text-center">
-                                                <h5 class="mb-1">${calls.length}</h5>
-                                                <small class="text-muted">Total Calls</small>
-                                            </div>
-                                        </div>
-                                        <div class="col-6">
-                                            <div class="text-center">
-                                                <h5 class="mb-1">${calls.reduce((sum, call) => sum + call.recordingCount, 0)}</h5>
-                                                <small class="text-muted">Recordings</small>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="card">
-                                <div class="card-body">
-                                    <h6 class="card-title">Actions</h6>
-                                    <div class="d-flex gap-2">
-                                        <button type="button" class="btn btn-outline-primary btn-sm" 
-                                                onclick="app.loadTalkgroupView('${talkgroupId}')">
-                                            <i class="bi bi-arrow-clockwise me-1"></i>Refresh
-                                        </button>
-                                        <button type="button" class="btn btn-outline-success btn-sm ${this.app.subscriptions.has(talkgroupId) ? 'd-none' : ''}" 
-                                                onclick="app.toggleSubscription('${talkgroupId}', this)">
-                                            <i class="bi bi-bookmark-plus me-1"></i>Subscribe
-                                        </button>
-                                        <button type="button" class="btn btn-outline-danger btn-sm ${!this.app.subscriptions.has(talkgroupId) ? 'd-none' : ''}" 
-                                                onclick="app.toggleSubscription('${talkgroupId}', this)">
-                                            <i class="bi bi-bookmark-dash me-1"></i>Unsubscribe
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
+                        <div class="d-flex gap-2 align-items-center">
+                            <button type="button" class="btn btn-outline-secondary" onclick="app.returnToMainStream()">
+                                <i class="bi bi-arrow-left me-1"></i>Back to Live Stream
+                            </button>
+                            <button type="button" class="btn btn-outline-success btn-sm ${this.app.subscriptions.has(talkgroupId) ? 'd-none' : ''}" 
+                                    id="talkgroup-subscribe-btn" onclick="app.toggleSubscription('${talkgroupId}', this)">
+                                <i class="bi bi-bookmark-plus me-1"></i>Subscribe
+                            </button>
+                            <button type="button" class="btn btn-outline-danger btn-sm ${!this.app.subscriptions.has(talkgroupId) ? 'd-none' : ''}" 
+                                    id="talkgroup-unsubscribe-btn" onclick="app.toggleSubscription('${talkgroupId}', this)">
+                                <i class="bi bi-bookmark-dash me-1"></i>Unsubscribe
+                            </button>
                         </div>
                     </div>
-                    
+
                     <div class="card">
                         <div class="card-header">
                             <h6 class="mb-0">Recent Calls</h6>
@@ -886,13 +1094,77 @@ export class UIManager {
                 </div>
             `;
 
-            // Add calls to the talkgroup stream
+            // Add calls to the talkgroup stream using minimal rendering (no per-call view/unsubscribe)
             const talkgroupStream = document.getElementById('talkgroup-call-stream');
             calls.forEach(call => {
-                const callElement = this.createCallElement(call, false);
+                const callElement = this.createCallElement(call, false, null, true);
                 talkgroupStream.appendChild(callElement);
             });
         }
+    }
+
+    // Call-specific view for deep links like ?call=ID
+    showCallView(call) {
+        const talkGroupInfo = this.app.dataManager.getTalkGroupInfo(call.talkgroupId);
+        const talkGroupName = talkGroupInfo?.description || `Talk Group ${call.talkgroupId}`;
+
+        const mainContent = document.querySelector('.row .col-md-9');
+
+        const duration = call.duration ? this.app.utils.formatDuration(call.duration) : 'Unknown';
+        const created = this.app.utils.formatDateTime(call.createdAt);
+
+        // Prepare recording info (first recording if present)
+        let recordingHtml = '<div class="text-muted small">No recordings available</div>';
+        if (call.recordings && call.recordings.length > 0) {
+            const r = call.recordings[0];
+            const fileName = r.fileName || r.FileName || r.file || r.File || 'unknown';
+            const formatUpper = (r.format || r.Format || '').toUpperCase() || (r.fileName && r.fileName.split('.').pop().toUpperCase()) || '';
+            const sizeDisplay = r.fileSize ? (this.app.utils.formatFileSize ? this.app.utils.formatFileSize(r.fileSize) : `${Math.round(r.fileSize/1024)} KB`) : '';
+
+            recordingHtml = `
+                <div class="call-file-info small text-muted">
+                    <div><strong>File:</strong> ${this.escapeHtml(fileName)} ${formatUpper ? `<span class="text-uppercase">(${this.escapeHtml(formatUpper)})</span>` : ''}</div>
+                    ${sizeDisplay ? `<div><strong>Size:</strong> ${this.escapeHtml(sizeDisplay)}</div>` : ''}
+                </div>
+            `;
+        }
+
+        mainContent.innerHTML = `
+            <div class="call-view">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <h4><i class="bi bi-broadcast-pin me-2"></i>${this.escapeHtml(talkGroupName)}</h4>
+                        <p class="text-muted mb-0">Talk Group ID: ${this.escapeHtml(String(call.talkgroupId))}</p>
+                        <p class="text-muted small mb-0">Recorded: ${this.escapeHtml(created)} &middot; Duration: ${this.escapeHtml(duration)}</p>
+                    </div>
+                    <div>
+                        <button type="button" class="btn btn-outline-secondary" onclick="app.returnToMainStream()">
+                            <i class="bi bi-arrow-left me-1"></i>Back
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-body text-center">
+                        <div class="mb-3">
+                            ${recordingHtml}
+                        </div>
+                        <div class="mb-2">
+                            <!-- Play button requires user interaction; do not autoplay -->
+                            <button type="button" class="btn btn-primary btn-lg btn-play" 
+                                    data-call='${this.encodeCallData(JSON.stringify(call))}'>
+                                <i class="bi bi-play-fill"></i>
+                                <span class="ms-1">Play</span>
+                            </button>
+                        </div>
+
+                        ${this.createTranscriptionSection(call, false) ? `
+                            <div class="mt-3 text-start">${this.createTranscriptionSection(call, false)}</div>
+                        ` : ''}
+                    </div>
+                </div>
+            </div>
+        `;
     }
 
     showMainView() {

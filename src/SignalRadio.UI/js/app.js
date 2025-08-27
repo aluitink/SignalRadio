@@ -50,10 +50,55 @@ class SignalRadioApp {
             // Check if we should load a specific talkgroup view
             const urlParams = new URLSearchParams(window.location.search);
             const talkgroupId = urlParams.get('talkgroup');
+            const callIdParam = urlParams.get('call');
             
             if (talkgroupId) {
                 console.log(`Loading talkgroup view for ${talkgroupId}...`);
                 this.loadTalkgroupView(talkgroupId);
+            } else if (callIdParam) {
+                console.log(`Show call view for URL call: ${callIdParam}`);
+                // Fetch call details and render a focused call page that requires the user to click Play
+                (async () => {
+                    try {
+                        const resp = await fetch(`/api/calls/${encodeURIComponent(callIdParam)}`);
+                        if (!resp.ok) {
+                            console.warn('Failed to fetch call for view:', resp.status);
+                            this.dataManager.loadRecentCalls();
+                            return;
+                        }
+                        const payload = await resp.json();
+
+                        const normalized = {
+                            id: payload.id || payload.Id,
+                            talkgroupId: payload.talkgroupId || payload.TalkgroupId || payload.TalkgroupID || payload.TalkGroupId,
+                            systemName: payload.systemName || payload.SystemName,
+                            recordingTime: payload.recordingTime || payload.RecordingTime,
+                            frequency: payload.frequency || payload.Frequency,
+                            duration: payload.duration || payload.Duration,
+                            createdAt: payload.createdAt || payload.CreatedAt,
+                            updatedAt: payload.updatedAt || payload.UpdatedAt,
+                            recordings: (payload.recordings || payload.Recordings || []).map(r => ({
+                                id: r.id || r.Id,
+                                fileName: r.fileName || r.FileName || r.File,
+                                format: (r.format || r.Format || '').toUpperCase(),
+                                fileSize: r.fileSize || r.FileSize || 0,
+                                isUploaded: r.isUploaded || r.IsUploaded || false,
+                                blobName: r.blobName || r.BlobName || r.blobUri || r.BlobUri || null,
+                                uploadedAt: r.uploadedAt || r.UploadedAt || r.createdAt || r.CreatedAt || null,
+                                hasTranscription: r.hasTranscription || r.HasTranscription || false,
+                                transcriptionText: r.transcriptionText || r.TranscriptionText || null,
+                                transcriptionConfidence: r.transcriptionConfidence || r.TranscriptionConfidence || null,
+                                transcriptionLanguage: r.transcriptionLanguage || r.TranscriptionLanguage || null
+                            }))
+                        };
+
+                        // Render the single-call view; playback will start only when user clicks Play
+                        this.uiManager.showCallView(normalized);
+                    } catch (err) {
+                        console.error('Failed to load call for view', err);
+                        this.dataManager.loadRecentCalls();
+                    }
+                })();
             } else {
                 console.log('Loading recent calls...');
                 this.dataManager.loadRecentCalls();
@@ -353,9 +398,10 @@ class SignalRadioApp {
         try {
             // Update UI to show we're loading
             this.uiManager.showTalkgroupView(talkgroupId, true);
-            
-            // Fetch calls for this talkgroup (limit to 50 like main stream)
-            const response = await fetch(`/api/calls/talkgroup/${talkgroupId}?limit=50`);
+
+            // Fetch calls for this talkgroup (limit to last 150)
+            const limit = 150;
+            const response = await fetch(`/api/calls/talkgroup/${talkgroupId}?limit=${limit}`);
             if (!response.ok) {
                 if (response.status === 404) {
                     // No calls found for this talkgroup
@@ -364,13 +410,61 @@ class SignalRadioApp {
                 }
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
-            
+
             const data = await response.json();
-            console.log(`Loaded ${data.calls?.length || 0} calls for talkgroup ${talkgroupId}`, data);
-            
-            // Update UI with talkgroup calls
-            this.uiManager.showTalkgroupView(talkgroupId, false, data.calls || []);
-            
+            const calls = data.calls || [];
+            console.log(`Loaded ${calls.length} calls (summary) for talkgroup ${talkgroupId}`);
+
+            // Fetch full call details (including recordings/transcriptions) for each call.
+            // Do this in parallel batches to avoid overwhelming the server.
+            const fetchCallDetail = async (summaryCall) => {
+                try {
+                    const id = summaryCall.id || summaryCall.Id;
+                    if (!id) return summaryCall;
+                    const resp = await fetch(`/api/calls/${id}`);
+                    if (!resp.ok) return summaryCall; // fallback to summary
+                    const payload = await resp.json();
+
+                    return {
+                        id: payload.id || payload.Id,
+                        talkgroupId: payload.talkgroupId || payload.TalkgroupId || payload.TalkgroupID || payload.TalkGroupId,
+                        systemName: payload.systemName || payload.SystemName,
+                        recordingTime: payload.recordingTime || payload.RecordingTime,
+                        frequency: payload.frequency || payload.Frequency,
+                        duration: payload.duration || payload.Duration,
+                        createdAt: payload.createdAt || payload.CreatedAt,
+                        updatedAt: payload.updatedAt || payload.UpdatedAt,
+                        recordings: (payload.recordings || payload.Recordings || []).map(r => ({
+                            id: r.id || r.Id,
+                            fileName: r.fileName || r.FileName || r.File,
+                            format: (r.format || r.Format || '').toUpperCase(),
+                            fileSize: r.fileSize || r.FileSize || 0,
+                            isUploaded: r.isUploaded || r.IsUploaded || false,
+                            blobName: r.blobName || r.BlobName || r.blobUri || r.BlobUri || null,
+                            uploadedAt: r.uploadedAt || r.UploadedAt || r.createdAt || r.CreatedAt || null,
+                            hasTranscription: r.hasTranscription || r.HasTranscription || false,
+                            transcriptionText: r.transcriptionText || r.TranscriptionText || null,
+                            transcriptionConfidence: r.transcriptionConfidence || r.TranscriptionConfidence || null,
+                            transcriptionLanguage: r.transcriptionLanguage || r.TranscriptionLanguage || null
+                        }))
+                    };
+                } catch (e) {
+                    console.warn('Failed to fetch call details for', summaryCall, e);
+                    return summaryCall;
+                }
+            };
+
+            const concurrency = 10;
+            const detailedCalls = [];
+            for (let i = 0; i < calls.length; i += concurrency) {
+                const chunk = calls.slice(i, i + concurrency);
+                const results = await Promise.all(chunk.map(fetchCallDetail));
+                detailedCalls.push(...results);
+            }
+
+            // Update UI with full call objects so transcriptions (if present) render in the talkgroup view
+            this.uiManager.showTalkgroupView(talkgroupId, false, detailedCalls);
+
         } catch (error) {
             console.error('Failed to load talkgroup calls:', error);
             this.uiManager.showTalkgroupView(talkgroupId, false, []); // Show empty state

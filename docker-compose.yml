@@ -35,6 +35,9 @@ services:
       - AsrSettings__Enabled=${ASR_ENABLED:-true}
       - AsrSettings__WhisperServiceUrl=http://whisper-asr:9000
       - AsrSettings__AutoTranscribe=${ASR_AUTO_TRANSCRIBE:-true}
+      - AsrSettings__AzureSpeechKey=${AZURE_SPEECH_KEY:-}
+      - AsrSettings__AzureSpeechRegion=${AZURE_SPEECH_REGION:-}
+      - AsrSettings__Provider=${ASR_PROVIDER:-whisper}
       - LocalFileCache__CacheDirectory=${LOCALFILECACHE__CACHEDIRECTORY:-/tmp/signalradio-cache}
       - LocalFileCache__CacheDurationMinutes=${LOCALFILECACHE__CACHEDURATIONMINUTES:-10}
     volumes:

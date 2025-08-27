@@ -6,6 +6,8 @@ using SignalRadio.Core.Repositories;
 using SignalRadio.Core.Services;
 using SignalRadio.Api.Services;
 using System.Text.Json;
+using System.Threading.Channels;
+using System.Collections.Concurrent;
 
 namespace SignalRadio.Api.Services;
 
@@ -33,7 +35,7 @@ public class TranscriptionBackgroundService : BackgroundService
         _asrOptions = asrOptions.Value;
         _fileCacheService = fileCacheService;
     _processingIntervalSeconds = configuration.GetValue<int>("Transcription:ProcessingIntervalSeconds", 2);
-    _maxConcurrency = configuration.GetValue<int>("Transcription:MaxConcurrency", 2); // Default to 2
+    _maxConcurrency = configuration.GetValue<int>("Transcription:MaxConcurrency", 1); // Default to 1
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -92,67 +94,143 @@ public class TranscriptionBackgroundService : BackgroundService
             return false;
         }
 
-        // Get recordings that need transcription (WAV files that are uploaded but not transcribed)
-        var pendingRecordings = await recordingRepository.GetRecordingsNeedingTranscriptionAsync(limit: _maxConcurrency);
+        // Producer/consumer setup. We avoid fetching int.MaxValue items up-front.
+        var queueCapacity = Math.Max(_maxConcurrency, 1);
+        _logger.LogInformation("Starting producer-consumer with max concurrency {MaxConcurrency} and queue capacity {QueueCapacity}", _maxConcurrency, queueCapacity);
 
-        if (!pendingRecordings.Any())
+        var channel = Channel.CreateBounded<Recording>(new BoundedChannelOptions(queueCapacity)
         {
-            _logger.LogDebug("No recordings pending transcription");
-            return false;
+            SingleWriter = false,
+            SingleReader = false,
+            FullMode = BoundedChannelFullMode.Wait
+        });
+
+    // Track which recordings we've already enqueued to avoid duplicates (thread-safe)
+    var enqueued = new ConcurrentDictionary<long, byte>();
+
+        // Counters/state for coordination
+        var processedAny = false;
+        var activeWorkers = 0;
+        var queuedCount = 0;
+        var lastEnqueueUtc = DateTime.UtcNow;
+
+        // Helper to try enqueue a recording without duplicates
+        async Task<bool> TryEnqueueAsync(Recording rec)
+        {
+            // TryAdd returns false if the key already exists — this avoids needing an explicit lock
+            if (!enqueued.TryAdd(rec.Id, 0))
+                return false;
+
+            await channel.Writer.WriteAsync(rec, cancellationToken);
+            Interlocked.Increment(ref queuedCount);
+            lastEnqueueUtc = DateTime.UtcNow;
+            return true;
         }
 
-        _logger.LogInformation("Processing {Count} recordings for transcription", pendingRecordings.Count());
-
-        var semaphore = new System.Threading.SemaphoreSlim(_maxConcurrency);
-        var tasks = new List<Task>();
-        foreach (var recording in pendingRecordings)
+        // Producer: keep polling and enqueueing pages sized to queueCapacity until a fetch returns empty
+        var producer = Task.Run(async () =>
         {
-            if (cancellationToken.IsCancellationRequested)
-                break;
-
-            await semaphore.WaitAsync(cancellationToken);
-            tasks.Add(Task.Run(async () =>
+            try
             {
-                using var taskScope = _serviceProvider.CreateScope();
-                var storageService = taskScope.ServiceProvider.GetRequiredService<IStorageService>();
-                var asrServiceTask = taskScope.ServiceProvider.GetRequiredService<IAsrService>();
-                var recordingRepositoryTask = taskScope.ServiceProvider.GetRequiredService<IRecordingRepository>();
-                var callService = taskScope.ServiceProvider.GetRequiredService<ICallService>();
-                var hubContext = taskScope.ServiceProvider.GetRequiredService<IHubContext<TalkGroupHub>>();
+                while (!cancellationToken.IsCancellationRequested)
+                {
+                    // Wait until there's room in the queue before fetching more
+                    while (Volatile.Read(ref queuedCount) >= queueCapacity && !cancellationToken.IsCancellationRequested)
+                    {
+                        await Task.Delay(200, cancellationToken);
+                    }
 
-                try
-                {
-                    // Reload the recording from the repository to ensure a fresh context
-                    var freshRecording = await recordingRepositoryTask.GetByIdAsync(recording.Id);
-                    if (freshRecording != null)
+                    // Fetch a page of pending recordings sized to the queue capacity
+                    var pageSize = queueCapacity;
+                    var nextBatch = (await recordingRepository.GetRecordingsNeedingTranscriptionAsync(limit: pageSize)).ToList();
+
+                    // If repository returned nothing, stop producing — we've drained the backlog
+                    if (!nextBatch.Any())
+                        break;
+
+                    foreach (var rec in nextBatch)
                     {
-                        await ProcessRecordingTranscription(
-                            freshRecording,
-                            storageService,
-                            asrServiceTask,
-                            recordingRepositoryTask,
-                            callService,
-                            hubContext,
-                            cancellationToken);
+                        if (cancellationToken.IsCancellationRequested)
+                            break;
+
+                        await TryEnqueueAsync(rec);
                     }
-                    else
+
+                    // Yield to allow workers to make progress before fetching the next page
+                    await Task.Yield();
+                }
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { }
+            finally
+            {
+                // Signal completion to consumers
+                channel.Writer.TryComplete();
+            }
+        }, cancellationToken);
+
+        // Start worker tasks equal to max concurrency
+        var workers = new List<Task>(_maxConcurrency);
+        for (int i = 0; i < _maxConcurrency; i++)
+        {
+            workers.Add(Task.Run(async () =>
+            {
+                while (await channel.Reader.WaitToReadAsync(cancellationToken))
+                {
+                    if (!channel.Reader.TryRead(out var recording))
+                        continue;
+
+                    // We took an item off the queue
+                    Interlocked.Decrement(ref queuedCount);
+
+                    Interlocked.Increment(ref activeWorkers);
+                    try
                     {
-                        _logger.LogWarning("Recording {RecordingId} not found for transcription", recording.Id);
+                        using var taskScope = _serviceProvider.CreateScope();
+                        var storageService = taskScope.ServiceProvider.GetRequiredService<IStorageService>();
+                        var asrServiceTask = taskScope.ServiceProvider.GetRequiredService<IAsrService>();
+                        var recordingRepositoryTask = taskScope.ServiceProvider.GetRequiredService<IRecordingRepository>();
+                        var callService = taskScope.ServiceProvider.GetRequiredService<ICallService>();
+                        var hubContext = taskScope.ServiceProvider.GetRequiredService<IHubContext<TalkGroupHub>>();
+
+                        // Reload the recording to ensure fresh context
+                        var freshRecording = await recordingRepositoryTask.GetByIdAsync(recording.Id);
+                        if (freshRecording != null)
+                        {
+                            processedAny = true;
+                            await ProcessRecordingTranscription(
+                                freshRecording,
+                                storageService,
+                                asrServiceTask,
+                                recordingRepositoryTask,
+                                callService,
+                                hubContext,
+                                cancellationToken);
+                        }
+                        else
+                        {
+                            _logger.LogWarning("Recording {RecordingId} not found for transcription", recording.Id);
+                        }
                     }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, $"Error processing transcription for recording {recording.Id}");
-                }
-                finally
-                {
-                    semaphore.Release();
+                    catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                    {
+                        break;
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error processing transcription for recording {RecordingId}", recording.Id);
+                    }
+                    finally
+                    {
+                        Interlocked.Decrement(ref activeWorkers);
+                    }
                 }
             }, cancellationToken));
         }
-        await Task.WhenAll(tasks);
 
-        return true; // Had pending recordings to process
+        // Wait for producer and workers to finish
+        await Task.WhenAll(workers.Concat(new[] { producer }));
+
+        return processedAny; // true if any recordings were actually processed
     }
 
     private async Task ProcessRecordingTranscription(

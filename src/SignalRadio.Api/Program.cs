@@ -80,9 +80,18 @@ builder.Services.AddScoped<ICallService, CallService>();
 builder.Services.AddScoped<ITalkGroupService, TalkGroupService>();
 builder.Services.AddScoped<ISearchService, FullTextSearchService>();
 
-// Register ASR services
-builder.Services.AddHttpClient<WhisperAsrService>();
-builder.Services.AddScoped<IAsrService, WhisperAsrService>();
+// Register ASR services - provider can be toggled via ASR_PROVIDER (azure|whisper)
+var asrProvider = builder.Configuration["ASR_PROVIDER"] ?? builder.Configuration["AsrSettings:Provider"] ?? "whisper";
+if (asrProvider.Equals("azure", StringComparison.OrdinalIgnoreCase))
+{
+    builder.Services.AddScoped<IAsrService, AzureAsrService>();
+}
+else
+{
+    // default to whisper service
+    builder.Services.AddHttpClient<WhisperAsrService>();
+    builder.Services.AddScoped<IAsrService, WhisperAsrService>();
+}
 
 // Register background services
 // Configure LocalFileCacheService options
