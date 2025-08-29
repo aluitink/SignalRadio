@@ -59,6 +59,20 @@ export class UIManager {
                     .call-container .call-main-content { flex: 1 1 auto; }
                     .call-container .call-actions { flex: 0 0 220px; padding-right: 1rem; }
                 }
+
+                /* Alternating call card backgrounds to visually separate cards in streams */
+                /* Use nth-child so alternation updates automatically when items are inserted/removed */
+                .call-stream .call-item { transition: background-color 0.15s ease-in-out; }
+                .call-stream .call-item:nth-child(odd) { background-color: #ffffff; }
+                .call-stream .call-item:nth-child(even) { background-color: #f2f6fb; }
+                .call-stream .call-item { border-bottom: 1px solid rgba(0,0,0,0.04); }
+
+                /* Respect users' dark mode preference by providing subtle inverted backgrounds */
+                @media (prefers-color-scheme: dark) {
+                    .call-stream .call-item:nth-child(odd) { background-color: rgba(255,255,255,0.02); }
+                    .call-stream .call-item:nth-child(even) { background-color: rgba(255,255,255,0.01); }
+                    .call-stream .call-item { border-bottom: 1px solid rgba(255,255,255,0.03); }
+                }
             `;
             document.head.appendChild(style);
         } catch (e) {
@@ -536,7 +550,7 @@ export class UIManager {
             <div class="call-container">
                 <div class="call-main-content" style="padding-right: 0.75rem;">
                     <div>
-                        ${minimal ? (headerHtml ? `<h6 class="call-title mb-0">${headerHtml}</h6>` : '') : `<h6 class="call-title mb-0">${talkGroupInfo?.description || `Talk Group ${call.talkgroupId}`}</h6>`}
+                        ${minimal ? (headerHtml ? `<h6 class="call-title mb-0">${headerHtml}</h6>` : '') : `<h6 class="call-title mb-0"><a href="#" onclick="app.viewTalkgroupStream('${call.talkgroupId}'); return false;" class="text-decoration-none">${this.escapeHtml(talkGroupInfo?.description || `Talk Group ${call.talkgroupId}`)}</a></h6>`}
                     </div>
 
                     ${minimal ? `
@@ -576,13 +590,9 @@ export class UIManager {
                             </button>
                         ` : ''}
                         ${minimal ? '' : `
-                        <button type="button" class="btn btn-outline-secondary btn-wide w-100 mb-2" 
-                                onclick="app.viewTalkgroupStream('${call.talkgroupId}')" title="Open talkgroup view">
-                            <i class="bi bi-list-ul"></i>
-                            <span class="ms-1">View</span>
-                        </button>
+                        <!-- View button removed: talkgroup title is now a clickable link -->
 
-                        <div class="d-flex w-100 gap-2">
+                        <div class="d-flex w-100 gap-3">
                             <button type="button" class="btn btn-outline-success btn-subscribe btn-wide flex-fill ${isSubscribed ? 'd-none' : ''}" 
                                     onclick="app.toggleSubscription('${call.talkgroupId}', this)" title="Subscribe to this talk group">
                                 <i class="bi bi-bookmark-plus"></i>

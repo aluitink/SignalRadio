@@ -69,7 +69,7 @@ namespace SignalRadio.Core.Services
                 await File.WriteAllTextAsync(metaPath, json);
 
                 var fileUri = new Uri(Path.GetFullPath(fullPath)).AbsoluteUri;
-                _logger.LogInformation("Saved file to local storage: {FullPath} ({Size:N0} bytes)", fullPath, fileStream.Length);
+                _logger.LogDebug("Saved file to local storage: {FullPath} ({Size:N0} bytes)", fullPath, fileStream.Length);
 
                 return new StorageResult
                 {
@@ -149,7 +149,7 @@ namespace SignalRadio.Core.Services
                     if (File.Exists(metaPath))
                         File.Delete(metaPath);
 
-                    _logger.LogInformation("Deleted local file: {FullPath}", fullPath);
+                    _logger.LogDebug("Deleted local file: {FullPath}", fullPath);
                     return Task.FromResult(true);
                 }
 

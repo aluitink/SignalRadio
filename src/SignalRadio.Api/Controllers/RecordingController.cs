@@ -42,29 +42,19 @@ public class RecordingController : ControllerBase
             var hasWav = audioFile != null && audioFile.Length > 0;
             var hasM4a = m4aFile != null && m4aFile.Length > 0;
 
-            _logger.LogInformation("Recording upload - TalkgroupId={TalkgroupId}, System={SystemName}, Frequency={Frequency}, Timestamp={Timestamp}, Duration={Duration}s, StopTime={StopTime}",
-                request.TalkgroupId, request.SystemName, request.Frequency, request.Timestamp, request.Duration, request.StopTime);
+            // Concise receipt log: includes talk group, system, timestamp, duration and files present
+            var fileList = new List<string>();
+            if (hasWav) fileList.Add($"{audioFile!.FileName} ({audioFile.Length:N0} bytes)");
+            if (hasM4a) fileList.Add($"{m4aFile!.FileName} ({m4aFile.Length:N0} bytes)");
+
+            _logger.LogInformation("Recording upload received - TalkgroupId={TalkgroupId}, System={SystemName}, Timestamp={Timestamp}, Duration={Duration}s, Files=[{Files}]",
+                request.TalkgroupId, request.SystemName, request.Timestamp, request.Duration, string.Join(", ", fileList));
 
             // Check if at least one audio file is provided
             if (!hasWav && !hasM4a)
             {
                 _logger.LogWarning("Upload rejected - No audio files provided");
                 return BadRequest("No audio file provided");
-            }
-
-            // Log received files
-            if (hasWav && hasM4a)
-            {
-                _logger.LogInformation("Files received: WAV ({WavSize:N0} bytes) + M4A ({M4aSize:N0} bytes)",
-                    audioFile!.Length, m4aFile!.Length);
-            }
-            else if (hasWav)
-            {
-                _logger.LogInformation("Files received: WAV only ({WavSize:N0} bytes)", audioFile!.Length);
-            }
-            else
-            {
-                _logger.LogInformation("Files received: M4A only ({M4aSize:N0} bytes)", m4aFile!.Length);
             }
 
             // Process the call (create or find existing)
@@ -78,7 +68,7 @@ public class RecordingController : ControllerBase
             if (hasWav)
             {
                 // Save to local cache first
-                using (var wavStream = audioFile.OpenReadStream())
+                using (var wavStream = audioFile!.OpenReadStream())
                 {
                     await _fileCacheService.SaveFileAsync(audioFile.FileName, wavStream);
                 }
@@ -125,7 +115,7 @@ public class RecordingController : ControllerBase
                         wavMetadata.BlobUri = wavResult.BlobUri;
                         wavMetadata.BlobName = wavResult.BlobName;
                         uploadedFiles.Add(wavMetadata);
-                        _logger.LogInformation("WAV file uploaded successfully: {BlobName}", wavResult.BlobName);
+                        // success: intentionally not logging per-file to reduce noise
                     }
                     else
                     {
@@ -145,7 +135,7 @@ public class RecordingController : ControllerBase
             if (hasM4a)
             {
                 // Save to local cache first
-                using (var m4aStream = m4aFile.OpenReadStream())
+                using (var m4aStream = m4aFile!.OpenReadStream())
                 {
                     await _fileCacheService.SaveFileAsync(m4aFile.FileName, m4aStream);
                 }
@@ -192,7 +182,7 @@ public class RecordingController : ControllerBase
                         m4aMetadata.BlobUri = m4aResult.BlobUri;
                         m4aMetadata.BlobName = m4aResult.BlobName;
                         uploadedFiles.Add(m4aMetadata);
-                        _logger.LogInformation("M4A file uploaded successfully: {BlobName}", m4aResult.BlobName);
+                        // success: intentionally not logging per-file to reduce noise
                     }
                     else
                     {

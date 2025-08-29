@@ -110,11 +110,53 @@ export class Utils {
     }
 
     formatDuration(duration) {
-        // Duration comes as "HH:MM:SS" or TimeSpan format
-        if (typeof duration === 'string') {
-            return duration.split('.')[0]; // Remove milliseconds if present
+        // Accepts multiple duration shapes:
+        // - string like "HH:MM:SS[.fff]"
+        // - ISO8601 duration like "PT1M30S"
+        // - numeric seconds (e.g. 90) or milliseconds (e.g. 90000)
+        if (duration == null || duration === '') return 'Unknown';
+
+        // Numeric durations
+        if (typeof duration === 'number') {
+            // Heuristic: values > 1000 are likely milliseconds
+            const totalSeconds = duration > 1000 ? Math.round(duration / 1000) : Math.round(duration);
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+            const mm = String(minutes).padStart(2, '0');
+            const ss = String(seconds).padStart(2, '0');
+            if (hours > 0) return `${hours}:${mm}:${ss}`;
+            return `${minutes}:${ss}`;
         }
-        return duration;
+
+        // Numeric string (e.g. "90" or "90000")
+        if (/^\d+$/.test(duration)) {
+            return this.formatDuration(Number(duration));
+        }
+
+        // TimeSpan or HH:MM:SS(.fff)
+        if (typeof duration === 'string' && duration.indexOf(':') !== -1) {
+            // Strip milliseconds if present and trim
+            return duration.split('.')[0];
+        }
+
+        // ISO8601 duration (PT#H#M#S)
+        if (typeof duration === 'string' && duration.startsWith('PT')) {
+            const regex = /PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+(?:\.\d+)?)S)?/;
+            const m = regex.exec(duration);
+            if (m) {
+                const hours = Number(m[1] || 0);
+                const minutes = Number(m[2] || 0);
+                const seconds = Math.floor(Number(m[3] || 0));
+                const mm = String(minutes).padStart(2, '0');
+                const ss = String(seconds).padStart(2, '0');
+                if (hours > 0) return `${hours}:${mm}:${ss}`;
+                return `${minutes}:${ss}`;
+            }
+        }
+
+        // Fallback: return original string trimmed
+        return String(duration).trim();
     }
 
     formatAudioTime(seconds) {

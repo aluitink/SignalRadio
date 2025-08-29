@@ -98,7 +98,7 @@ public class CallService : ICallService
 
         var createdRecording = await _recordingRepository.CreateAsync(recording);
         
-        _logger.LogInformation("Created recording with ID {RecordingId} for call {CallId}, format {Format}, size {FileSize} bytes",
+        _logger.LogDebug("Created recording with ID {RecordingId} for call {CallId}, format {Format}, size {FileSize} bytes",
             createdRecording.Id, callId, format, fileSize);
 
         return createdRecording;
@@ -107,7 +107,7 @@ public class CallService : ICallService
     public async Task MarkRecordingUploadedAsync(int recordingId, string blobUri, string blobName)
     {
         await _recordingRepository.MarkAsUploadedAsync(recordingId, blobUri, blobName);
-        _logger.LogInformation("Marked recording {RecordingId} as uploaded to {BlobName}",
+        _logger.LogDebug("Marked recording {RecordingId} as uploaded to {BlobName}",
             recordingId, blobName);
     }
 

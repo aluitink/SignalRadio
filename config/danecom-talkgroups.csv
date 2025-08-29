@@ -1,294 +1,294 @@
 Decimal,Hex,Mode,Alpha Tag,Description,Tag,Category,Priority
-1,1,D,SCALL1,SCALL1,Interop,Interop,1
-2,2,D,STAC2,STAC2,Interop,Interop,1
-3,3,D,STAC3,STAC3,Interop,Interop,1
-4,4,D,STAC4,STAC4,Interop,Interop,1
-5,5,D,STAC5,STAC5,Interop,Interop,1
-6,6,D,STAC6,STAC6,Interop,Interop,1
-7,7,D,STAC7,STAC7,Interop,Interop,1
-8,8,D,STAC8,STAC8,Interop,Interop,1
-11,b,D,RCALL11SW,RCALL11SW,Interop,Interop,1
-12,c,D,RTAC12SW,RTAC12SW,Interop,Interop,1
-13,d,D,RTAC13SW,RTAC13SW,Interop,Interop,1
-14,e,D,RTAC14SW,RTAC14SW,Interop,Interop,1
-21,15,D,RCALL21SE,RCALL21SE,Interop,Interop,1
-31,1f,D,RCALL31EC,RCALL31EC,Interop,Interop,1
-111,006f,D,WSPSW1,WSP Southwest 1 - Dispatch,Law Dispatch,Law,1
-4619,120b,D,MERITMAD,Meriter Hospital,Hospital,Medical,1
-4620,120c,D,STMSUNP,St Mary's Sun Prairie,Hospital,Medical,1
-4621,120d,D,STMMAD,St Mary's Hospital,Hospital,Medical,1
-4622,120e,D,STOUGHH,Stoughton Hospital,Hospital,Medical,1
-4623,120f,D,UWMAD,UW Hospital,Hospital,Medical,1
-4624,1210,D,VAMEDMAD,VA Hospital,Hospital,Medical,1
-4704,1260,D,SAUKPRMH,Sauk Prairie Hospital,Hospital,Medical,1
-4740,1284,D,UWAMCNTR,UW Hospital - East,Hospital,Medical,1
-8501,2135,D,DOACPD,Capitol Police,Law Dispatch,Law,1
-13000,32c8,D,DAATG,Dane County Announcement,Multi-Dispatch,Law,1
+1,1,D,SCALL1,SCALL1,Interop,Interop,3
+2,2,D,STAC2,STAC2,Interop,Interop,3
+3,3,D,STAC3,STAC3,Interop,Interop,3
+4,4,D,STAC4,STAC4,Interop,Interop,3
+5,5,D,STAC5,STAC5,Interop,Interop,3
+6,6,D,STAC6,STAC6,Interop,Interop,3
+7,7,D,STAC7,STAC7,Interop,Interop,3
+8,8,D,STAC8,STAC8,Interop,Interop,3
+11,b,D,RCALL11SW,RCALL11SW,Interop,Interop,3
+12,c,D,RTAC12SW,RTAC12SW,Interop,Interop,3
+13,d,D,RTAC13SW,RTAC13SW,Interop,Interop,3
+14,e,D,RTAC14SW,RTAC14SW,Interop,Interop,3
+21,15,D,RCALL21SE,RCALL21SE,Interop,Interop,3
+31,1f,D,RCALL31EC,RCALL31EC,Interop,Interop,3
+111,006f,D,WSPSW1,WSP Southwest 1 - DispatchLaw Dispatch,Law,3
+4619,120b,D,MERITMAD,Meriter Hospital,Hospital,Medical,4
+4620,120c,D,STMSUNP,St Mary's Sun Prairie,Hospital,Medical,4
+4621,120d,D,STMMAD,St Mary's Hospital,Hospital,Medical,4
+4622,120e,D,STOUGHH,Stoughton Hospital,Hospital,Medical,4
+4623,120f,D,UWMAD,UW Hospital,Hospital,Medical,4
+4624,1210,D,VAMEDMAD,VA Hospital,Hospital,Medical,4
+4704,1260,D,SAUKPRMH,Sauk Prairie Hospital,Hospital,Medical,4
+4740,1284,D,UWAMCNTR,UW Hospital - East,Hospital,Medical,4
+8501,2135,D,DOACPD,Capitol Police,Law Dispatch,Law,3
+13000,32c8,D,DAATG,Dane County Announcement,Multi-Dispatch,Law,3
 13001,32c9,D,DALAW1,Dane County Sheriff Law 1,Law Dispatch,Law,1
-13002,32ca,D,DALAW2TK,Dane County Sheriff Law 2 Talkaround,Law Talk,Law,1
-13003,32cb,D,DALAW3,Dane County Sheriff Law 3,Law Talk,Law,1
-13004,32cc,D,DALAW4TK,Dane County Sheriff Law 4 Talkaround,Law Talk,Law,1
-13005,32cd,D,DAPAGE,Dane County Paging,Multi-Dispatch,Fire,1
-13010,32d2,D,DASCAN,Dane County Scan,Interop,Interop,1
-13011,32d3,D,DACOM,Dane County Common/Call,Multi-Talk,Emergency,1
-13012,32d4,D,DATRVL,Dane County Travel,Multi-Talk,Emergency,1
-13013,32d5,D,DALTAC 13,Dane County Law Tactical 13,Law Tac,Law,1
-13014,32d6,D,DALTAC 14,Dane County Law Tactical 14,Law Tac,Law,1
-13015,32d7,D,DALTAC 15,Dane County Law Tactical 15,Law Tac,Law,1
-13017,32d9,D,DAJAIL6,Jail 6,Law Tac,Law,1
-13020,32dc,D,DALAWALL,Dane County Sheriff - All,Law Talk,Law,1
-13026,32e2,D,DADATA,Dane County Sheriff Data,Law Talk,Law,1
-13031,32e7,D,DAEVENTV,Dane County Event V,Multi-Talk,Emergency,1
-13032,32e8,D,DAEVENTW,Dane County Event W,Multi-Talk,Emergency,1
-13033,32e9,D,DAEVENTX,Dane County Event X,Multi-Talk,Emergency,1
-13035,32eb,D,DAEVENTZ,Dane County Event Z,Multi-Talk,Emergency,1
-13050,32fa,D,VCALL10,VCALL10,Interop,Interop,1
-13052,32fc,D,VTAC12,VTAC12,Interop,Interop,1
-13054,32fe,D,VLAW31,VLAW31,Interop,Interop,1
-13061,3305,D,DA ADAM,A Adam,Fire Dispatch,Fire,1
-13062,3306,D,DA BAKER,B Baker,Fire-Tac,Fire,1
-13063,3307,D,DA CHARLIE,C Charlie,Fire-Tac,Fire,1
-13064,3308,D,DA DAVID,D David,Fire-Tac,Fire,1
-13065,3309,D,DA EDWARD,E Edward,EMS Dispatch,Fire,1
-13066,330a,D,DA FRANK,F Frank (Primary ALS Intercepts),EMS-Tac,Fire,1
-13067,330b,D,DA GEORGE,G George (Secondary EMS/Operations/ALS Intercept),EMS-Tac,Fire,1
-13068,330c,D,DA HENRY,H Henry,EMS-Tac,Fire,1
-13069,330d,D,DA IDA,I Ida,EMS-Tac,Fire,1
-13070,330e,D,DA JOHN,J John (Joint Response Channel),Fire-Tac,Fire,1
-13085,331d,T,DANETAC1,Dane County Analog Tactical Channel 1,Fire-Tac,Fire,1
-13086,331e,T,DANETAC2,Dane County Analog Tactical Channel 2,Fire-Tac,Fire,1
-13092,3324,D,DAMCFG,McFarland Fireground Patch,Fire-Tac,Fire,1
-13094,3326,D,DASNFG,Sun Prairie Fire Fireground Patch,Fire-Talk,Fire,1
-13095,3327,D,DASTFG,Stoughton Fireground,Fire-Tac,Fire,1
-13096,3328,T,DAIFERN,IFERN Patch,Interop,Fire,1
-13098,332a,D,EMS B,EMS B Patch,Hospital,Fire,1
-13100,332c,D,DAFBATG,Fitchburg ATG,Multi-Dispatch,Emergency,1
-13101,332d,D,DAFBALL,Fitchburg All,Multi-Talk,Emergency,1
-13102,332e,D,DAFBPD1,Fitchburg PD 1,Law Dispatch,Law,1
-13103,332f,D,DAFBPD2,Fitchburg PD 2,Law Tac,Law,1
-13104,3330,DE,DAFBPD3,Fitchburg PD 3,Law Tac,Law,1
-13106,3332,D,DAFREMS,Fitch-Rona EMS,EMS-Talk,Medical,1
-13107,3333,DE,DAFBPD4,Fitchburg PD 4,Law Tac,Law,1
-13108,3334,D,DAFBOFCR,FFD Officers,Fire-Talk,Fire,1
-13109,3335,D,DAFBFD,Fitchburg FD Admin,Fire-Talk,Fire,1
-13115,333b,D,DAFBDPW,Fitchburg DPW,Public Works,Public Works,1
-13119,333f,D,DAVASD,Verona Area School District Emergency,Schools,Emergency,1
-13120,3340,D,DAMIALL,Middleton All,Multi-Dispatch,Emergency,1
-13121,3341,D,DAMIPD1,Middleton Police 1,Law Dispatch,Law,1
-13122,3342,D,DAMIPD2,Middleton Police 2,Law Talk,Law,1
-13126,3346,D,DAMIEMS,Middleton EMS,EMS-Talk,Medical,1
-13127,3347,D,DAMIFD,Middleton Fire,Fire-Talk,Fire,1
-13136,3350,D,DAMIDPW,Middleton DPW,Public Works,Public Works,1
-13141,3355,D,DAMOPD,Monona Police,Law Talk,Law,1
-13145,3359,D,DAMOFD,Monona Fire,Fire-Talk,Fire,1
-13160,3368,D,DASTPDTK,Stoughton PD 1 Talkaround,Law Talk,Law,1
-13161,3369,D,DASTPD1,Stoughton PD 1,Law Dispatch,Law,1
-13162,336a,D,DASTPD3,Stoughton PD TAC,Law Talk,Law,1
-13163,336b,D,DASTPDEV,Stoughton PD Event,Law Talk,Law,1
-13164,336c,D,DASTDPW1,Stoughton Streets 1,Public Works,Public Works,1
-13165,336d,D,DASTFD,Stoughton Fire Admin,Fire-Talk,Fire,1
-13166,336e,D,DASTDPW2,Stoughton Streets 2,Public Works,Public Works,1
-13167,336f,D,DASTDPW3,Stoughton Streets 3,Public Works,Public Works,1
-13168,3370,D,DASTDPW4,Stoughton Streets 4,Public Works,Public Works,1
-13169,3371,D,DASTFD2,Stoughton Fire 2 Ops,Fire-Tac,Fire,1
-13170,3372,D,DASTFD3,Stoughton Fire 3 Coordination,Fire-Talk,Fire,1
-13171,3373,D,DASTFD4,Stoughton Fire 4 Training,Fire-Tac,Fire,1
-13172,3374,D,DASTEMS1,Stoughton EMS Admin,EMS-Talk,Medical,1
-13173,3375,D,DASTEMS2,Stoughton EMS Ops,EMS-Tac,Medical,1
-13174,3376,D,DASTEMS3,Stoughton EMS Triage/treatment/transport,EMS-Tac,Medical,1
-13175,3377,D,DASTEMS4,Stoughton EMS Training,EMS-Tac,Medical,1
-13176,3378,D,DASTSE1,Stoughton Spec Event Admin,Multi-Talk,Emergency,1
-13177,3379,D,DASTSE2,Stoughton Spec Event 2,Multi-Talk,Emergency,1
-13178,337a,D,DASTSE3,Stoughton Spec Event 3,Multi-Talk,Emergency,1
-13179,337b,D,DASTSE4,Stoughton Spec Event 4,Multi-Talk,Emergency,1
-13181,337d,D,DASNPD1,Sun Prairie PD 1 Dispatch,Law Dispatch,Law,1
-13182,337e,D,DASNPD2,Sun Prairie PD 2 Secondary,Law Talk,Law,1
-13183,337f,D,DASNPD EV,Sun Prairie PD Event,Law Tac,Law,1
-13184,3380,D,DASNPDTC,Sun Prairie PD Tactical,Law Tac,Law,1
-13185,3381,D,DASNPDDLO,Sun Prairie PD DLO,Law Talk,Law,1
-13186,3382,D,DASNPDDT,Sun Prairie PD Detectives,Law Talk,Law,1
-13187,3383,D,DASNFD,Sun Prairie Fire,Fire-Talk,Fire,1
-13188,3384,D,DASNPDTN,Sun Prairie PD Training,Law Talk,Law,1
-13189,3385,D,DASNPDAD,Sun Prairie PD Admin,Law Talk,Law,1
-13190,3386,D,DASNEMS,Sun Prairie EMS,EMS-Talk,Medical,1
-13191,3387,D,DASNFDAD,Sun Prairie Fire Admin,Fire-Talk,Fire,1
-13192,3388,D,DASNFDTN,Sun Prairie Fire Training,Fire-Talk,Fire,1
-13195,338b,D,DASNASD,Sun Prairie Area School District,Schools,Schools,1
-13196,338c,D,DASNDPW,DPW,Public Works,Public Works,1
-13201,3391,D,DAVEATG,Verona Announcement,Multi-Talk,Emergency,1
-13202,3392,D,DAVEEM,Verona Emergency Management,Emergency Ops,Emergency,1
-13203,3393,D,DAVEPD 1,Verona Police 1,Law Talk,Law,1
-13204,3394,DE,DAVEPD 2,Verona Police 2,Law Tac,Law,1
-13210,339a,D,DAVEFD,Verona Fire,Fire-Talk,Fire,1
-13215,339f,D,DAVEDPW,Verona DPW,Public Works,Public Works,1
-13220,33a4,D,DABLALL,Belleville All,Multi-Talk,Emergency,1
-13221,33a5,D,DABLPD 1,Belleville PD 1,Law Talk,Law,1
-13222,33a6,D,DABLPD 2,Belleville PD 2,Law Talk,Law,1
-13224,33a8,D,DABLFD,Belleville FD,Fire-Talk,Fire,1
-13226,33aa,D,DABLEMS 1,Belleville EMS 1,EMS-Talk,Medical,1
-13227,33ab,D,DABLEMS 2,Belleville EMS 2,EMS-Talk,Medical,1
-13228,33ac,D,DABLDPW,Belleville DPW,Public Works,Public Works,1
-13231,33af,D,DABEPD,Black Earth PD,Law Talk,Law,1
-13234,33b2,D,DABEFD,Black Earth FD,Fire-Talk,Fire,1
-13238,33b6,D,DABEDPW1,Black Earth DPW 1,Public Works,Public Works,1
-13239,33b7,D,DABEDPW2,Black Earth DPW 2,Public Works,Public Works,1
-13241,33b9,D,DABMPD,Blue Mounds PD,Law Talk,Law,1
-13251,33c3,D,DABRPD,Brooklyn PD,Law Talk,Law,1
-13253,33c5,D,DABRFD,Brooklyn FD,Fire-Talk,Fire,1
-13254,33c6,D,DABRLG,Brooklyn Local Gov.,Emergency Ops,Emergency,1
-13256,33c8,D,DABREMS,Brooklyn EMS,EMS-Talk,Medical,1
-13258,33ca,D,DABRDPW,Brooklyn DPW,Public Works,Public Works,1
-13261,33cd,D,DACMPD,Cambridge PD,Law Talk,Law,1
-13264,33d0,D,DACMFD,Cambridge FD,Fire-Talk,Fire,1
-13266,33d2,D,DACMEMS,Cambridge EMS,EMS-Talk,Medical,1
-13268,33d4,D,DACMDPW,Cambridge DPW,Public Works,Public Works,1
-13271,33d7,D,DACPPD,Cross Plains Police,Law Talk,Law,1
-13274,33da,D,DACPEM,Cross Plains Emergency Mangement,Multi-Tac,Other,1
-13276,33dc,D,DACPEMS,Cross Plains EMS,EMS-Tac,Medical,1
-13277,33dd,D,DACPFD,Cross Plains Fire,Fire-Tac,Fire,1
-13278,33de,D,DACPDPW,Cross Plains Public Works,Public Works,Public Works,1
-13279,33df,D,DAMCPSD,Middleton-Cross Plains School District,Schools,Schools,1
-13281,33e1,D,DADAPD,Dane Police,Law Talk,Law,1
-13284,33e4,D,DADAFD,Dane Fire,Fire-Tac,Fire,1
-13288,33e8,D,DADADPW,Dane DPW,Public Works,Public Works,1
-13294,33ee,D,DADRFD1,Deerfield Fire 1,Fire-Tac,Fire,1
-13296,33f0,D,DADRFD2,Deerfield Fire 2,Fire-Tac,Fire,1
-13298,33f2,D,DADRDPW,Deerfield Public Works,Public Works,Public Works,1
-13301,33f5,D,DADFPD,DeForest Police,Law Tac,Law,1
-13304,33f8,D,DADFFD,DeForest Fire/EMS,Fire-Tac,Fire,1
-13306,33fa,D,DADFFDAD,DeForest FD/EMS Admin,Fire-Talk,Fire,1
-13308,33fc,D,DADFDPW,DeForest DPW,Public Works,Public Works,1
-13310,33fe,D,DAMBATG,Maple Bluff Announcement,Multi-Talk,Emergency,1
-13311,33ff,D,DAMBPD,Maple Bluff Police,Law Talk,Law,1
-13317,3405,D,DAMBFD,Maple Bluff Fire,Fire-Talk,Fire,1
-13318,3406,D,DAMBDPW,Maple Bluff DPW,Public Works,Public Works,1
-13320,3408,D,DAMRATG,Marshall Announcement,Multi-Talk,Emergency,1
-13321,3409,D,DAMRPD,Marshall Police,Law Talk,Law,1
-13324,340c,D,DAMRFD,Marshall Fire,Fire-Talk,Fire,1
-13326,340e,D,DAMREMS,Marshall EMS,EMS-Talk,Medical,1
-13328,3410,D,DAMRDPW,Marshall DPW,Public Works,Public Works,1
-13331,3413,D,DAMZPD,Mazomanie PD,Law Talk,Law,1
-13336,3418,D,DAMZEMS,Mazomanie EMS,EMS-Talk,Medical,1
-13337,3419,D,DAMZFD,Mazomanie FD,Fire-Talk,Fire,1
-13338,341a,D,DAMZDPW,Mazomanie DPW,Public Works,Public Works,1
+13002,32ca,D,DALAW2TK,Dane County Sheriff Law 2 Talkaround,Law Talk,Law,4
+13003,32cb,D,DALAW3,Dane County Sheriff Law 3,Law Talk,Law,4
+13004,32cc,D,DALAW4TK,Dane County Sheriff Law 4 Talkaround,Law Talk,Law,4
+13005,32cd,D,DAPAGE,Dane County Paging,Multi-Dispatch,Fire,3
+13010,32d2,D,DASCAN,Dane County Scan,Interop,Interop,4
+13011,32d3,D,DACOM,Dane County Common/Call,Multi-Talk,Emergency,3
+13012,32d4,D,DATRVL,Dane County Travel,Multi-Talk,Emergency,3
+13013,32d5,D,DALTAC 13,Dane County Law Tactical 13,Law Tac,Law,2
+13014,32d6,D,DALTAC 14,Dane County Law Tactical 14,Law Tac,Law,2
+13015,32d7,D,DALTAC 15,Dane County Law Tactical 15,Law Tac,Law,2
+13017,32d9,D,DAJAIL6,Jail 6,Law Tac,Law,4
+13020,32dc,D,DALAWALL,Dane County Sheriff - All,Law Talk,Law,3
+13026,32e2,D,DADATA,Dane County Sheriff Data,Law Talk,Law,2
+13031,32e7,D,DAEVENTV,Dane County Event V,Multi-Talk,Emergency,2
+13032,32e8,D,DAEVENTW,Dane County Event W,Multi-Talk,Emergency,2
+13033,32e9,D,DAEVENTX,Dane County Event X,Multi-Talk,Emergency,2
+13035,32eb,D,DAEVENTZ,Dane County Event Z,Multi-Talk,Emergency,2
+13050,32fa,D,VCALL10,VCALL10,Interop,Interop,2
+13052,32fc,D,VTAC12,VTAC12,Interop,Interop,2
+13054,32fe,D,VLAW31,VLAW31,Interop,Interop,2
+13061,3305,D,DA ADAM,A Adam,Fire Dispatch,Fire,4
+13062,3306,D,DA BAKER,B Baker,Fire-Tac,Fire,4
+13063,3307,D,DA CHARLIE,C Charlie,Fire-Tac,Fire,4
+13064,3308,D,DA DAVID,D David,Fire-Tac,Fire,4
+13065,3309,D,DA EDWARD,E Edward,EMS Dispatch,Fire,4
+13066,330a,D,DA FRANK,F Frank (Primary ALS Intercepts),EMS-Tac,Fire,4
+13067,330b,D,DA GEORGE,G George (Secondary EMS/Operations/ALS Intercept),EMS-Tac,Fire,4
+13068,330c,D,DA HENRY,H Henry,EMS-Tac,Fire,4
+13069,330d,D,DA IDA,I Ida,EMS-Tac,Fire,4
+13070,330e,D,DA JOHN,J John (Joint Response Channel),Fire-Tac,Fire,4
+13085,331d,T,DANETAC1,Dane County Analog Tactical Channel 1,Fire-Tac,Fire,3
+13086,331e,T,DANETAC2,Dane County Analog Tactical Channel 2,Fire-Tac,Fire,3
+13092,3324,D,DAMCFG,McFarland Fireground Patch,Fire-Tac,Fire,2
+13094,3326,D,DASNFG,Sun Prairie Fire Fireground Patch,Fire-Talk,Fire,5
+13095,3327,D,DASTFG,Stoughton Fireground,Fire-Tac,Fire,4
+13096,3328,T,DAIFERN,IFERN Patch,Interop,Fire,3
+13098,332a,D,EMS B,EMS B Patch,Hospital,Fire,4
+13100,332c,D,DAFBATG,Fitchburg ATG,Multi-Dispatch,Emergency,3
+13101,332d,D,DAFBALL,Fitchburg All,Multi-Talk,Emergency,4
+13102,332e,D,DAFBPD1,Fitchburg PD 1,Law Dispatch,Law,3
+13103,332f,D,DAFBPD2,Fitchburg PD 2,Law Tac,Law,3
+13104,3330,DE,DAFBPD3,Fitchburg PD 3,Law Tac,Law,4
+13106,3332,D,DAFREMS,Fitch-Rona EMS,EMS-Talk,Medical,4
+13107,3333,DE,DAFBPD4,Fitchburg PD 4,Law Tac,Law,4
+13108,3334,D,DAFBOFCR,FFD Officers,Fire-Talk,Fire,5
+13109,3335,D,DAFBFD,Fitchburg FD Admin,Fire-Talk,Fire,5
+13115,333b,D,DAFBDPW,Fitchburg DPW,Public Works,Public Works,7
+13119,333f,D,DAVASD,Verona Area School District Emergency,Schools,Emergency,4
+13120,3340,D,DAMIALL,Middleton All,Multi-Dispatch,Emergency,3
+13121,3341,D,DAMIPD1,Middleton Police 1,Law Dispatch,Law,3
+13122,3342,D,DAMIPD2,Middleton Police 2,Law Talk,Law,4
+13126,3346,D,DAMIEMS,Middleton EMS,EMS-Talk,Medical,4
+13127,3347,D,DAMIFD,Middleton Fire,Fire-Talk,Fire,5
+13136,3350,D,DAMIDPW,Middleton DPW,Public Works,Public Works,7
+13141,3355,D,DAMOPD,Monona Police,Law Talk,Law,4
+13145,3359,D,DAMOFD,Monona Fire,Fire-Talk,Fire,5
+13160,3368,D,DASTPDTK,Stoughton PD 1 Talkaround,Law Talk,Law,4
+13161,3369,D,DASTPD1,Stoughton PD 1,Law Dispatch,Law,3
+13162,336a,D,DASTPD3,Stoughton PD TAC,Law Talk,Law,4
+13163,336b,D,DASTPDEV,Stoughton PD Event,Law Talk,Law,4
+13164,336c,D,DASTDPW1,Stoughton Streets 1,Public Works,Public Works,7
+13165,336d,D,DASTFD,Stoughton Fire Admin,Fire-Talk,Fire,5
+13166,336e,D,DASTDPW2,Stoughton Streets 2,Public Works,Public Works,7
+13167,336f,D,DASTDPW3,Stoughton Streets 3,Public Works,Public Works,7
+13168,3370,D,DASTDPW4,Stoughton Streets 4,Public Works,Public Works,7
+13169,3371,D,DASTFD2,Stoughton Fire 2 Ops,Fire-Tac,Fire,4
+13170,3372,D,DASTFD3,Stoughton Fire 3 Coordination,Fire-Talk,Fire,5
+13171,3373,D,DASTFD4,Stoughton Fire 4 Training,Fire-Tac,Fire,4
+13172,3374,D,DASTEMS1,Stoughton EMS Admin,EMS-Talk,Medical,4
+13173,3375,D,DASTEMS2,Stoughton EMS Ops,EMS-Tac,Medical,4
+13174,3376,D,DASTEMS3,Stoughton EMS Triage/treatment/transport,EMS-Tac,Medical,4
+13175,3377,D,DASTEMS4,Stoughton EMS Training,EMS-Tac,Medical,4
+13176,3378,D,DASTSE1,Stoughton Spec Event Admin,Multi-Talk,Emergency,2
+13177,3379,D,DASTSE2,Stoughton Spec Event 2,Multi-Talk,Emergency,2
+13178,337a,D,DASTSE3,Stoughton Spec Event 3,Multi-Talk,Emergency,2
+13179,337b,D,DASTSE4,Stoughton Spec Event 4,Multi-Talk,Emergency,2
+13181,337d,D,DASNPD1,Sun Prairie PD 1 Dispatch,Law Dispatch,Law,2
+13182,337e,D,DASNPD2,Sun Prairie PD 2 Secondary,Law Talk,Law,4
+13183,337f,D,DASNPD EV,Sun Prairie PD Event,Law Tac,Law,2
+13184,3380,D,DASNPDTC,Sun Prairie PD Tactical,Law Tac,Law,2
+13185,3381,D,DASNPDDLO,Sun Prairie PD DLO,Law Talk,Law,4
+13186,3382,D,DASNPDDT,Sun Prairie PD Detectives,Law Talk,Law,2
+13187,3383,D,DASNFD,Sun Prairie Fire,Fire-Talk,Fire,5
+13188,3384,D,DASNPDTN,Sun Prairie PD Training,Law Talk,Law,4
+13189,3385,D,DASNPDAD,Sun Prairie PD Admin,Law Talk,Law,4
+13190,3386,D,DASNEMS,Sun Prairie EMS,EMS-Talk,Medical,4
+13191,3387,D,DASNFDAD,Sun Prairie Fire Admin,Fire-Talk,Fire,5
+13192,3388,D,DASNFDTN,Sun Prairie Fire Training,Fire-Talk,Fire,5
+13195,338b,D,DASNASD,Sun Prairie Area School District,Schools,Schools,6
+13196,338c,D,DASNDPW,DPW,Public Works,Public Works,7
+13201,3391,D,DAVEATG,Verona Announcement,Multi-Talk,Emergency,3
+13202,3392,D,DAVEEM,Verona Emergency Management,Emergency Ops,Emergency,4
+13203,3393,D,DAVEPD 1,Verona Police 1,Law Talk,Law,4
+13204,3394,DE,DAVEPD 2,Verona Police 2,Law Tac,Law,4
+13210,339a,D,DAVEFD,Verona Fire,Fire-Talk,Fire,5
+13215,339f,D,DAVEDPW,Verona DPW,Public Works,Public Works,7
+13220,33a4,D,DABLALL,Belleville All,Multi-Talk,Emergency,4
+13221,33a5,D,DABLPD 1,Belleville PD 1,Law Talk,Law,4
+13222,33a6,D,DABLPD 2,Belleville PD 2,Law Talk,Law,4
+13224,33a8,D,DABLFD,Belleville FD,Fire-Talk,Fire,5
+13226,33aa,D,DABLEMS 1,Belleville EMS 1,EMS-Talk,Medical,4
+13227,33ab,D,DABLEMS 2,Belleville EMS 2,EMS-Talk,Medical,4
+13228,33ac,D,DABLDPW,Belleville DPW,Public Works,Public Works,7
+13231,33af,D,DABEPD,Black Earth PD,Law Talk,Law,4
+13234,33b2,D,DABEFD,Black Earth FD,Fire-Talk,Fire,5
+13238,33b6,D,DABEDPW1,Black Earth DPW 1,Public Works,Public Works,7
+13239,33b7,D,DABEDPW2,Black Earth DPW 2,Public Works,Public Works,7
+13241,33b9,D,DABMPD,Blue Mounds PD,Law Talk,Law,4
+13251,33c3,D,DABRPD,Brooklyn PD,Law Talk,Law,4
+13253,33c5,D,DABRFD,Brooklyn FD,Fire-Talk,Fire,5
+13254,33c6,D,DABRLG,Brooklyn Local Gov.,Emergency Ops,Emergency,4
+13256,33c8,D,DABREMS,Brooklyn EMS,EMS-Talk,Medical,4
+13258,33ca,D,DABRDPW,Brooklyn DPW,Public Works,Public Works,7
+13261,33cd,D,DACMPD,Cambridge PD,Law Talk,Law,4
+13264,33d0,D,DACMFD,Cambridge FD,Fire-Talk,Fire,5
+13266,33d2,D,DACMEMS,Cambridge EMS,EMS-Talk,Medical,4
+13268,33d4,D,DACMDPW,Cambridge DPW,Public Works,Public Works,7
+13271,33d7,D,DACPPD,Cross Plains Police,Law Talk,Law,3
+13274,33da,D,DACPEM,Cross Plains Emergency Mangement,Multi-Tac,Other,6
+13276,33dc,D,DACPEMS,Cross Plains EMS,EMS-Tac,Medical,4
+13277,33dd,D,DACPFD,Cross Plains Fire,Fire-Tac,Fire,4
+13278,33de,D,DACPDPW,Cross Plains Public Works,Public Works,Public Works,7
+13279,33df,D,DAMCPSD,Middleton-Cross Plains School District,Schools,Schools,6
+13281,33e1,D,DADAPD,Dane Police,Law Talk,Law,4
+13284,33e4,D,DADAFD,Dane Fire,Fire-Tac,Fire,4
+13288,33e8,D,DADADPW,Dane DPW,Public Works,Public Works,7
+13294,33ee,D,DADRFD1,Deerfield Fire 1,Fire-Tac,Fire,4
+13296,33f0,D,DADRFD2,Deerfield Fire 2,Fire-Tac,Fire,4
+13298,33f2,D,DADRDPW,Deerfield Public Works,Public Works,Public Works,7
+13301,33f5,D,DADFPD,DeForest Police,Law Tac,Law,3
+13304,33f8,D,DADFFD,DeForest Fire/EMS,Fire-Tac,Fire,4
+13306,33fa,D,DADFFDAD,DeForest FD/EMS Admin,Fire-Talk,Fire,5
+13308,33fc,D,DADFDPW,DeForest DPW,Public Works,Public Works,7
+13310,33fe,D,DAMBATG,Maple Bluff Announcement,Multi-Talk,Emergency,3
+13311,33ff,D,DAMBPD,Maple Bluff Police,Law Talk,Law,4
+13317,3405,D,DAMBFD,Maple Bluff Fire,Fire-Talk,Fire,5
+13318,3406,D,DAMBDPW,Maple Bluff DPW,Public Works,Public Works,7
+13320,3408,D,DAMRATG,Marshall Announcement,Multi-Talk,Emergency,3
+13321,3409,D,DAMRPD,Marshall Police,Law Talk,Law,4
+13324,340c,D,DAMRFD,Marshall Fire,Fire-Talk,Fire,5
+13326,340e,D,DAMREMS,Marshall EMS,EMS-Talk,Medical,4
+13328,3410,D,DAMRDPW,Marshall DPW,Public Works,Public Works,7
+13331,3413,D,DAMZPD,Mazomanie PD,Law Talk,Law,4
+13336,3418,D,DAMZEMS,Mazomanie EMS,EMS-Talk,Medical,4
+13337,3419,D,DAMZFD,Mazomanie FD,Fire-Talk,Fire,5
+13338,341a,D,DAMZDPW,Mazomanie DPW,Public Works,Public Works,7
 13340,341c,D,DAMCATG,McFarland Announcement,Law Talk,Law,1
 13341,341d,D,DAMCPD,McFarland PD,Law Talk,Law,1
-13344,3420,D,DAMCFD,McFarland FD/EMS,Fire-Talk,Fire,1
-13348,3424,D,DAMCDPW,McFarland DPW,Public Works,Public Works,1
-13349,3425,D,DAMCDPW2,McFarland DPW 2,Public Works,Public Works,1
-13351,3427,D,DAMHPD,Mount Horeb Police,Law Talk,Law,1
-13354,342a,D,DAMHFD,Mount Horeb Fire,Fire-Talk,Fire,1
-13356,342c,D,DAMHEMS,Mount Horeb EMS,EMS-Talk,Medical,1
-13358,342e,D,DAMHDPW,Mount Horeb DPW,Public Works,Public Works,1
-13361,3431,D,DAORPD,Oregon Police,Law Talk,Law,1
-13362,3432,D,DAORPDTAC,Oregon Police Tactical,Law Tac,Law,1
-13366,3436,D,DAOREMS,Oregon EMS,EMS-Talk,Medical,1
-13367,3437,D,DAORFD,Oregon Fire,Fire-Talk,Fire,1
-13368,3438,D,DAORDPW,Oregon DPW,Public Works,Public Works,1
-13380,3444,D,DASHALL,Shorewood Hills All,Multi-Talk,Emergency,1
-13381,3445,D,DASHPD,Shorewood Hills Police,Law Talk,Law,1
-13388,344c,D,DASHDPW,Shorewood Hills DPW,Public Works,Public Works,1
-13390,344e,D,DAWNALL,Waunakee All,Multi-Talk,Emergency,1
-13391,344f,D,DAWNPD,Waunakee Police,Law Talk,Law,1
-13394,3452,D,DAWNFD,Waunakee Fire,Fire-Talk,Fire,1
-13396,3454,D,DAWNEMS,Waunakee EMS,EMS-Talk,Medical,1
-13402,345a,D,DAABDPW,Albion DPW,Public Works,Public Works,1
-13405,345d,D,DABYDPW,Berry DPW,Public Works,Public Works,1
-13412,3464,D,DABKDPW,Town of Black Earth DPW,Public Works,Public Works,1
-13415,3467,D,DABGALL,Blooming Grove All,Multi-Talk,Emergency,1
-13419,346b,D,DABGDPW,Blooming Grove DPW,Public Works,Public Works,1
-13421,346d,D,DABGDPW2,Blooming Grove DPW 2,Public Works,Public Works,1
-13422,346e,D,DABNDPW,Town of Blue Mounds DPW,Public Works,Public Works,1
-13427,3473,D,DABSDPW,Bristol DPW,Public Works,Public Works,1
-13432,3478,D,DABUDPW,Burke DPW,Public Works,Public Works,1
-13437,347d,D,DACHDPW,Christiana DPW,Public Works,Public Works,1
-13440,3480,D,DACGALL,Cottage Grove All,Multi-Talk,Emergency,1
-13441,3481,D,DACGPD,Cottage Grove PD,Law Talk,Law,1
-13442,3482,D,DACGFD,Cottage Grove FD,Fire-Talk,Fire,1
-13443,3483,D,DACGDPW,Cottage Grove DPW,Public Works,Public Works,1
-13444,3484,D,DADGEMS,Deer-Grove EMS,EMS-Talk,Medical,1
-13447,3487,D,DAXPDPW,Town of Cross Plains Public Works,Public Works,Public Works,1
-13452,348c,D,DATDDPW,Town of Dane DPW,Public Works,Public Works,1
-13457,3491,D,DADTDPW,Town of Deerfield DPW,Public Works,Public Works,1
-13462,3496,D,DADKDPW,Dunkirk DPW,Public Works,Public Works,1
-13467,349b,D,DADUDPW,Dunn DPW,Public Works,Public Works,1
-13470,349e,D,DATMALL,Town of Madison All,Multi-Talk,Emergency,1
-13471,349f,D,DATMPD,Town of Madison Police,Law Talk,Law,1
-13472,34a0,D,DATMFD,Town of Madison Fire,Fire-Talk,Fire,1
-13477,34a5,D,DATMDPW,Town of Madison DPW,Public Works,Public Works,1
-13482,34aa,D,DAMEDPW,Medina DPW,Public Works,Public Works,1
-13485,34ad,D,DAMDDPW,Town of Middleton DPW,Public Works,Public Works,1
-13495,34b7,D,DAOGDPW,Town of Oregon DPW,Public Works,Public Works,1
-13507,34c3,D,DAPSDPW,Pleasant Springs DPW,Public Works,Public Works,1
-13512,34c8,D,DAPRDPW,Primrose DPW,Public Works,Public Works,1
-13517,34cd,D,DARXDPW,Roxbury DPW,Public Works,Public Works,1
-13522,34d2,D,DARUDPW,Rutland DPW,Public Works,Public Works,1
-13527,34d7,D,DASDDPW,Springdale DPW,Public Works,Public Works,1
-13532,34dc,D,DASFDPW,Springfield DPW,Public Works,Public Works,1
-13537,34e1,D,DASNFDSF,Sun Prairie Fire Safety,Fire-Talk,Fire,1
-13542,34e6,D,DAVTDPW,Vermont DPW,Public Works,Public Works,1
-13552,34f0,D,DAVIDPW,Vienna DPW,Public Works,Public Works,1
-13557,34f5,D,DAWSDPW,Westport DPW,Public Works,Public Works,1
-13558,34f6,D,DANSHARE,Westport-Springfield-Vienna DPW,Public Works,Public Works,1
-13562,34fa,D,DAWIDPW,Windsor DPW,Public Works,Public Works,1
-13570,3502,D,DAUWMAIN,UW Main,Schools,Schools,1
-13571,3503,D,DAUWLS,UW Lifesaving,Schools,Schools,1
-13572,3504,D,DAUWEVNT5,UW Event 5,Law Talk,Law,1
+13344,3420,D,DAMCFD,McFarland FD/EMS,Fire-Talk,Fire,2
+13348,3424,D,DAMCDPW,McFarland DPW,Public Works,Public Works,4
+13349,3425,D,DAMCDPW2,McFarland DPW 2,Public Works,Public Works,4
+13351,3427,D,DAMHPD,Mount Horeb Police,Law Talk,Law,4
+13354,342a,D,DAMHFD,Mount Horeb Fire,Fire-Talk,Fire,5
+13356,342c,D,DAMHEMS,Mount Horeb EMS,EMS-Talk,Medical,4
+13358,342e,D,DAMHDPW,Mount Horeb DPW,Public Works,Public Works,7
+13361,3431,D,DAORPD,Oregon Police,Law Talk,Law,4
+13362,3432,D,DAORPDTAC,Oregon Police Tactical,Law Tac,Law,4
+13366,3436,D,DAOREMS,Oregon EMS,EMS-Talk,Medical,4
+13367,3437,D,DAORFD,Oregon Fire,Fire-Talk,Fire,5
+13368,3438,D,DAORDPW,Oregon DPW,Public Works,Public Works,7
+13380,3444,D,DASHALL,Shorewood Hills All,Multi-Talk,Emergency,4
+13381,3445,D,DASHPD,Shorewood Hills Police,Law Talk,Law,4
+13388,344c,D,DASHDPW,Shorewood Hills DPW,Public Works,Public Works,7
+13390,344e,D,DAWNALL,Waunakee All,Multi-Talk,Emergency,4
+13391,344f,D,DAWNPD,Waunakee Police,Law Talk,Law,4
+13394,3452,D,DAWNFD,Waunakee Fire,Fire-Talk,Fire,5
+13396,3454,D,DAWNEMS,Waunakee EMS,EMS-Talk,Medical,4
+13402,345a,D,DAABDPW,Albion DPW,Public Works,Public Works,7
+13405,345d,D,DABYDPW,Berry DPW,Public Works,Public Works,7
+13412,3464,D,DABKDPW,Town of Black Earth DPW,Public Works,Public Works,7
+13415,3467,D,DABGALL,Blooming Grove All,Multi-Talk,Emergency,4
+13419,346b,D,DABGDPW,Blooming Grove DPW,Public Works,Public Works,7
+13421,346d,D,DABGDPW2,Blooming Grove DPW 2,Public Works,Public Works,7
+13422,346e,D,DABNDPW,Town of Blue Mounds DPW,Public Works,Public Works,7
+13427,3473,D,DABSDPW,Bristol DPW,Public Works,Public Works,7
+13432,3478,D,DABUDPW,Burke DPW,Public Works,Public Works,7
+13437,347d,D,DACHDPW,Christiana DPW,Public Works,Public Works,7
+13440,3480,D,DACGALL,Cottage Grove All,Multi-Talk,Emergency,4
+13441,3481,D,DACGPD,Cottage Grove PD,Law Talk,Law,4
+13442,3482,D,DACGFD,Cottage Grove FD,Fire-Talk,Fire,5
+13443,3483,D,DACGDPW,Cottage Grove DPW,Public Works,Public Works,7
+13444,3484,D,DADGEMS,Deer-Grove EMS,EMS-Talk,Medical,4
+13447,3487,D,DAXPDPW,Town of Cross Plains Public Works,Public Works,Public Works,7
+13452,348c,D,DATDDPW,Town of Dane DPW,Public Works,Public Works,7
+13457,3491,D,DADTDPW,Town of Deerfield DPW,Public Works,Public Works,7
+13462,3496,D,DADKDPW,Dunkirk DPW,Public Works,Public Works,7
+13467,349b,D,DADUDPW,Dunn DPW,Public Works,Public Works,7
+13470,349e,D,DATMALL,Town of Madison All,Multi-Talk,Emergency,4
+13471,349f,D,DATMPD,Town of Madison Police,Law Talk,Law,4
+13472,34a0,D,DATMFD,Town of Madison Fire,Fire-Talk,Fire,5
+13477,34a5,D,DATMDPW,Town of Madison DPW,Public Works,Public Works,7
+13482,34aa,D,DAMEDPW,Medina DPW,Public Works,Public Works,7
+13485,34ad,D,DAMDDPW,Town of Middleton DPW,Public Works,Public Works,7
+13495,34b7,D,DAOGDPW,Town of Oregon DPW,Public Works,Public Works,7
+13507,34c3,D,DAPSDPW,Pleasant Springs DPW,Public Works,Public Works,7
+13512,34c8,D,DAPRDPW,Primrose DPW,Public Works,Public Works,7
+13517,34cd,D,DARXDPW,Roxbury DPW,Public Works,Public Works,7
+13522,34d2,D,DARUDPW,Rutland DPW,Public Works,Public Works,7
+13527,34d7,D,DASDDPW,Springdale DPW,Public Works,Public Works,7
+13532,34dc,D,DASFDPW,Springfield DPW,Public Works,Public Works,7
+13537,34e1,D,DASNFDSF,Sun Prairie Fire Safety,Fire-Talk,Fire,5
+13542,34e6,D,DAVTDPW,Vermont DPW,Public Works,Public Works,7
+13552,34f0,D,DAVIDPW,Vienna DPW,Public Works,Public Works,6
+13557,34f5,D,DAWSDPW,Westport DPW,Public Works,Public Works,7
+13558,34f6,D,DANSHARE,Westport-Springfield-Vienna DPW,Public Works,Public Works,7
+13562,34fa,D,DAWIDPW,Windsor DPW,Public Works,Public Works,7
+13570,3502,D,DAUWMAIN,UW Main,Schools,Schools,5
+13571,3503,D,DAUWLS,UW Lifesaving,Schools,Schools,5
+13572,3504,D,DAUWEVNT5,UW Event 5,Law Talk,Law,4
 13600,3520,D,DAMAPDATG,Madison PD Announcement,Law Dispatch,Law,1
-13601,3521,D,DAMAPD A01,Madison PD A01,Law Dispatch,Law,1
-13603,3523,D,DAMAPD A03,Madison PD A03,Law Dispatch,Law,1
-13605,3525,D,DAMAPD 05,Madison PD 5 - Parking,Law Dispatch,Law,1
-13612,352c,DE,DAMAPD A11,Madison PD A11,Law Tac,Law,1
-13613,352d,DE,DAMAPD A12,Madison PD A12,Law Tac,Law,1
-13638,3546,D,DAMAFD1,Madison FD A01,Fire Dispatch,Fire,1
-13655,3557,D,DAMAFDUWER,Madison FD UW ER,Hospital,Medical,1
-13659,355b,D,DAUWEMS,UW EMS,EMS-Talk,Medical,1
-13685,3575,D,DAMAFDTAC2,Madison FD TAC 2,Fire-Tac,Fire,1
-13700,3584,D,DAHYATG,Highway Announcement,Public Works,Public Works,1
-13701,3585,D,DAHWY1,Highway 1,Public Works,Public Works,1
-13702,3586,D,DAHWY2,Highway 2,Public Works,Public Works,1
-13705,3589,D,DAFLAG1,Highway Flaggers 1,Public Works,Public Works,1
-13706,358a,D,DAFLAG2,Highway Flaggers 2,Public Works,Public Works,1
-13707,358b,D,DAPAINT,Painting Crew,Public Works,Public Works,1
-13708,358c,D,DAHYEAST1,Highway East 1,Public Works,Public Works,1
-13709,358d,D,DAHYEAST2,Highway East 2,Public Works,Public Works,1
-13710,358e,D,DAHYWEST1,Highway West 1,Public Works,Public Works,1
-13711,358f,D,DAHYWEST2,Highway West 2,Public Works,Public Works,1
-13712,3590,D,DAHWYCREW18,Highway Crew 18,Public Works,Public Works,1
-13713,3591,D,DAHWYCREW19,Highway Crew 19,Public Works,Public Works,1
-13714,3592,D,DAHWYCREW20,Highway Crew 20,Public Works,Public Works,1
+13601,3521,D,DAMAPD A01,Madison PD A01,Law Dispatch,Law,2
+13603,3523,D,DAMAPD A03,Madison PD A03,Law Dispatch,Law,2
+13605,3525,D,DAMAPD 05,Madison PD 5 - Parking,Law Dispatch,Law,3
+13612,352c,DE,DAMAPD A11,Madison PD A11,Law Tac,Law,4
+13613,352d,DE,DAMAPD A12,Madison PD A12,Law Tac,Law,4
+13638,3546,D,DAMAFD1,Madison FD A01,Fire Dispatch,Fire,4
+13655,3557,D,DAMAFDUWER,Madison FD UW ER,Hospital,Medical,4
+13659,355b,D,DAUWEMS,UW EMS,EMS-Talk,Medical,4
+13685,3575,D,DAMAFDTAC2,Madison FD TAC 2,Fire-Tac,Fire,4
+13700,3584,D,DAHYATG,Highway Announcement,Public Works,Public Works,6
+13701,3585,D,DAHWY1,Highway 1,Public Works,Public Works,6
+13702,3586,D,DAHWY2,Highway 2,Public Works,Public Works,7
+13705,3589,D,DAFLAG1,Highway Flaggers 1,Public Works,Public Works,7
+13706,358a,D,DAFLAG2,Highway Flaggers 2,Public Works,Public Works,7
+13707,358b,D,DAPAINT,Painting Crew,Public Works,Public Works,6
+13708,358c,D,DAHYEAST1,Highway East 1,Public Works,Public Works,6
+13709,358d,D,DAHYEAST2,Highway East 2,Public Works,Public Works,7
+13710,358e,D,DAHYWEST1,Highway West 1,Public Works,Public Works,6
+13711,358f,D,DAHYWEST2,Highway West 2,Public Works,Public Works,6
+13712,3590,D,DAHWYCREW18,Highway Crew 18,Public Works,Public Works,6
+13713,3591,D,DAHWYCREW19,Highway Crew 19,Public Works,Public Works,6
+13714,3592,D,DAHWYCREW20,Highway Crew 20,Public Works,Public Works,7
 13715,3593,D,911 CENTER,911 Center,Emergency Ops,Emergency,1
-13716,3594,D,DAMAPDNGTF1,Narcotics Gang Task Force 1,Law Tac,Law,1
-13717,3595,D,DAMAPDNGTF2,Narcotics Gang Task Force 2,Law Tac,Law,1
-13718,3596,DE,DAMAPDNGTF3,Narcotics Gang Task Force 3,Law Tac,Law,1
-13719,3597,DE,DAMAPDNGTF4,Narcotics Gang Task Force 4,Law Tac,Law,1
-13725,359d,D,DAMEDX1,Medical Examiner 1,EMS-Talk,Medical,1
-13726,359e,D,DAMEDX2,Medical Examiner 2,EMS-Talk,Medical,1
+13716,3594,D,DAMAPDNGTF1,Narcotics Gang Task Force 1,Law Tac,Law,2
+13717,3595,D,DAMAPDNGTF2,Narcotics Gang Task Force 2,Law Tac,Law,2
+13718,3596,DE,DAMAPDNGTF3,Narcotics Gang Task Force 3,Law Tac,Law,2
+13719,3597,DE,DAMAPDNGTF4,Narcotics Gang Task Force 4,Law Tac,Law,2
+13725,359d,D,DAMEDX1,Medical Examiner 1,EMS-Talk,Medical,4
+13726,359e,D,DAMEDX2,Medical Examiner 2,EMS-Talk,Medical,4
 13731,35a3,D,DAEM1,Emergency Management,Emergency Ops,Emergency,1
 13732,35a4,D,DAHMC,Hospital Mass Casualty,Hospital,Medical,1
 13733,35a5,D,DAEOC,Emergency Management ICP-EOC,Emergency Ops,Emergency,1
 13734,35a6,D,DAEMCV1,Emergency Management CV-1 Coordination,Emergency Ops,Emergency,1
-13735,35a7,D,DAHOSP,Hospital to Hospital,Hospital,Medical,1
-13740,35ac,D,DAMAPDTAC7,Madison PD TAC 7,Law Tac,Law,1
-13741,35ad,D,DAMAPDTAC8,Madison PD TAC 8,Law Tac,Law,1
-13742,35ae,D,DAMAPDTAC9,Madison PD TAC 9,Law Tac,Law,1
-13743,35af,DE,DAMAPDTAC10,Madison PD Tac 10,Law Tac,Law,1
-13748,35b4,D,DAMOPD-TAC,Monona Police Tac,Law Tac,Law,1
-13755,35bb,D,DAFACMN,County Facilities Managment,Public Works,Public Works,1
-13767,35c7,D,DADCLETC,Law Enforcement Training Center,Law Talk,Law,1
-13770,35ca,D,DAPARKS,County Parks Dept,Public Works,Public Works,1
-13775,35cf,D,DACAPMAR,Capital Area Police Mutual Aid Response,Law Tac,Law,1
+13735,35a7,D,DAHOSP,Hospital to Hospital,Hospital,Medical,4
+13740,35ac,D,DAMAPDTAC7,Madison PD TAC 7,Law Tac,Law,3
+13741,35ad,D,DAMAPDTAC8,Madison PD TAC 8,Law Tac,Law,3
+13742,35ae,D,DAMAPDTAC9,Madison PD TAC 9,Law Tac,Law,3
+13743,35af,DE,DAMAPDTAC10,Madison PD Tac 10,Law Tac,Law,4
+13748,35b4,D,DAMOPD-TAC,Monona Police Tac,Law Tac,Law,4
+13755,35bb,D,DAFACMN,County Facilities Managment,Public Works,Public Works,7
+13767,35c7,D,DADCLETC,Law Enforcement Training Center,Law Talk,Law,4
+13770,35ca,D,DAPARKS,County Parks Dept,Public Works,Public Works,7
+13775,35cf,D,DACAPMAR,Capital Area Police Mutual Aid Response,Law Tac,Law,4
 13776,35d0,D,DAMAEVENT07,Madison Event 7,Multi-Tac,Emergency,1
 13777,35d1,D,DAMAEVENT08,Madison Event 8,Multi-Tac,Emergency,1
 13778,35d2,D,DAMAEVENT09,Madison Event 9,Multi-Tac,Emergency,1
 13779,35d3,D,DAMAEVENT10,Madison Event 10,Multi-Tac,Emergency,1
-13780,35d4,D,DAAIRP OPS,Airport Operations,Public Works,Public Works,1
-13799,35e7,D,DATXFD,Airport/Truax Fire,Fire-Talk,Fire,1
-13801,35e9,D,RyanBrosAmb,Ryan Brothers Ambulance,EMS Dispatch,Fire,1
-13806,35ee,D,DATEST1,Test 1,Public Works,Public Works,1
-13807,35ef,D,DATEST2,Test 2,Public Works,Public Works,1
-13808,35f0,D,DATEST3,Test 3,Public Works,Public Works,1
-13809,35f1,D,DATEST4,Test 4,Public Works,Public Works,1
-13810,35f2,D,DATEST5,Test 5,Public Works,Public Works,1
-13820,35fc,T,Test,Test,Public Works,Public Works,1
-28010,6d6a,D,JESCAN,Jefferson County Scan,Interop,Interop,1
+13780,35d4,D,DAAIRP OPS,Airport Operations,Public Works,Public Works,7
+13799,35e7,D,DATXFD,Airport/Truax Fire,Fire-Talk,Fire,5
+13801,35e9,D,RyanBrosAmb,Ryan Brothers Ambulance,EMS Dispatch,Fire,4
+13806,35ee,D,DATEST1,Test 1,Public Works,Public Works,7
+13807,35ef,D,DATEST2,Test 2,Public Works,Public Works,7
+13808,35f0,D,DATEST3,Test 3,Public Works,Public Works,7
+13809,35f1,D,DATEST4,Test 4,Public Works,Public Works,7
+13810,35f2,D,DATEST5,Test 5,Public Works,Public Works,7
+13820,35fc,T,Test,Test,Public Works,Public Works,7
+28010,6d6a,D,JESCAN,Jefferson County Scan,Interop,Interop,7

@@ -50,7 +50,7 @@ namespace SignalRadio.Api.Services
                 await fileStream.CopyToAsync(file);
             }
             File.SetLastWriteTimeUtc(path, DateTime.UtcNow);
-            _logger.LogInformation($"Cached file: {fileName}");
+            _logger.LogDebug("Cached file: {FileName}", fileName);
         }
 
         public bool TryGetFile(string fileName, out string filePath)
@@ -61,12 +61,12 @@ namespace SignalRadio.Api.Services
                 var age = DateTime.UtcNow - File.GetLastWriteTimeUtc(filePath);
                 if (age < _cacheDuration)
                 {
-                    _logger.LogInformation($"Cache hit: {fileName}");
+                    _logger.LogDebug("Cache hit: {FileName}", fileName);
                     return true;
                 }
                 else
                 {
-                    _logger.LogInformation($"Cache expired: {fileName}");
+                    _logger.LogDebug("Cache expired: {FileName}", fileName);
                     File.Delete(filePath);
                 }
             }
@@ -83,7 +83,7 @@ namespace SignalRadio.Api.Services
                     try
                     {
                         File.Delete(file);
-                        _logger.LogInformation($"Deleted expired cache file: {file}");
+                        _logger.LogDebug("Deleted expired cache file: {FilePath}", file);
                     }
                     catch (Exception ex)
                     {

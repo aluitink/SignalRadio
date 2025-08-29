@@ -191,12 +191,24 @@ public class TranscriptionBackgroundService : BackgroundService
                         var recordingRepositoryTask = taskScope.ServiceProvider.GetRequiredService<IRecordingRepository>();
                         var callService = taskScope.ServiceProvider.GetRequiredService<ICallService>();
                         var hubContext = taskScope.ServiceProvider.GetRequiredService<IHubContext<TalkGroupHub>>();
+                        var talkGroupRepository = taskScope.ServiceProvider.GetRequiredService<SignalRadio.Core.Repositories.ITalkGroupRepository>();
 
                         // Reload the recording to ensure fresh context
                         var freshRecording = await recordingRepositoryTask.GetByIdAsync(recording.Id);
                         if (freshRecording != null)
                         {
                             processedAny = true;
+                            // Fetch talkgroup info if available
+                            SignalRadio.Core.Models.TalkGroup? talkGroup = null;
+                            try
+                            {
+                                talkGroup = await talkGroupRepository.GetByDecimalAsync(freshRecording.Call.TalkgroupId);
+                            }
+                            catch (Exception tgEx)
+                            {
+                                _logger.LogDebug(tgEx, "Failed to load talkgroup {TalkgroupId} for logging", freshRecording.Call.TalkgroupId);
+                            }
+
                             await ProcessRecordingTranscription(
                                 freshRecording,
                                 storageService,
@@ -204,6 +216,7 @@ public class TranscriptionBackgroundService : BackgroundService
                                 recordingRepositoryTask,
                                 callService,
                                 hubContext,
+                                talkGroup,
                                 cancellationToken);
                         }
                         else
@@ -240,7 +253,8 @@ public class TranscriptionBackgroundService : BackgroundService
         IRecordingRepository recordingRepository,
         ICallService callService,
         IHubContext<TalkGroupHub> hubContext,
-        CancellationToken cancellationToken)
+    SignalRadio.Core.Models.TalkGroup? talkGroup,
+    CancellationToken cancellationToken)
     {
         _logger.LogInformation("Starting transcription for recording {RecordingId}: {FileName}",
             recording.Id, recording.FileName);
@@ -249,6 +263,7 @@ public class TranscriptionBackgroundService : BackgroundService
         recording.TranscriptionAttempts++;
         recording.UpdatedAt = DateTime.UtcNow;
 
+            var sw = System.Diagnostics.Stopwatch.StartNew();
         try
         {
             byte[]? audioData;
@@ -273,6 +288,31 @@ public class TranscriptionBackgroundService : BackgroundService
 
             // Transcribe the audio
             var transcriptionResult = await asrService.TranscribeAsync(audioData, recording.FileName, cancellationToken);
+            sw.Stop();
+            var transcriptionDuration = sw.Elapsed;
+
+            // Log call/talkgroup details and timing
+            try
+            {
+                var call = recording.Call;
+                var talkgroupDesc = talkGroup?.Description ?? "(unknown)";
+                var talkgroupPriority = talkGroup?.Priority?.ToString() ?? "(none)";
+                var callCreatedAt = call?.CreatedAt.ToString("o") ?? "(unknown)";
+                var callLength = recording.Duration.HasValue ? recording.Duration.Value.ToString() : "(unknown)";
+
+                _logger.LogInformation("Transcription complete - RecordingId={RecordingId}, CallId={CallId}, Talkgroup={Talkgroup}, TalkgroupPriority={Priority}, CallCreatedAt={CallCreatedAt}, CallLength={CallLength}, TranscriptionTimeMs={Ms}",
+                    recording.Id,
+                    recording.CallId,
+                    talkgroupDesc,
+                    talkgroupPriority,
+                    callCreatedAt,
+                    callLength,
+                    transcriptionDuration.TotalMilliseconds);
+            }
+            catch (Exception logEx)
+            {
+                _logger.LogDebug(logEx, "Failed to log extended transcription details for recording {RecordingId}", recording.Id);
+            }
 
             // ...existing code...
             // Update the recording with transcription results

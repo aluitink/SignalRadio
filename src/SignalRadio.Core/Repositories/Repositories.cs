@@ -249,15 +249,25 @@ public class RecordingRepository : IRecordingRepository
 
     public async Task<IEnumerable<Recording>> GetRecordingsNeedingTranscriptionAsync(int limit = 10)
     {
-        return await _context.Recordings
-            .Include(r => r.Call)
-            .Where(r => r.Format.ToUpper() == "WAV" 
-                && r.IsUploaded 
-                && !r.HasTranscription 
-                && r.TranscriptionAttempts < 3) // Max 3 attempts
-            .OrderByDescending(r => r.CreatedAt) // Process newest recordings first
+        // Join TalkGroups on Call.TalkgroupId == TalkGroup.Decimal so we can order by talkgroup priority.
+        // Priority: lower numeric value is higher priority (1 before 2). If Priority is null, treat it as lowest priority.
+        var query = from r in _context.Recordings.Include(r => r.Call)
+                    join tg in _context.TalkGroups on r.Call.TalkgroupId equals tg.Decimal into tgJoin
+                    from tg in tgJoin.DefaultIfEmpty()
+                    where r.Format.ToUpper() == "WAV"
+                          && r.IsUploaded
+                          && !r.HasTranscription
+                          && r.TranscriptionAttempts < 3 // Max 3 attempts
+                    select new { Recording = r, TalkGroupPriority = (int?)tg.Priority };
+
+        // Order by priority (nulls last), then newest recordings first
+        var ordered = query
+            .OrderBy(x => x.TalkGroupPriority.HasValue ? x.TalkGroupPriority.Value : int.MaxValue)
+            .ThenByDescending(x => x.Recording.CreatedAt)
             .Take(limit)
-            .ToListAsync();
+            .Select(x => x.Recording);
+
+        return await ordered.ToListAsync();
     }
 
     public async Task<IEnumerable<Recording>> GetTranscriptionsAsync(int? callId = null, int limit = 50)
