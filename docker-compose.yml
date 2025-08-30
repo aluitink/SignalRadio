@@ -18,7 +18,7 @@ services:
     mem_limit: 2g
 
   # SignalRadio API Service
-  signalradio-api:
+  api:
     build:
       context: .
       dockerfile: docker/Dockerfile.api
@@ -54,7 +54,7 @@ services:
     restart: unless-stopped
 
   # SignalRadio UI Service
-  signalradio-ui:
+  ui:
     build:
       context: ./src/SignalRadio.UI
       dockerfile: Dockerfile
@@ -69,6 +69,24 @@ services:
       - signalradio-network
     depends_on:
       - signalradio-api
+    restart: unless-stopped
+
+  # SignalRadio Web Client (React)
+  webclient:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.webclient
+    container_name: signalradio-webclient
+    expose:
+      - "80"
+    ports:
+      - "3001:80"
+    environment:
+      - NODE_ENV=production
+    networks:
+      - signalradio-network
+    depends_on:
+      - api
     restart: unless-stopped
 
   # Trunk Recorder Service
@@ -121,7 +139,7 @@ services:
       - sqlserver
     restart: unless-stopped
     # Memory limit for Whisper models
-    mem_limit: 4g
+    mem_limit: 2g
 
 networks:
   signalradio-network:

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Data.SqlClient;
 using SignalRadio.DataAccess;
 using SignalRadio.DataAccess.Services;
 
@@ -7,12 +8,12 @@ namespace SignalRadio.Api.Controllers2;
 
 [ApiController]
 [Route("api/[controller]")]
-public class CallsController : ControllerBase
+public class TranscriptionsController : ControllerBase
 {
-    private readonly ICallsService _svc;
-    private readonly ILogger<CallsController> _logger;
+    private readonly ITranscriptionsService _svc;
+    private readonly ILogger<TranscriptionsController> _logger;
 
-    public CallsController(ICallsService svc, ILogger<CallsController> logger)
+    public TranscriptionsController(ITranscriptionsService svc, ILogger<TranscriptionsController> logger)
     {
         _svc = svc;
         _logger = logger;
@@ -36,14 +37,14 @@ public class CallsController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<IActionResult> Create(Call model)
+    public async Task<IActionResult> Create(Transcription model)
     {
     var created = await _svc.CreateAsync(model);
     return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
     }
 
     [HttpPut("{id:int}")]
-    public async Task<IActionResult> Update(int id, Call model)
+    public async Task<IActionResult> Update(int id, Transcription model)
     {
     if (id != model.Id) return BadRequest("Id mismatch");
     var ok = await _svc.UpdateAsync(id, model);
@@ -55,5 +56,14 @@ public class CallsController : ControllerBase
     {
     var ok = await _svc.DeleteAsync(id);
     return ok ? NoContent() : NotFound();
+    }
+
+    [HttpGet("search")]
+    public async Task<IActionResult> Search([FromQuery] string q, [FromQuery] int page = 1, [FromQuery] int pageSize = 50)
+    {
+    if (string.IsNullOrWhiteSpace(q)) return BadRequest("q is required");
+
+    var result = await _svc.SearchAsync(q, page, pageSize);
+    return Ok(result);
     }
 }

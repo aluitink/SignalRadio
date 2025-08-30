@@ -5,18 +5,11 @@ A trunk-recorder integration system that receives, processes, and stores radio r
 ## Overview
 
 SignalRadio is a multi-service architecture that:
-- Receives audio recordings from trunk-recorder via callbacks
-- Handles both raw wave (.wav) and compressed (.m4a) audio files
-- Stores recordings in Azure Blob Storage
-- Provides a REST API for upload handling and recording management
 
 ## Quick Start
 
 ### Prerequisites
 
-- Docker and Docker Compose
-- RTL-SDR or compatible SDR hardware
-- Azure Storage Account (for production storage)
 
 ### 1. Clone and Setup
 
@@ -24,7 +17,7 @@ SignalRadio is a multi-service architecture that:
 git clone <repository-url>
 cd SignalRadio
 ```
-
+ - WebClient: React-based web client built from `src/SignalRadio.WebClient` and served by nginx on port 3001 (docker-compose service name `webclient`).
 ### 2. Quick Setup (Recommended)
 
 Run the setup script for guided configuration:

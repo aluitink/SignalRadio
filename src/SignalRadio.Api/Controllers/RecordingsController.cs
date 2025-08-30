@@ -7,12 +7,12 @@ namespace SignalRadio.Api.Controllers2;
 
 [ApiController]
 [Route("api/[controller]")]
-public class CallsController : ControllerBase
+public class RecordingsController : ControllerBase
 {
-    private readonly ICallsService _svc;
-    private readonly ILogger<CallsController> _logger;
+    private readonly IRecordingsService _svc;
+    private readonly ILogger<RecordingsController> _logger;
 
-    public CallsController(ICallsService svc, ILogger<CallsController> logger)
+    public RecordingsController(IRecordingsService svc, ILogger<RecordingsController> logger)
     {
         _svc = svc;
         _logger = logger;
@@ -36,14 +36,14 @@ public class CallsController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<IActionResult> Create(Call model)
+    public async Task<IActionResult> Create(Recording model)
     {
     var created = await _svc.CreateAsync(model);
     return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
     }
 
     [HttpPut("{id:int}")]
-    public async Task<IActionResult> Update(int id, Call model)
+    public async Task<IActionResult> Update(int id, Recording model)
     {
     if (id != model.Id) return BadRequest("Id mismatch");
     var ok = await _svc.UpdateAsync(id, model);

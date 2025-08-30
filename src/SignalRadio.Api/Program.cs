@@ -1,15 +1,13 @@
 using SignalRadio.Core.Models;
 using SignalRadio.Core.Services;
-using SignalRadio.Core.Data;
-using SignalRadio.Core.Repositories;
 using SignalRadio.Api.Hubs;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Data.SqlClient;
-using Microsoft.Extensions.FileProviders;
 using System.Diagnostics;
 using DotNetEnv;
+using SignalRadio.DataAccess.Services;
+using SignalRadio.DataAccess;
+using SignalRadio.Api.Services;
 
 // Load .env file if it exists
 var envPath = Path.Combine(Directory.GetCurrentDirectory(), ".env");
@@ -60,11 +58,6 @@ builder.Services.Configure<LocalStorageOptions>(
 builder.Services.Configure<AsrOptions>(
     builder.Configuration.GetSection(AsrOptions.SectionName));
 
-// Register repositories
-builder.Services.AddScoped<ICallRepository, CallRepository>();
-builder.Services.AddScoped<IRecordingRepository, RecordingRepository>();
-builder.Services.AddScoped<ITalkGroupRepository, TalkGroupRepository>();
-
 // Register services
 // Choose storage service based on config
 var storageType = builder.Configuration["StorageType"] ?? "Azure";
@@ -76,9 +69,8 @@ else
 {
     builder.Services.AddScoped<IStorageService, AzureBlobStorageService>();
 }
-builder.Services.AddScoped<ICallService, CallService>();
-builder.Services.AddScoped<ITalkGroupService, TalkGroupService>();
-builder.Services.AddScoped<ISearchService, FullTextSearchService>();
+builder.Services.AddScoped<ICallsService, CallsService>();
+builder.Services.AddScoped<ITalkGroupsService, TalkGroupsService>();
 
 // Register ASR services - provider can be toggled via ASR_PROVIDER (azure|whisper)
 var asrProvider = builder.Configuration["ASR_PROVIDER"] ?? builder.Configuration["AsrSettings:Provider"] ?? "whisper";
@@ -95,12 +87,12 @@ else
 
 // Register background services
 // Configure LocalFileCacheService options
-builder.Services.Configure<SignalRadio.Api.Services.LocalFileCacheOptions>(
+builder.Services.Configure<LocalFileCacheOptions>(
     builder.Configuration.GetSection("LocalFileCache"));
-builder.Services.AddSingleton<SignalRadio.Api.Services.ILocalFileCacheService, SignalRadio.Api.Services.LocalFileCacheService>();
+builder.Services.AddSingleton<ILocalFileCacheService, LocalFileCacheService>();
 
 // Register background services
-builder.Services.AddHostedService<SignalRadio.Api.Services.TranscriptionBackgroundService>();
+builder.Services.AddHostedService<TranscriptionBackgroundService>();
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();

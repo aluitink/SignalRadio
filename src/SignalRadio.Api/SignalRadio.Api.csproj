@@ -15,6 +15,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\SignalRadio.Core\SignalRadio.Core.csproj" />
+  <ProjectReference Include="..\SignalRadio.DataAccess\SignalRadio.DataAccess.csproj" />
   </ItemGroup>
 
 </Project>

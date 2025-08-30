@@ -4,6 +4,7 @@ WORKDIR /src
 
 # Copy project files
 COPY src/SignalRadio.Core/SignalRadio.Core.csproj SignalRadio.Core/
+COPY src/SignalRadio.DataAccess/SignalRadio.DataAccess.csproj SignalRadio.DataAccess/
 COPY src/SignalRadio.Api/SignalRadio.Api.csproj SignalRadio.Api/
 
 # Restore dependencies
@@ -11,6 +12,7 @@ RUN dotnet restore SignalRadio.Api/SignalRadio.Api.csproj
 
 # Copy source code
 COPY src/SignalRadio.Core/ SignalRadio.Core/
+COPY src/SignalRadio.DataAccess/ SignalRadio.DataAccess/
 COPY src/SignalRadio.Api/ SignalRadio.Api/
 
 # Build the application
@@ -21,11 +23,6 @@ RUN dotnet publish -c Release -o /app/publish
 # Runtime stage
 FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS runtime
 WORKDIR /app
-
-# Install FFmpeg for future audio processing
-RUN apt-get update && \
-    apt-get install -y ffmpeg curl && \
-    rm -rf /var/lib/apt/lists/*
 
 # Create directories
 RUN mkdir -p /app/temp /app/logs
