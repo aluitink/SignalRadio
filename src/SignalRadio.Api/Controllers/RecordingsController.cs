@@ -131,6 +131,24 @@ public class RecordingsController : ControllerBase
             return NotFound();
         }
 
+        // Log that the recording file was requested/played. Include Call and TalkGroup info if available.
+        try
+        {
+            if (item.Call != null)
+            {
+                _logger.LogInformation("Recording {RecordingId} (file={FileName}) requested - associated CallId={CallId}, TalkGroupId={TalkGroupId}",
+                    item.Id, item.FileName, item.CallId, item.Call.TalkGroupId);
+            }
+            else
+            {
+                _logger.LogInformation("Recording {RecordingId} (file={FileName}) requested - no associated Call in DB lookup", item.Id, item.FileName);
+            }
+        }
+        catch
+        {
+            // Swallow logging exceptions to avoid breaking delivery
+        }
+
         // Try to infer a sensible content type from file extension; fall back to octet-stream
         string contentType = "application/octet-stream";
         var ext = Path.GetExtension(item.FileName)?.ToLowerInvariant();

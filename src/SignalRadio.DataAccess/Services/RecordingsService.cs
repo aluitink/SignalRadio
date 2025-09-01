@@ -51,7 +51,12 @@ public class RecordingsService : IRecordingsService
 
     public async Task<Recording?> GetByIdAsync(int id)
     {
-        return await _db.Recordings.Include(r => r.Transcriptions).AsNoTracking().FirstOrDefaultAsync(r => r.Id == id);
+        // Include Call navigation so callers (controllers/services) can access call/talkgroup info when needed
+        return await _db.Recordings
+            .Include(r => r.Transcriptions)
+            .Include(r => r.Call)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(r => r.Id == id);
     }
 
     public async Task<Recording> CreateAsync(Recording model)

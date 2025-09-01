@@ -29,13 +29,14 @@ public class HubCallNotifier : ICallNotifier
                 return;
             }
 
+            // Emit the same shape as the API controller returns (PascalCase properties)
             var callNotification = new
             {
                 updatedCall.Id,
-                TalkGroupNumber = updatedCall.TalkGroupId,
+                updatedCall.TalkGroupId,
                 updatedCall.RecordingTime,
-                FrequencyHz = updatedCall.FrequencyHz,
-                DurationSeconds = updatedCall.DurationSeconds,
+                updatedCall.FrequencyHz,
+                updatedCall.DurationSeconds,
                 updatedCall.CreatedAt,
                 RecordingCount = updatedCall.Recordings?.Count ?? 0,
                 Recordings = updatedCall.Recordings?.Select(r => new
@@ -48,6 +49,9 @@ public class HubCallNotifier : ICallNotifier
                 }) ?? Enumerable.Empty<object>()
             };
 
+            // Log that we're pushing this call to the global all-calls monitor group
+            _logger.LogInformation("Pushing call {CallId} to all_calls_monitor (TalkGroup={TalkGroupId}, RecordingCount={RecordingCount})",
+                updatedCall.Id, updatedCall.TalkGroupId, callNotification.RecordingCount);
             await hubContext.Clients.Group("all_calls_monitor").SendAsync("CallUpdated", callNotification, cancellationToken);
             await hubContext.Clients.Group($"talkgroup_{updatedCall.TalkGroupId}").SendAsync("CallUpdated", callNotification, cancellationToken);
         }
