@@ -19,13 +19,15 @@ public class CallsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAll([FromQuery] int page = 1, [FromQuery] int pageSize = 50)
+    public async Task<IActionResult> GetAll([
+        FromQuery] int page = 1, [FromQuery] int pageSize = 50,
+        [FromQuery] string sortBy = "recordingTime", [FromQuery] string sortDir = "desc")
     {
         page = Math.Max(1, page);
         pageSize = Math.Clamp(pageSize, 1, 1000);
 
-    var result = await _svc.GetAllAsync(page, pageSize);
-    return Ok(result);
+        var result = await _svc.GetAllAsync(page, pageSize, sortBy, sortDir);
+        return Ok(result);
     }
 
     [HttpGet("{id:int}")]

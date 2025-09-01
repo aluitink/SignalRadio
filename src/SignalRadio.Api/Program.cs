@@ -1,4 +1,5 @@
 using SignalRadio.Core.Models;
+using System.Text.Json.Serialization;
 using SignalRadio.Core.Services;
 using SignalRadio.Api.Hubs;
 using Microsoft.EntityFrameworkCore;
@@ -21,8 +22,13 @@ var builder = WebApplication.CreateBuilder(args);
 // Add environment variables to configuration
 builder.Configuration.AddEnvironmentVariables();
 
-// Add services to the container.
-builder.Services.AddControllers();
+// Add services to the container and configure JSON serializer to ignore reference cycles
+builder.Services.AddControllers()
+    .AddJsonOptions(opts =>
+    {
+        // Prevent System.Text.Json from throwing on object cycles when returning EF entities
+        opts.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+    });
 
 // Add SignalR
 builder.Services.AddSignalR();
@@ -71,6 +77,10 @@ else
 }
 builder.Services.AddScoped<ICallsService, CallsService>();
 builder.Services.AddScoped<ITalkGroupsService, TalkGroupsService>();
+builder.Services.AddScoped<IRecordingsService, RecordingsService>();
+// Notification service to broadcast call/recording updates to SignalR subscribers
+builder.Services.AddScoped<SignalRadio.Core.Services.ICallNotifier, SignalRadio.Api.Services.HubCallNotifier>();
+builder.Services.AddScoped<ITranscriptionsService, TranscriptionsService>();
 
 // Register ASR services - provider can be toggled via ASR_PROVIDER (azure|whisper)
 var asrProvider = builder.Configuration["ASR_PROVIDER"] ?? builder.Configuration["AsrSettings:Provider"] ?? "whisper";

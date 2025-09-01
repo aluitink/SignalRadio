@@ -9,7 +9,18 @@ JSON_FILE="$2"
 M4A_FILE="$3"
 
 # Configuration
-API_ENDPOINT="${API_ENDPOINT:-http://signalradio-api:8080/api/recording/upload}"
+# POST a RecordingUploadRequest (multipart form) to the API upload action. Server will fill StorageLocation.
+# The controller expects a multipart/form-data POST to /api/recordings/upload with fields:
+# - file: the audio file
+# - metadata: JSON string matching RecordingUploadRequest
+API_ENDPOINT="${API_ENDPOINT:-http://signalradio-api:8080/api/recordings/upload}"
+# Ensure we post the multipart/form-data to the upload route. If API_ENDPOINT was set without '/upload', append it.
+UPLOAD_ENDPOINT="$API_ENDPOINT"
+case "$UPLOAD_ENDPOINT" in
+    */upload) ;; # already ends with /upload
+    */) UPLOAD_ENDPOINT="${UPLOAD_ENDPOINT%/}/upload" ;;
+    *) UPLOAD_ENDPOINT="${UPLOAD_ENDPOINT}/upload" ;;
+esac
 LOG_FILE="/app/logs/upload.log"
 
 # Create log directory if it doesn't exist
@@ -23,7 +34,7 @@ log() {
 log "Upload callback triggered for: $AUDIO_FILE"
 log "JSON metadata file: $JSON_FILE"
 if [ -n "$M4A_FILE" ] && [ -f "$M4A_FILE" ]; then
-    log "M4A file available: $M4A_FILE"
+    log "M4A file available: $M4A_FILE (will NOT be uploaded)"
 else
     log "M4A file not available or not found"
 fi
@@ -76,53 +87,91 @@ if [ -n "$M4A_FILE" ] && [ -f "$M4A_FILE" ]; then
     log "M4A file size: $M4A_SIZE bytes"
 fi
 
-# Upload to SignalRadio API
-log "Uploading to: $API_ENDPOINT"
+# Upload to SignalRadio API (JSON)
+log "Posting Recording JSON to: $API_ENDPOINT"
 
-# Build curl command with available files
-CURL_ARGS=(
-    -s -w "HTTPSTATUS:%{http_code}"
-    -X POST "$API_ENDPOINT"
-    -F "talkgroupId=${TALKGROUP}"
-    -F "frequency=${FREQUENCY}"
-    -F "timestamp=${TIMESTAMP}"
-    -F "systemName=${SYSTEM_NAME}"
-    -F "audioFile=@${AUDIO_FILE}"
+# Normalize numeric fields
+if [[ "$TALKGROUP" =~ ^[0-9]+$ ]]; then
+    TG_NUM=$TALKGROUP
+else
+    TG_NUM=0
+fi
+
+if [[ -z "$FREQUENCY" ]]; then
+    FREQUENCY=0
+fi
+
+# Duration in seconds (int)
+if [[ -n "$CALL_LENGTH" ]]; then
+    # round to nearest int
+    DURATION_SECONDS=$(printf "%.0f" "$CALL_LENGTH" 2>/dev/null || echo 0)
+else
+    DURATION_SECONDS=0
+fi
+
+# Determine recording time and receivedAt
+if [ -n "$TIMESTAMP" ] && [ "$TIMESTAMP" != "" ]; then
+    RECORDING_TIME="$TIMESTAMP"
+    RECEIVED_AT="$TIMESTAMP"
+else
+    RECORDING_TIME=$(date -Iseconds)
+    RECEIVED_AT="$RECORDING_TIME"
+fi
+
+NOW=$(date -Iseconds)
+
+# We will upload ONLY the WAV audio file. Do not send metadata in the multipart form.
+# Confirm the provided audio file is a WAV file (basic check by extension).
+if [[ "${AUDIO_FILE,,}" != *.wav ]]; then
+    log "ERROR: Upload callback is configured to send only WAV files. Provided file is not .wav: $AUDIO_FILE"
+    exit 1
+fi
+
+# Determine mime type for the audio file if possible
+MIME_TYPE=$(file --brief --mime-type "$AUDIO_FILE" 2>/dev/null || echo "audio/wav")
+
+log "Building RecordingUploadRequest metadata"
+
+# Build RecordingUploadRequest JSON
+METADATA_JSON=$(cat <<JSON
+{
+    "TalkgroupId": "${TALKGROUP}",
+    "Frequency": "${FREQUENCY}",
+    "Timestamp": "${TIMESTAMP}",
+    "SystemName": "${SYSTEM_NAME}",
+    "Duration": ${CALL_LENGTH:-null},
+    "StopTime": ${STOP_TIME:-null}
+}
+JSON
 )
 
-# Add duration if available
-if [ -n "$CALL_LENGTH" ] && [ "$CALL_LENGTH" != "" ]; then
-    CURL_ARGS+=(-F "duration=${CALL_LENGTH}")
-    log "Including call duration: ${CALL_LENGTH} seconds"
-fi
+log "Metadata JSON: $METADATA_JSON"
 
-# Add stop time if available
-if [ -n "$STOP_TIME" ] && [ "$STOP_TIME" != "" ]; then
-    CURL_ARGS+=(-F "stopTime=${STOP_TIME}")
-    log "Including stop time: ${STOP_TIME}"
-fi
+# Create a temp file for metadata to reliably send as a form field
+TMP_META=$(mktemp /tmp/recording_meta.XXXXXX.json)
+echo "$METADATA_JSON" > "$TMP_META"
 
-# Add M4A file if available
-if [ -n "$M4A_FILE" ] && [ -f "$M4A_FILE" ]; then
-    CURL_ARGS+=(-F "m4aFile=@${M4A_FILE}")
-    log "Including both WAV and M4A files in upload"
-else
-    log "Uploading WAV file only"
-fi
+log "Posting multipart/form-data (file + metadata) to: $UPLOAD_ENDPOINT"
 
-RESPONSE=$(curl "${CURL_ARGS[@]}" 2>&1)
+# Perform multipart upload: send audio as file and metadata as a string form field
+RESPONSE=$(curl -s -w "HTTPSTATUS:%{http_code}" -X POST "$UPLOAD_ENDPOINT" \
+    -F "file=@${AUDIO_FILE};type=${MIME_TYPE}" \
+    -F "metadata=$(<${TMP_META})" 2>&1 || true)
+
+# Clean up temp metadata file
+rm -f "$TMP_META"
 
 # Extract HTTP status and body
 HTTP_STATUS=$(echo "$RESPONSE" | tr -d '\n' | sed -e 's/.*HTTPSTATUS://')
 BODY=$(echo "$RESPONSE" | sed -e 's/HTTPSTATUS:.*//g')
 
-if [ "$HTTP_STATUS" -eq 200 ]; then
-    log "SUCCESS: Upload completed successfully"
-    log "Response: $BODY"
+if [ "$HTTP_STATUS" -eq 200 ] || [ "$HTTP_STATUS" -eq 201 ]; then
+        log "SUCCESS: Upload completed successfully"
+        log "Response: $BODY"
 else
-    log "ERROR: Upload failed with status $HTTP_STATUS"
-    log "Response: $BODY"
-    exit 1
+        log "ERROR: Upload failed with status $HTTP_STATUS"
+        log "Response: $BODY"
+        exit 1
 fi
 
 log "Upload callback completed for: $AUDIO_FILE"

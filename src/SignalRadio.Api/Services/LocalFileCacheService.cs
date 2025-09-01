@@ -45,6 +45,10 @@ namespace SignalRadio.Api.Services
         public async Task SaveFileAsync(string fileName, Stream fileStream)
         {
             var path = GetCachePath(fileName);
+            // Ensure parent directory exists in case fileName contains subdirectories
+            var parent = Path.GetDirectoryName(path);
+            if (!string.IsNullOrEmpty(parent)) Directory.CreateDirectory(parent);
+
             using (var file = File.Create(path))
             {
                 await fileStream.CopyToAsync(file);

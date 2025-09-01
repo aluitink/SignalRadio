@@ -19,19 +19,24 @@ public class TranscriptionBackgroundService : BackgroundService
     private readonly AsrOptions _asrOptions;
     private readonly ILocalFileCacheService _fileCacheService;
     private readonly int _processingIntervalSeconds;
+    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly IConfiguration _configuration;
 
     public TranscriptionBackgroundService(
         IServiceProvider serviceProvider,
         ILogger<TranscriptionBackgroundService> logger,
         IOptions<AsrOptions> asrOptions,
         ILocalFileCacheService fileCacheService,
-        IConfiguration configuration)
+    IHttpClientFactory httpClientFactory,
+    IConfiguration configuration)
     {
         _serviceProvider = serviceProvider;
         _logger = logger;
-        _asrOptions = asrOptions.Value;
-        _fileCacheService = fileCacheService;
-        _processingIntervalSeconds = configuration.GetValue<int>("Transcription:ProcessingIntervalSeconds", 2);
+    _asrOptions = asrOptions.Value;
+    _fileCacheService = fileCacheService;
+    _httpClientFactory = httpClientFactory;
+    _configuration = configuration;
+    _processingIntervalSeconds = configuration.GetValue<int>("Transcription:ProcessingIntervalSeconds", 2);
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -99,8 +104,8 @@ public class TranscriptionBackgroundService : BackgroundService
             // resolve dependencies for processing
             var storageService = scope.ServiceProvider.GetRequiredService<IStorageService>();
             var callsService = scope.ServiceProvider.GetRequiredService<ICallsService>();
-            var hubContext = scope.ServiceProvider.GetRequiredService<IHubContext<TalkGroupHub>>();
             var transcriptionsService = scope.ServiceProvider.GetRequiredService<ITranscriptionsService>();
+            var callNotifier = scope.ServiceProvider.GetService<SignalRadio.Core.Services.ICallNotifier>();
 
             await ProcessRecordingTranscription(
                 fresh,
@@ -109,7 +114,7 @@ public class TranscriptionBackgroundService : BackgroundService
                 recordingService,
                 callsService,
                 transcriptionsService,
-                hubContext,
+                callNotifier,
                 cancellationToken);
 
             return true;
@@ -133,7 +138,7 @@ public class TranscriptionBackgroundService : BackgroundService
         IRecordingsService recordingService,
         ICallsService callsService,
         ITranscriptionsService transcriptionsService,
-        IHubContext<TalkGroupHub> hubContext,
+        SignalRadio.Core.Services.ICallNotifier? callNotifier,
         CancellationToken cancellationToken)
     {
         _logger.LogInformation("(serial) Starting transcription for recording {RecordingId}: {FileName}", recording.Id, recording.FileName);
@@ -142,17 +147,46 @@ public class TranscriptionBackgroundService : BackgroundService
         // Note: DataAccess Recording has different fields than Core; update via recordingService.UpdateAsync
         try
         {
-            byte[]? audioData;
+            byte[]? audioData = null;
             if (_fileCacheService.TryGetFile(recording.FileName, out var cachedPath))
             {
                 audioData = await System.IO.File.ReadAllBytesAsync(cachedPath, cancellationToken);
             }
             else
             {
-                // DataAccess Recording stores storage location info separately; try downloading by file name (blob name may equal file name)
-                audioData = await storageService.DownloadFileAsync(recording.FileName, cancellationToken);
-                if (audioData == null || audioData.Length == 0) throw new InvalidOperationException("Failed to download audio file");
-                await _fileCacheService.SaveFileAsync(recording.FileName, new System.IO.MemoryStream(audioData));
+                // Prefer calling the API download endpoint so we centralize access rules/urls.
+                // API base can be configured via "Api:BaseUrl" config; default to local server root.
+                var apiBase = _configuration.GetValue<string>("Api:BaseUrl") ?? string.Empty;
+                if (!string.IsNullOrEmpty(apiBase))
+                {
+                    try
+                    {
+                        var client = _httpClientFactory.CreateClient();
+                        // Ensure apiBase doesn't double up slashes
+                        var sep = apiBase.EndsWith("/") ? string.Empty : "/";
+                        var url = apiBase + sep + $"api/recordings/{recording.Id}/file";
+                        using var resp = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+                        if (resp.IsSuccessStatusCode)
+                        {
+                            var ms = new System.IO.MemoryStream();
+                            await resp.Content.CopyToAsync(ms, cancellationToken);
+                            audioData = ms.ToArray();
+                            await _fileCacheService.SaveFileAsync(recording.FileName, new System.IO.MemoryStream(audioData));
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "API download failed for recording {RecordingId}, falling back to direct storage", recording.Id);
+                    }
+                }
+
+                // If audioData still null/empty, fallback to direct storage service call
+                if (audioData == null || audioData.Length == 0)
+                {
+                    audioData = await storageService.DownloadFileAsync(recording.FileName, cancellationToken);
+                    if (audioData == null || audioData.Length == 0) throw new InvalidOperationException("Failed to download audio file");
+                    await _fileCacheService.SaveFileAsync(recording.FileName, new System.IO.MemoryStream(audioData));
+                }
             }
 
             var transcriptionResult = await asrService.TranscribeAsync(audioData, recording.FileName, cancellationToken);
@@ -180,33 +214,12 @@ public class TranscriptionBackgroundService : BackgroundService
             recording.IsProcessed = true;
             await recordingService.UpdateAsync(recording.Id, recording);
 
-            // Broadcast update using CallsService
+            // Notify subscribers about the updated call (best-effort)
             try
             {
-                var updatedCall = await callsService.GetByIdAsync(recording.CallId);
-                if (updatedCall != null)
+                if (callNotifier != null && recording.CallId != 0)
                 {
-                        var callNotification = new
-                        {
-                            updatedCall.Id,
-                            TalkGroupNumber = updatedCall.TalkGroupId,
-                            updatedCall.RecordingTime,
-                            FrequencyHz = updatedCall.FrequencyHz,
-                            DurationSeconds = updatedCall.DurationSeconds,
-                            updatedCall.CreatedAt,
-                            RecordingCount = updatedCall.Recordings?.Count ?? 0,
-                            Recordings = updatedCall.Recordings?.Select(r => new
-                            {
-                                r.Id,
-                                r.FileName,
-                                r.SizeBytes,
-                                ReceivedAt = r.ReceivedAt,
-                                r.IsProcessed
-                            }) ?? Enumerable.Empty<object>()
-                        };
-
-                    await hubContext.Clients.Group("all_calls_monitor").SendAsync("CallUpdated", callNotification);
-                    await hubContext.Clients.Group($"talkgroup_{updatedCall.TalkGroupId}").SendAsync("CallUpdated", callNotification);
+                    await callNotifier.NotifyCallUpdatedAsync(recording.CallId, cancellationToken);
                 }
             }
             catch { }

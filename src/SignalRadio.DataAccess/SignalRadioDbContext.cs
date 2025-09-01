@@ -34,7 +34,8 @@ public class SignalRadioDbContext : DbContext
             b.Property(e => e.ReceivedAt).HasColumnName("ReceivedAtUtc");
             b.HasOne(e => e.Call).WithMany(c => c.Recordings).HasForeignKey(e => e.CallId);
             b.HasOne(e => e.StorageLocation).WithMany(s => s.Recordings).HasForeignKey(e => e.StorageLocationId);
-            b.HasIndex(e => e.ReceivedAt);
+            // Index ReceivedAt (used for ordering). Mark descending to match common OrderByDescending queries.
+            b.HasIndex(e => e.ReceivedAt).IsDescending();
         });
 
         modelBuilder.Entity<StorageLocation>(b =>
@@ -49,11 +50,18 @@ public class SignalRadioDbContext : DbContext
             b.Property(e => e.AdditionalDataJson).HasColumnType("nvarchar(max)");
             b.HasOne(t => t.Recording).WithMany(r => r.Transcriptions).HasForeignKey(t => t.RecordingId);
             b.HasIndex(t => t.Service);
+
+            // Index to efficiently find whether a Recording has any final Transcription.
+            // This supports queries that check for existence of IsFinal records per Recording.
+            b.HasIndex(t => new { t.RecordingId, t.IsFinal });
         });
 
         modelBuilder.Entity<TalkGroup>(b =>
         {
             b.HasIndex(t => t.Number);
+
+            // Priority is used in ordering for transcription prioritization.
+            b.HasIndex(t => t.Priority);
         });
     }
 }

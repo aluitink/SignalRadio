@@ -1,6 +1,9 @@
-import React from 'react'
+import React, { useState } from 'react'
+import CallStream from './pages/CallStream'
 
 export default function App() {
+  const [page] = useState<'stream'>('stream')
+
   return (
     <div className="app">
       <header>
@@ -8,9 +11,7 @@ export default function App() {
         <p>Basic React UI scaffold — Vite + React + TypeScript</p>
       </header>
       <main>
-        <section>
-          <p>Connect this UI to the SignalRadio API at <code>/api</code> once ready.</p>
-        </section>
+        {page === 'stream' && <CallStream />}
       </main>
     </div>
   )

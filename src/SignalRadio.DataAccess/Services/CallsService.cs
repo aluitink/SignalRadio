@@ -12,12 +12,38 @@ public class CallsService : ICallsService
         _db = db;
     }
 
-    public async Task<PagedResult<Call>> GetAllAsync(int page, int pageSize)
+    public async Task<PagedResult<Call>> GetAllAsync(int page, int pageSize, string? sortBy = null, string? sortDir = null)
     {
         page = Math.Max(1, page);
         pageSize = Math.Clamp(pageSize, 1, 1000);
 
-        var query = _db.Calls.Include(c => c.Recordings).AsNoTracking().OrderByDescending(c => c.RecordingTime);
+        sortBy = string.IsNullOrWhiteSpace(sortBy) ? "recordingTime" : sortBy.Trim().ToLowerInvariant();
+        sortDir = string.IsNullOrWhiteSpace(sortDir) ? "desc" : sortDir.Trim().ToLowerInvariant();
+
+        var q = _db.Calls.Include(c => c.Recordings).AsNoTracking();
+
+        // Apply supported sorting options. Default: recordingTime desc
+        bool ascending = sortDir == "asc" || sortDir == "ascending";
+        switch (sortBy)
+        {
+            case "createdat":
+            case "created_at":
+            case "created":
+                q = ascending ? q.OrderBy(c => c.CreatedAt) : q.OrderByDescending(c => c.CreatedAt);
+                break;
+            case "talkgroupid":
+            case "talkgroup":
+            case "talk_group":
+                q = ascending ? q.OrderBy(c => c.TalkGroupId) : q.OrderByDescending(c => c.TalkGroupId);
+                break;
+            case "recordingtime":
+            case "recording_time":
+            default:
+                q = ascending ? q.OrderBy(c => c.RecordingTime) : q.OrderByDescending(c => c.RecordingTime);
+                break;
+        }
+
+        var query = q;
         var total = await query.CountAsync();
         var items = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
 

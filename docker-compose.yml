@@ -15,7 +15,7 @@ services:
       - signalradio-network
     restart: unless-stopped
     # Memory limit set to 2GB
-    mem_limit: 2g
+    mem_limit: 3g
 
   # SignalRadio API Service
   api:
@@ -51,24 +51,6 @@ services:
       - signalradio-network
     depends_on:
       - sqlserver
-    restart: unless-stopped
-
-  # SignalRadio UI Service
-  ui:
-    build:
-      context: ./src/SignalRadio.UI
-      dockerfile: Dockerfile
-    container_name: signalradio-ui
-    expose:
-      - "80"
-    ports:
-      - "3000:80"
-    environment:
-      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-Password1}
-    networks:
-      - signalradio-network
-    depends_on:
-      - signalradio-api
     restart: unless-stopped
 
   # SignalRadio Web Client (React)
@@ -109,11 +91,11 @@ services:
       - logs:/app/logs
     environment:
       - UPLOAD_SCRIPT=/app/scripts/upload_callback.sh
-      - API_ENDPOINT=http://signalradio-api:8080/api/recording/upload
+      - API_ENDPOINT=http://signalradio-api:8080/api/recordings
     networks:
       - signalradio-network
     depends_on:
-      - signalradio-api
+      - api
     restart: unless-stopped
     # Note: trunk-recorder needs RTL-SDR hardware access
     devices:
