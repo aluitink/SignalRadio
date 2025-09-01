@@ -44,7 +44,7 @@ public class HubCallNotifier : ICallNotifier
             _logger.LogInformation("Pushing call {CallId} to all_calls_monitor (TalkGroup={TalkGroupId}, RecordingCount={RecordingCount})",
                 updatedCall.Id, updatedCall.TalkGroupId, callDto.Recordings.Count);
             await hubContext.Clients.Group("all_calls_monitor").SendAsync("CallUpdated", callDto, cancellationToken);
-            await hubContext.Clients.Group($"talkgroup_{updatedCall.TalkGroupId}").SendAsync("CallUpdated", callDto, cancellationToken);
+            //await hubContext.Clients.Group($"talkgroup_{updatedCall.TalkGroupId}").SendAsync("CallUpdated", callDto, cancellationToken);
         }
         catch (Exception ex)
         {

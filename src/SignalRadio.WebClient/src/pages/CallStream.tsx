@@ -39,25 +39,50 @@ export default function CallStream() {
       setCalls(prev => {
         if (!callDto || !callDto.id) return prev
         
-        // Remove any existing call with same ID and add new one at the top
-        const filtered = prev.filter(c => c.id !== callDto.id)
-        return [callDto, ...filtered].slice(0, 100) // Keep max 100 calls
+        // Check if this call already exists in our list
+        const existingIndex = prev.findIndex(c => c.id === callDto.id)
+        
+        if (existingIndex >= 0) {
+          // Update existing call in place (for transcription updates, etc.)
+          console.log(`[CallStream] Updating existing call ${callDto.id} in position ${existingIndex}`, {
+            talkGroupId: callDto.talkGroupId,
+            hasTranscription: !!(callDto.transcriptions && callDto.transcriptions.length > 0)
+          })
+          const updated = [...prev]
+          updated[existingIndex] = callDto
+          return updated
+        } else {
+          // New call - add to top
+          console.log(`[CallStream] Adding new call ${callDto.id} to top of stream`, {
+            talkGroupId: callDto.talkGroupId,
+            recordingTime: callDto.recordingTime
+          })
+          return [callDto, ...prev].slice(0, 100) // Keep max 100 calls
+        }
       })
     }
+
+    const handleAllCallsStreamSubscribed = () => {
+      allCallsSubscribedRef.current = true
+      console.info('[signalr] AllCallsStreamSubscribed')
+    }
+
+    const handleAllCallsStreamUnsubscribed = () => {
+      allCallsSubscribedRef.current = false
+      console.info('[signalr] AllCallsStreamUnsubscribed')
+    }
+
+    // Remove any existing handlers first to prevent duplicates in React.StrictMode
+    conn.off('CallUpdated')
+    conn.off('AllCallsStreamSubscribed')
+    conn.off('AllCallsStreamUnsubscribed')
 
     // Server broadcasts 'CallUpdated' for new/updated calls
     conn.on('CallUpdated', handleCallUpdated)
 
     // Handle server confirmation events
-    conn.on('AllCallsStreamSubscribed', () => {
-      allCallsSubscribedRef.current = true
-      console.info('[signalr] AllCallsStreamSubscribed')
-    })
-
-    conn.on('AllCallsStreamUnsubscribed', () => {
-      allCallsSubscribedRef.current = false
-      console.info('[signalr] AllCallsStreamUnsubscribed')
-    })
+    conn.on('AllCallsStreamSubscribed', handleAllCallsStreamSubscribed)
+    conn.on('AllCallsStreamUnsubscribed', handleAllCallsStreamUnsubscribed)
 
     // Subscribe to the global all-calls stream
     if (!allCallsSubscribedRef.current) {
@@ -72,8 +97,8 @@ export default function CallStream() {
       try {
         if (conn) {
           conn.off('CallUpdated', handleCallUpdated)
-          conn.off('AllCallsStreamSubscribed')
-          conn.off('AllCallsStreamUnsubscribed')
+          conn.off('AllCallsStreamSubscribed', handleAllCallsStreamSubscribed)
+          conn.off('AllCallsStreamUnsubscribed', handleAllCallsStreamUnsubscribed)
           if (allCallsSubscribedRef.current) {
             conn.invoke('UnsubscribeFromAllCallsStream').catch(() => {})
             allCallsSubscribedRef.current = false

@@ -6,7 +6,11 @@ import './index.css'
 const el = document.getElementById('root')
 if (!el) throw new Error('Root element not found')
 createRoot(el).render(
-  <React.StrictMode>
+  import.meta.env.DEV ? (
+    <React.StrictMode>
+      <App />
+    </React.StrictMode>
+  ) : (
     <App />
-  </React.StrictMode>
+  )
 )
