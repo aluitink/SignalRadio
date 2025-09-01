@@ -59,4 +59,61 @@ public class TalkGroupsController : ControllerBase
     var ok = await _svc.DeleteAsync(id);
     return ok ? NoContent() : NotFound();
     }
+
+    [HttpPost("import")]
+    public async Task<IActionResult> Import()
+    {
+        if (!Request.HasFormContentType) return BadRequest("Expected form data with file field 'file'");
+        var form = await Request.ReadFormAsync();
+        var file = form.Files.GetFile("file");
+        if (file == null) return BadRequest("No file uploaded");
+
+        using var stream = file.OpenReadStream();
+        using var reader = new System.IO.StreamReader(stream);
+        var lines = new List<string>();
+        while (!reader.EndOfStream)
+        {
+            var line = await reader.ReadLineAsync();
+            if (string.IsNullOrWhiteSpace(line)) continue;
+            lines.Add(line);
+        }
+
+    // Assume CSV header present or rows matching: Decimal,Hex,Mode,Alpha Tag,Description,Tag,Category,Priority
+        var imported = 0;
+        foreach (var raw in lines)
+        {
+            var cols = raw.Split(',');
+            // Skip header row if first col not numeric
+            if (!int.TryParse(cols[0], out var number)) continue;
+
+            var model = new TalkGroup
+            {
+                Number = number,
+                // CSV layout: 0=Decimal,1=Hex,2=Mode,3=Alpha Tag,4=Description,5=Tag,6=Category,7=Priority
+                AlphaTag = cols.Length > 3 ? cols[3].Trim() : null,
+                Description = cols.Length > 4 ? cols[4].Trim() : null,
+                Tag = cols.Length > 5 ? cols[5].Trim() : null,
+                Category = cols.Length > 6 ? cols[6].Trim() : null,
+            };
+
+        if (cols.Length > 7 && int.TryParse(cols[7], out var p)) model.Priority = p;
+
+            // Upsert: if a TalkGroup with same Number exists, update it; otherwise create
+            var existing = await _svc.GetAllAsync(1, 1);
+            // Simple lookup via DB context would be more efficient; use service create/update for now.
+            var found = (await _svc.GetAllAsync(1, int.MaxValue)).Items.FirstOrDefault(t => t.Number == number);
+            if (found != null)
+            {
+                model.Id = found.Id;
+                await _svc.UpdateAsync(found.Id, model);
+            }
+            else
+            {
+                await _svc.CreateAsync(model);
+            }
+            imported++;
+        }
+
+        return Ok(new { imported });
+    }
 }

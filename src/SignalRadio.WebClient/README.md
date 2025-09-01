@@ -20,3 +20,10 @@ API configuration
 	- Example: `VITE_API_BASE=https://your-api.example.com`
 	- See `.env.example` for a template.
 - A small helper is included at `src/api.ts` to centralize fetch calls and error handling.
+
+Admin / Talkgroup import
+- The client includes a simple admin page (click "Admin") that allows uploading a
+	talkgroup CSV to the API endpoint `POST /api/talkgroups/import`.
+- The page performs a simple client-side password check using `VITE_ADMIN_PASSWORD`.
+	This is intended as a convenience for local deployments; secure the API in
+	production.

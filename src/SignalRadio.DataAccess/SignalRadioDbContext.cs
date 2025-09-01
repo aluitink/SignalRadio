@@ -62,6 +62,10 @@ public class SignalRadioDbContext : DbContext
 
             // Priority is used in ordering for transcription prioritization.
             b.HasIndex(t => t.Priority);
+            // Useful lookup/indexes for admin & grouping
+            b.HasIndex(t => t.AlphaTag);
+            b.HasIndex(t => t.Tag);
+            b.HasIndex(t => t.Category);
         });
     }
 }
