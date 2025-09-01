@@ -20,7 +20,11 @@ public class CallsService : ICallsService
         sortBy = string.IsNullOrWhiteSpace(sortBy) ? "recordingTime" : sortBy.Trim().ToLowerInvariant();
         sortDir = string.IsNullOrWhiteSpace(sortDir) ? "desc" : sortDir.Trim().ToLowerInvariant();
 
-        var q = _db.Calls.Include(c => c.Recordings).AsNoTracking();
+        var q = _db.Calls
+            .Include(c => c.Recordings)
+                .ThenInclude(r => r.Transcriptions)
+            .Include(c => c.TalkGroup)
+            .AsNoTracking();
 
         // Apply supported sorting options. Default: recordingTime desc
         bool ascending = sortDir == "asc" || sortDir == "ascending";
@@ -59,7 +63,12 @@ public class CallsService : ICallsService
 
     public async Task<Call?> GetByIdAsync(int id)
     {
-        return await _db.Calls.Include(c => c.Recordings).AsNoTracking().FirstOrDefaultAsync(c => c.Id == id);
+        return await _db.Calls
+            .Include(c => c.Recordings)
+                .ThenInclude(r => r.Transcriptions)
+            .Include(c => c.TalkGroup)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(c => c.Id == id);
     }
 
     public async Task<Call> CreateAsync(Call model)

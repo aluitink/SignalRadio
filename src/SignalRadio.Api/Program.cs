@@ -33,6 +33,9 @@ builder.Services.AddControllers()
 // Add SignalR
 builder.Services.AddSignalR();
 
+// Add HttpContextAccessor for getting request context in services
+builder.Services.AddHttpContextAccessor();
+
 // Add CORS for standalone UI
 builder.Services.AddCors(options =>
 {

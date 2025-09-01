@@ -1,5 +1,5 @@
 import React from 'react'
-import type { Call } from '../types'
+import type { CallDto } from '../types/dtos'
 
 function secondsToHuman(s: number) {
   if (!isFinite(s) || s <= 0) return '0s'
@@ -8,21 +8,29 @@ function secondsToHuman(s: number) {
   return m ? `${m}m ${sec}s` : `${sec}s`
 }
 
-export default function CallCard({ call }: { call: Call }) {
-  const duration = call.recordings.reduce((acc, r) => acc + (r.durationSeconds || 0), 0)
-  const started = new Date(call.startedAt)
+export default function CallCard({ call }: { call: CallDto }) {
+  // Calculate total duration from call duration or recordings
+  const duration = call.durationSeconds || call.recordings.reduce((acc, r) => acc + (r.durationSeconds || 0), 0)
+  const started = new Date(call.recordingTime)
   const ageSec = Math.floor((Date.now() - started.getTime()) / 1000)
+
+  // Get talkgroup display name
+  const talkGroupDisplay = call.talkGroup?.description || 
+                          call.talkGroup?.alphaTag || 
+                          call.talkGroup?.name || 
+                          `TG ${call.talkGroup?.number || call.talkGroupId}`
 
   return (
     <article className="call-card">
       <div className="call-meta">
         <div className="talkgroup">
-          <strong>{call.talkGroupDescription ?? `TG ${call.talkGroupId}`}</strong>
-          <span className="priority">Priority: {call.priority ?? '—'}</span>
+          <strong>{talkGroupDisplay}</strong>
+          <span className="priority">Priority: {call.talkGroup?.priority ?? '—'}</span>
         </div>
         <div className="info">
           <span>Duration: {secondsToHuman(duration)}</span>
           <span>Age: {secondsToHuman(ageSec)}</span>
+          <span>Freq: {(call.frequencyHz / 1000000).toFixed(3)} MHz</span>
         </div>
       </div>
 
@@ -37,7 +45,7 @@ export default function CallCard({ call }: { call: Call }) {
           const u = call.recordings[0]?.url
           if (!u) return
           if (navigator.share) {
-            navigator.share({ title: call.talkGroupDescription, url: u }).catch(() => {})
+            navigator.share({ title: talkGroupDisplay, url: u }).catch(() => {})
           } else {
             navigator.clipboard?.writeText(u).catch(() => {})
             alert('Recording URL copied to clipboard')

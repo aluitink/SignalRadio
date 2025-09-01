@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SignalRadio.DataAccess;
 using SignalRadio.DataAccess.Services;
+using SignalRadio.Api.Extensions;
+using SignalRadio.Api.Dtos;
 
 namespace SignalRadio.Api.Controllers2;
 
@@ -27,14 +29,29 @@ public class CallsController : ControllerBase
         pageSize = Math.Clamp(pageSize, 1, 1000);
 
         var result = await _svc.GetAllAsync(page, pageSize, sortBy, sortDir);
-        return Ok(result);
+        
+        // Convert to DTOs with TalkGroup information included
+        var apiBaseUrl = $"{Request.Scheme}://{Request.Host}";
+        var dtoResult = new 
+        {
+            Items = result.Items.Select(call => call.ToDto(apiBaseUrl)).ToList(),
+            result.TotalCount,
+            result.Page,
+            result.PageSize,
+            result.TotalPages
+        };
+        
+        return Ok(dtoResult);
     }
 
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetById(int id)
     {
-    var item = await _svc.GetByIdAsync(id);
-    return item == null ? NotFound() : Ok(item);
+        var item = await _svc.GetByIdAsync(id);
+        if (item == null) return NotFound();
+        
+        var apiBaseUrl = $"{Request.Scheme}://{Request.Host}";
+        return Ok(item.ToDto(apiBaseUrl));
     }
 
     [HttpPost]
