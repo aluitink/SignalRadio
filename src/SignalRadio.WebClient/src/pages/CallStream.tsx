@@ -6,10 +6,12 @@ import Pagination from '../components/Pagination'
 import type { CallDto, PagedResult } from '../types/dtos'
 import { useSignalR } from '../hooks/useSignalR'
 import { useAudioManager } from '../hooks/useAudioManager'
+import { useSubscriptions } from '../contexts/SubscriptionContext'
 import { apiGet } from '../api'
 
 export default function CallStream() {
   const { connection, connected } = useSignalR('talkgroup')
+  const { isSubscribed } = useSubscriptions()
   const [calls, setCalls] = useState<CallDto[]>([])
   const [loading, setLoading] = useState(true)
   const [currentPage, setCurrentPage] = useState(1)
@@ -53,6 +55,15 @@ export default function CallStream() {
     const handleCallUpdated = (callDto: CallDto) => {
       let shouldAddToQueue = false
       
+      console.log('[CallStream] CallUpdated received via SignalR:', {
+        callId: callDto.id,
+        talkGroupId: callDto.talkGroupId,
+        recordingTime: callDto.recordingTime,
+        recordingsCount: callDto.recordings?.length || 0,
+        transcriptionsCount: callDto.transcriptions?.length || 0,
+        hasTranscriptions: !!callDto.transcriptions?.length
+      })
+      
       setCalls(prev => {
         if (!callDto || !callDto.id) return prev
         
@@ -61,6 +72,7 @@ export default function CallStream() {
         
         if (existingIndex >= 0) {
           // UpdatedCalls: Only update existing call in place (for transcription updates, etc.)
+          console.log(`[CallStream] Updating existing call ${callDto.id} in stream (position ${existingIndex})`)
           const updated = [...prev]
           updated[existingIndex] = callDto
           return updated
@@ -75,18 +87,23 @@ export default function CallStream() {
           
           if (callTime >= fiveMinutesAgo) {
             // NewCalls: This appears to be a recent call - add to top
+            console.log(`[CallStream] Adding new call ${callDto.id} to stream (TalkGroup=${callDto.talkGroupId}, Time=${callDto.recordingTime})`)
             const newCalls = [callDto, ...prev].slice(0, 100) // Keep max 100 calls
             
             // Mark that we should add to auto-play queue (but don't do it during render)
-            if (callDto.recordings && callDto.recordings.length > 0) {
+            // Only add to queue if user is subscribed to this talkgroup
+            if (callDto.recordings && callDto.recordings.length > 0 && isSubscribed(callDto.talkGroupId)) {
+              console.log(`[CallStream] Call ${callDto.id} from subscribed talkgroup ${callDto.talkGroupId} has ${callDto.recordings.length} recordings - marking for auto-play queue`)
               shouldAddToQueue = true
+            } else if (callDto.recordings && callDto.recordings.length > 0) {
+              console.log(`[CallStream] Call ${callDto.id} from unsubscribed talkgroup ${callDto.talkGroupId} - not adding to auto-play queue`)
             }
             
             return newCalls
           } else {
             // This is likely a transcript update for an older call not in the stream
             // Don't add it to the stream
-            console.debug(`Ignoring call update for older call ${callDto.id} (${callDto.recordingTime})`)
+            console.debug(`[CallStream] Ignoring call update for older call ${callDto.id} (${callDto.recordingTime}) - older than 5 minutes`)
             return prev
           }
         }
@@ -96,6 +113,7 @@ export default function CallStream() {
       if (shouldAddToQueue) {
         // Use setTimeout to ensure this happens after the render cycle
         setTimeout(() => {
+          console.log(`[CallStream] Adding call ${callDto.id} from subscribed talkgroup ${callDto.talkGroupId} to auto-play queue`)
           addToAutoPlayQueue(callDto)
         }, 0)
       }

@@ -242,6 +242,13 @@ class SignalRadioApp {
 
     handleSubscribedCall(callData) {
         // This is for calls from talk groups we're specifically subscribed to
+        console.log('[SignalRadio UI] Received subscribed call:', {
+            callId: callData.id,
+            talkgroupId: callData.talkgroupId,
+            recordingTime: callData.recordingTime,
+            recordingCount: callData.recordingCount || 0
+        });
+        
         this.totalCallsReceived++;
         this.activeCalls.set(callData.id, callData);
         this.uiManager.addCallToStream(callData, true, true); // Mark as subscribed call
@@ -249,6 +256,7 @@ class SignalRadioApp {
 
         // Auto-play since this is a subscribed call (only if user has interacted and auto-play is enabled)
         if (this.autoPlay && this.audioManager.userHasInteracted) {
+            console.log(`[SignalRadio UI] Auto-playing subscribed call ${callData.id}`);
             this.audioManager.queueCall(callData);
         } else if (this.autoPlay && !this.audioManager.userHasInteracted) {
             // Don't show notification for this case
@@ -263,17 +271,35 @@ class SignalRadioApp {
 
     handleAllCallsStreamUpdate(callData) {
         // This is for general monitoring of all calls (not subscribed)
+        console.log('[SignalRadio UI] Received call stream update:', {
+            callId: callData.id,
+            talkgroupId: callData.talkgroupId,
+            recordingTime: callData.recordingTime,
+            recordingCount: callData.recordingCount || 0,
+            isSubscribed: this.subscriptions.has(callData.talkgroupId)
+        });
+        
         // Only add to stream if we're not already subscribed to this talk group
         if (!this.subscriptions.has(callData.talkgroupId)) {
+            console.log(`[SignalRadio UI] Adding call ${callData.id} to general stream (not subscribed to TalkGroup ${callData.talkgroupId})`);
             this.totalCallsReceived++;
             this.activeCalls.set(callData.id, callData);
             this.uiManager.addCallToStream(callData, true, false); // Mark as general stream call
             this.uiManager.updateStatistics();
+        } else {
+            console.log(`[SignalRadio UI] Skipping call ${callData.id} - already subscribed to TalkGroup ${callData.talkgroupId}`);
         }
         // If we are subscribed, we'll get it via handleSubscribedCall instead
     }
 
     handleCallUpdate(callData) {
+        console.log('[SignalRadio UI] Received call update:', {
+            callId: callData.id,
+            talkgroupId: callData.talkgroupId,
+            recordingTime: callData.recordingTime,
+            recordingCount: callData.recordingCount || 0
+        });
+        
         this.activeCalls.set(callData.id, callData);
         this.uiManager.updateCallInStream(callData);
     }

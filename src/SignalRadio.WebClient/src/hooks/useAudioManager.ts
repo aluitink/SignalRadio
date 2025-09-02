@@ -360,7 +360,7 @@ class AudioManager {
       talkGroupId: call.talkGroupId,
       playerState: this.playerState,
       autoplayEnabled: this.autoplayEnabled,
-      willAutoPlay: this.playerState === 'playing' && this.autoplayEnabled,
+      willAutoPlay: this.autoplayEnabled,
       queueLength: this.callQueue.length,
       hasRecordings: call.recordings?.length || 0
     })
@@ -369,9 +369,17 @@ class AudioManager {
     this.queueCall(call)
     console.log('[AudioManager] Call queued. New queue length:', this.callQueue.length)
     
-    // Only auto-play if player state is 'playing' and autoplay is enabled
-    if (this.playerState === 'playing' && this.autoplayEnabled) {
+    // Auto-play if autoplay is enabled
+    if (this.autoplayEnabled) {
       console.log('[AudioManager] Auto-playing subscribed call')
+      
+      // If player is not already playing, start it
+      if (this.playerState !== 'playing') {
+        console.log('[AudioManager] Starting player for subscribed call')
+        this.playerState = 'playing'
+        this.notifyPlayerStateListeners('playing')
+      }
+      
       // Start processing queue if not already processing
       if (!this.isProcessingQueue) {
         return this.processQueue().catch((error) => {
@@ -381,25 +389,45 @@ class AudioManager {
       }
       return Promise.resolve()
     } else {
-      console.log('[AudioManager] Call queued but not auto-playing - player is stopped or autoplay not available')
+      console.log('[AudioManager] Call queued but not auto-playing - autoplay not available')
       return Promise.resolve()
     }
   }
 
   // Add a call to the queue for auto-play (used by CallStream for new calls)
   addToAutoPlayQueue(call: CallDto): void {
-    // Only add to queue if player is in 'playing' state (auto-play is active)
-    if (this.playerState === 'playing' && this.autoplayEnabled) {
+    console.log('[AudioManager] addToAutoPlayQueue called:', {
+      callId: call.id,
+      talkGroupId: call.talkGroupId,
+      autoplayEnabled: this.autoplayEnabled,
+      playerState: this.playerState,
+      isProcessingQueue: this.isProcessingQueue,
+      queueLength: this.callQueue.length
+    })
+    
+    // Add to queue and auto-play if autoplay is enabled
+    if (this.autoplayEnabled) {
       this.queueCall(call)
+      
+      // If player is not already playing, start it
+      if (this.playerState !== 'playing') {
+        console.log('[AudioManager] Starting player for auto-play queue')
+        this.playerState = 'playing'
+        this.notifyPlayerStateListeners('playing')
+      }
       
       // Start processing queue if not already processing
       if (!this.isProcessingQueue) {
+        console.log('[AudioManager] Starting queue processing for auto-play')
         this.processQueue().catch((error) => {
           console.error('Error processing queue after adding call:', error)
         })
+      } else {
+        console.log('[AudioManager] Queue already processing, call will be processed automatically')
       }
     } else {
-      // If auto-play is not active, just add to queue without processing
+      console.log('[AudioManager] Autoplay not enabled, just queuing call')
+      // If auto-play is not available, just add to queue without processing
       this.queueCall(call)
     }
   }
@@ -434,18 +462,37 @@ class AudioManager {
   }
 
   private async processQueue(): Promise<void> {
+    console.log('[AudioManager] processQueue called:', {
+      isProcessingQueue: this.isProcessingQueue,
+      queueLength: this.callQueue.length,
+      playerState: this.playerState,
+      queueIds: this.callQueue.map(c => c.id)
+    })
+    
     if (this.isProcessingQueue || this.callQueue.length === 0 || this.playerState !== 'playing') {
+      console.log('[AudioManager] processQueue exiting early:', {
+        isProcessingQueue: this.isProcessingQueue,
+        queueEmpty: this.callQueue.length === 0,
+        playerNotPlaying: this.playerState !== 'playing'
+      })
       return
     }
 
     this.isProcessingQueue = true
+    console.log('[AudioManager] Starting queue processing')
 
     try {
       while (this.callQueue.length > 0 && this.playerState === 'playing') {
         const call = this.callQueue.shift()!
+        console.log('[AudioManager] Processing call from queue:', {
+          callId: call.id,
+          talkGroupId: call.talkGroupId,
+          remainingInQueue: this.callQueue.length
+        })
         this.notifyQueueListeners()
 
         try {
+          console.log('[AudioManager] About to play call directly:', call.id)
           await this.playCallDirectly(call)
         
         // Wait for the audio to finish playing
@@ -512,13 +559,16 @@ class AudioManager {
       console.error('Unexpected error in processQueue:', unexpectedError)
     } finally {
       this.isProcessingQueue = false
+      console.log('[AudioManager] processQueue finished, isProcessingQueue set to false')
     }
   }
 
   private playCallDirectly(call: CallDto): Promise<void> {
+    console.log('[AudioManager] playCallDirectly starting for call:', call.id)
     return new Promise((resolve, reject) => {
       try {
         const audioUrl = this.getAudioUrl(call)
+        console.log('[AudioManager] Audio URL generated:', audioUrl)
 
         // Stop current audio if playing
         if (this.currentAudio) {
@@ -537,6 +587,7 @@ class AudioManager {
         
         // Set up event listeners before any async operations
         audio.addEventListener('loadstart', () => {
+          console.log('[AudioManager] Audio loadstart event for call:', call.id)
           this.currentAudio = audio
           this.currentCallId = call.id
           this.currentCall = call  // Store the call data
@@ -545,6 +596,7 @@ class AudioManager {
         })
 
         audio.addEventListener('play', () => {
+          console.log('[AudioManager] Audio play event for call:', call.id)
           this.notifyListeners(call.id, true)
           
           // Start progress updates
@@ -603,6 +655,7 @@ class AudioManager {
         })
 
         audio.addEventListener('canplay', () => {
+          console.log('[AudioManager] Audio canplay event for call:', call.id)
           resolve()
         })
 
@@ -618,6 +671,7 @@ class AudioManager {
         })
 
         // Try to play the audio
+        console.log('[AudioManager] Calling audio.play() for call:', call.id)
         audio.play().catch((playError) => {
           console.error('Audio.play() failed:', {
             callId: call.id,
