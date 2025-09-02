@@ -11,4 +11,5 @@ public interface ITranscriptionsService
     Task<bool> UpdateAsync(int id, Transcription model);
     Task<bool> DeleteAsync(int id);
     Task<PagedResult<Transcription>> SearchAsync(string q, int page, int pageSize);
+    Task<PagedResult<Call>> SearchCallsAsync(string q, int page, int pageSize);
 }

@@ -3,6 +3,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Data.SqlClient;
 using SignalRadio.DataAccess;
 using SignalRadio.DataAccess.Services;
+using SignalRadio.Api.Extensions;
+using SignalRadio.Api.Dtos;
 
 namespace SignalRadio.Api.Controllers2;
 
@@ -63,7 +65,20 @@ public class TranscriptionsController : ControllerBase
     {
     if (string.IsNullOrWhiteSpace(q)) return BadRequest("q is required");
 
-    var result = await _svc.SearchAsync(q, page, pageSize);
+    var callResult = await _svc.SearchCallsAsync(q, page, pageSize);
+    
+    // Convert to DTOs
+    var callDtos = callResult.Items.Select(c => c.ToDto()).ToList();
+
+    var result = new PagedResult<CallDto>
+    {
+        Items = callDtos,
+        TotalCount = callResult.TotalCount,
+        Page = callResult.Page,
+        PageSize = callResult.PageSize,
+        TotalPages = callResult.TotalPages
+    };
+
     return Ok(result);
     }
 }

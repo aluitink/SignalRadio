@@ -73,6 +73,8 @@ public class TranscriptionsService : ITranscriptionsService
         var query = _db.Transcriptions
             .FromSqlRaw("SELECT * FROM [Transcriptions] WHERE CONTAINS([FullText], @p0)", param)
             .Include(t => t.Recording)
+                .ThenInclude(r => r!.Call)
+                    .ThenInclude(c => c!.TalkGroup)
             .AsNoTracking();
 
         var total = await query.CountAsync();
@@ -84,6 +86,53 @@ public class TranscriptionsService : ITranscriptionsService
         return new PagedResult<Transcription>
         {
             Items = items,
+            TotalCount = total,
+            Page = page,
+            PageSize = pageSize,
+            TotalPages = (int)Math.Ceiling(total / (double)pageSize)
+        };
+    }
+
+    public async Task<PagedResult<Call>> SearchCallsAsync(string q, int page, int pageSize)
+    {
+        page = Math.Max(1, page);
+        pageSize = Math.Clamp(pageSize, 1, 1000);
+
+        var param = new SqlParameter("@p0", q);
+
+        // First, get transcriptions that match the search
+        var transcriptionQuery = _db.Transcriptions
+            .FromSqlRaw("SELECT * FROM [Transcriptions] WHERE CONTAINS([FullText], @p0)", param)
+            .Include(t => t.Recording)
+                .ThenInclude(r => r!.Call)
+                    .ThenInclude(c => c!.TalkGroup)
+            .AsNoTracking();
+
+        // Get unique call IDs from the transcription search results
+        var callIds = await transcriptionQuery
+            .Where(t => t.Recording != null && t.Recording.Call != null)
+            .Select(t => t.Recording!.CallId)
+            .Distinct()
+            .ToListAsync();
+
+        // Now get the calls with their full data
+        var callQuery = _db.Calls
+            .Where(c => callIds.Contains(c.Id))
+            .Include(c => c.TalkGroup)
+            .Include(c => c.Recordings)
+                .ThenInclude(r => r.Transcriptions)
+            .AsNoTracking()
+            .OrderByDescending(c => c.RecordingTime);
+
+        var total = await callQuery.CountAsync();
+        var calls = await callQuery
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return new PagedResult<Call>
+        {
+            Items = calls,
             TotalCount = total,
             Page = page,
             PageSize = pageSize,
