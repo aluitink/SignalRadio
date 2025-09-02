@@ -8,7 +8,7 @@ using SignalRadio.Core.Models;
 using Microsoft.AspNetCore.Http;
 using System.Text.Json;
 
-namespace SignalRadio.Api.Controllers2;
+namespace SignalRadio.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]

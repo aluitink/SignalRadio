@@ -1,16 +1,127 @@
-:root { --bg: #0f172a; --card: #0b1220; --text: #e6f0ff }
-* { box-sizing: border-box }
-html,body,#root { height:100% }
-body {
+/* SignalRadio Design System */
+:root {
+  /* Colors */
+  --bg-primary: #0f172a;
+  --bg-secondary: #1e293b;
+  --bg-card: rgba(255,255,255,0.02);
+  --bg-card-hover: rgba(255,255,255,0.05);
+  --text-primary: #e6f0ff;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --accent-primary: #3b82f6;
+  --accent-primary-hover: #2563eb;
+  --accent-primary-rgb: 59, 130, 246;
+  --accent-secondary: #6366f1;
+  --bg-danger: #dc2626;
+  --bg-danger-hover: #b91c1c;
+  --bg-warning: #f59e0b;
+  --bg-warning-hover: #d97706;
+  --border: rgba(255,255,255,0.1);
+  
+  /* Typography */
+  --font-family: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+  --font-size-xs: 12px;
+  --font-size-sm: 14px;
+  --font-size-base: 16px;
+  --font-size-lg: 18px;
+  --font-size-xl: 20px;
+  --font-size-2xl: 24px;
+  
+  /* Spacing (8px base unit) */
+  --space-1: 8px;
+  --space-2: 16px;
+  --space-3: 24px;
+  --space-4: 32px;
+  --space-5: 40px;
+  --space-6: 48px;
+  
+  /* Border radius */
+  --radius-sm: 4px;
+  --radius: 8px;
+  --radius-lg: 12px;
+  
+  /* Transitions */
+  --transition: all 0.2s ease;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
   margin: 0;
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-family);
   background: linear-gradient(180deg, #071034 0%, #071a34 100%);
-  color: var(--text);
+  color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  line-height: 1.5;
+  padding-bottom: 80px; /* Space for fixed audio player bar */
 }
-.app { max-width: 900px; margin: 48px auto; padding: 24px }
-header h1 { margin: 0 0 8px 0 }
-header p { margin: 0 0 16px 0; opacity: 0.9 }
-main { background: rgba(255,255,255,0.03); padding: 16px; border-radius: 8px }
-code { background: rgba(255,255,255,0.04); padding: 2px 6px; border-radius: 4px }
+
+/* Layout */
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 var(--space-2);
+}
+
+@media (min-width: 768px) {
+  .container {
+    padding: 0 var(--space-4);
+  }
+}
+
+/* Typography */
+h1 {
+  font-size: var(--font-size-2xl);
+  font-weight: 700;
+  margin: 0 0 var(--space-1) 0;
+  line-height: 1.2;
+}
+
+h2 {
+  font-size: var(--font-size-xl);
+  font-weight: 600;
+  margin: 0 0 var(--space-2) 0;
+  line-height: 1.3;
+}
+
+h3 {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  margin: 0 0 var(--space-1) 0;
+  line-height: 1.4;
+}
+
+.text-muted {
+  color: var(--text-muted);
+}
+
+.text-secondary {
+  color: var(--text-secondary);
+}
+
+/* Utilities */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

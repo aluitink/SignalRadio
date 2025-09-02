@@ -1,24 +1,71 @@
-import React, { useState } from 'react'
+import React, { useEffect } from 'react'
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import ErrorBoundary from './components/ErrorBoundary'
+import Navigation from './components/Navigation'
+import Breadcrumb from './components/Breadcrumb'
+import PageTransition from './components/PageTransition'
 import CallStream from './pages/CallStream'
 import Admin from './pages/Admin'
+import SearchPage from './pages/SearchPage'
+import TalkGroupPage from './pages/TalkGroupPage'
+import CallDetailPage from './pages/CallDetailPage'
+import SubscriptionsPage from './pages/SubscriptionsPage'
+import NotFoundPage from './pages/NotFoundPage'
+import { createApiTester } from './utils/ApiTester'
+import { SubscriptionProvider } from './contexts/SubscriptionContext'
 
 export default function App() {
-  const [page, setPage] = useState<'stream' | 'admin'>('stream')
+  // Initialize API tester for development
+  useEffect(() => {
+    if (import.meta.env.DEV) {
+      createApiTester()
+      console.log('🔧 Development mode: API tester available. Run runApiTests() in console to test all endpoints.')
+    }
+  }, [])
 
   return (
-    <div className="app">
-      <header>
-        <h1>SignalRadio WebClient</h1>
-        <p>Basic React UI scaffold — Vite + React + TypeScript</p>
-        <nav>
-          <button onClick={() => setPage('stream')}>Stream</button>
-          <button onClick={() => setPage('admin')}>Admin</button>
-        </nav>
-      </header>
-      <main>
-        {page === 'stream' && <CallStream />}
-        {page === 'admin' && <Admin />}
-      </main>
-    </div>
+    <Router>
+      <SubscriptionProvider>
+        <ErrorBoundary>
+          <div className="app">
+            <Navigation />
+            
+            <main className="main-content">
+              <div className="container">
+                <Breadcrumb />
+                <ErrorBoundary>
+                  <PageTransition>
+                    <Routes>
+                      <Route path="/" element={<CallStream />} />
+                      <Route path="/search" element={<SearchPage />} />
+                      <Route path="/subscriptions" element={<SubscriptionsPage />} />
+                      <Route path="/talkgroup/:id" element={<TalkGroupPage />} />
+                      <Route path="/call/:id" element={<CallDetailPage />} />
+                      <Route path="/admin" element={<Admin />} />
+                      <Route path="*" element={<NotFoundPage />} />
+                    </Routes>
+                  </PageTransition>
+                </ErrorBoundary>
+              </div>
+            </main>
+          </div>
+        </ErrorBoundary>
+      </SubscriptionProvider>
+
+      <style>{`
+        .main-content {
+          flex: 1;
+          padding: var(--space-4) 0;
+          padding-bottom: calc(var(--space-4) + 80px); /* Account for fixed audio player */
+        }
+
+        @media (max-width: 767px) {
+          .main-content {
+            padding: var(--space-2) 0;
+            padding-bottom: calc(var(--space-2) + 70px); /* Account for fixed audio player on mobile */
+          }
+        }
+      `}</style>
+    </Router>
   )
 }

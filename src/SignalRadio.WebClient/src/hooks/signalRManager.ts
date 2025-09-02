@@ -39,7 +39,10 @@ export async function acquireConnection(hubPath: string, baseUrl: string) {
 
   if (!entry.startPromise) {
     const cleaned = hubPath.replace(/^\/?/, '')
-    const full = `${baseUrl.replace(/\/$/, '')}/hubs/${cleaned}`.replace(/([^:]\/)\/+/, '$1')
+    // If hubPath already starts with 'hubs/', don't add another /hubs/ prefix
+    const full = cleaned.startsWith('hubs/') 
+      ? `${baseUrl.replace(/\/$/, '')}/${cleaned}`
+      : `${baseUrl.replace(/\/$/, '')}/hubs/${cleaned}`
     const conn = buildConnection(full)
     entry.startPromise = conn.start().then(() => {
       entry!.connection = conn
