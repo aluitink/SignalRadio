@@ -1,6 +1,5 @@
 import React, { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import AudioPlayer from './AudioPlayer'
 
 export default function Navigation() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -51,8 +50,6 @@ export default function Navigation() {
           ))}
         </div>
       </div>
-      
-      <AudioPlayer />
 
       <style>{`
         .navigation {

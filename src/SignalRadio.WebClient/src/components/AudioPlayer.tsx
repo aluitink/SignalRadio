@@ -1,245 +1,131 @@
-import React, { useState, useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { CallDto } from '../types/dtos'
-import { useAudioManager } from '../hooks/useAudioManager'
+import { audioPlayerService, type PlayerState } from '../services/AudioPlayerService'
+import { audioQueue } from '../services/AudioQueue'
 
 export default function AudioPlayer() {
-  const { 
-    queueLength, 
-    currentCallId, 
-    currentCall,
-    clearQueue, 
-    removeFromQueue, 
-    queue, 
-    isPlaying,
-    stopPlayback,
-    pausePlayback,
-    resumePlayback,
-    togglePlayback,
-    autoplayEnabled,
-    autoplayChecked,
-    playerState,
-    needsUserInteraction,
-    enableAutoplayAndStartPlaying,
-    togglePlayerState,
-    testAutoplayWithSilence,
-    playCall,
-    setVolume,
-    getVolume,
-    moveToFront,
-    getUserHasInteracted
-  } = useAudioManager()
-  
+  const [playerState, setPlayerState] = useState<PlayerState>('stopped')
+  const [currentCall, setCurrentCall] = useState<CallDto | null>(null)
+  const [isPlaying, setIsPlaying] = useState(false)
+  const [hasUserInteracted, setHasUserInteracted] = useState(false)
+  const [queue, setQueue] = useState<CallDto[]>([])
   const [isExpanded, setIsExpanded] = useState(false)
-  const [volume, setVolumeState] = useState(getVolume())
-  const [autoplayTestResult, setAutoplayTestResult] = useState<'testing' | 'passed' | 'failed' | null>(null)
 
-  // Get current call info - now using currentCall directly from the hook
-  const userHasInteracted = getUserHasInteracted()
-
-  // Test autoplay on component mount
+  // Subscribe to audio player service
   useEffect(() => {
-    const testAutoplay = async () => {
-      if (!autoplayChecked && !userHasInteracted) {
-        setAutoplayTestResult('testing')
-        try {
-          const result = await testAutoplayWithSilence()
-          setAutoplayTestResult(result ? 'passed' : 'failed')
-          
-          // Auto-clear the test result after a few seconds
-          setTimeout(() => {
-            setAutoplayTestResult(null)
-          }, 3000)
-        } catch (error) {
-          console.error('Autoplay test failed:', error)
-          setAutoplayTestResult('failed')
-          setTimeout(() => {
-            setAutoplayTestResult(null)
-          }, 3000)
-        }
-      }
-    }
+    const unsubscribe = audioPlayerService.subscribe({
+      onStateChanged: setPlayerState,
+      onCurrentCallChanged: setCurrentCall,
+      onPlaybackChanged: setIsPlaying,
+      onUserInteractionChanged: setHasUserInteracted
+    })
 
-    testAutoplay()
-  }, [autoplayChecked, userHasInteracted, testAutoplayWithSilence])
+    return unsubscribe
+  }, [])
 
-  const formatDuration = (seconds: number) => {
-    const mins = Math.floor(seconds / 60)
-    const secs = Math.floor(seconds % 60)
-    return `${mins}:${secs.toString().padStart(2, '0')}`
-  }
+  // Subscribe to queue changes
+  useEffect(() => {
+    const unsubscribe = audioQueue.subscribe({
+      onQueueChanged: setQueue
+    })
 
-  const formatTime = (timestamp: string) => {
-    const date = new Date(timestamp)
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-  }
+    return unsubscribe
+  }, [])
 
-  const toggleExpanded = () => {
-    setIsExpanded(!isExpanded)
-  }
-
-  const handlePlayClick = async () => {
-    if (autoplayTestResult === 'testing') {
-      // Don't allow clicks while testing
-      return
-    }
-    
-    if (needsUserInteraction) {
-      // First click - enable autoplay and start playing
+  const handlePlayPause = async () => {
+    if (playerState === 'stopped') {
       try {
-        await enableAutoplayAndStartPlaying()
+        await audioPlayerService.play()
       } catch (error) {
-        console.error('Failed to enable autoplay:', error)
+        console.error('Failed to start player:', error)
       }
     } else {
-      // User has already interacted - toggle player state
-      togglePlayerState()
+      audioPlayerService.pause()
     }
   }
 
-  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newVolume = parseInt(e.target.value)
-    setVolumeState(newVolume)
-    setVolume(newVolume)
+  const handleClearQueue = () => {
+    audioPlayerService.clearQueue()
   }
 
   const handleQueueItemClick = (call: CallDto) => {
-    // Move the clicked call to the front of the queue and start playing
-    moveToFront(call.id)
-    playCall(call).catch((error) => {
-      console.warn('Failed to play selected call:', error.message)
-    })
+    audioPlayerService.moveToFront(call.id)
     setIsExpanded(false)
   }
 
+  const handleRemoveFromQueue = (callId: number, e: React.MouseEvent) => {
+    e.stopPropagation()
+    audioPlayerService.removeFromQueue(callId)
+  }
+
   const getCurrentTalkGroupDisplay = () => {
-    if (autoplayTestResult === 'testing') {
-      return '🔊 Testing audio...'
-    }
-    if (autoplayTestResult === 'passed') {
-      return '✅ Audio ready!'
-    }
-    if (autoplayTestResult === 'failed') {
-      return '❌ Click to enable audio'
+    if (!hasUserInteracted) {
+      return '🚫 Click to enable audio'
     }
     
-    // When actively playing, show what's currently playing
     if (isPlaying && currentCall?.talkGroup) {
       return currentCall.talkGroup.description || 
              currentCall.talkGroup.alphaTag || 
              currentCall.talkGroup.name || 
              `TG ${currentCall.talkGroup.number || currentCall.talkGroupId}`
     }
+    
     if (isPlaying && currentCall) {
       return `TG ${currentCall.talkGroupId}`
     }
     
-    // When not playing, show appropriate status
-    if (needsUserInteraction) {
-      return '🚫 Click to enable audio'
-    }
     if (playerState === 'stopped') {
-      return '⏸️ Player stopped'
+      return queue.length > 0 ? `${queue.length} calls queued` : '⏸️ Player stopped'
     }
-    if (queueLength > 0) {
-      return `${queueLength} calls queued`
-    }
-    return '' // Show nothing when idle
+    
+    return ''
   }
 
   const getPlayButtonState = () => {
-    if (autoplayTestResult === 'testing') {
-      return { icon: '⏳', title: 'Testing autoplay capability...' }
+    if (!hasUserInteracted) {
+      return { icon: '▶️', title: 'Click to enable audio and start player' }
     }
-    if (needsUserInteraction) {
-      return { icon: '🔊', title: 'Click to enable autoplay and start audio' }
-    }
+    
     if (playerState === 'playing') {
-      return { icon: '⏸️', title: 'Stop playback (pause autoplay)' }
+      return { icon: '⏸️', title: 'Pause player' }
     }
-    return { icon: '▶️', title: 'Start playback (resume autoplay)' }
+    
+    return { icon: '▶️', title: 'Start player' }
+  }
+
+  const formatTime = (dateString: string) => {
+    const date = new Date(dateString)
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  }
+
+  const formatDuration = (seconds: number) => {
+    if (!isFinite(seconds) || seconds <= 0) return '0s'
+    const m = Math.floor(seconds / 60)
+    const s = Math.floor(seconds % 60)
+    return m ? `${m}m ${s}s` : `${s}s`
   }
 
   const playButtonState = getPlayButtonState()
 
-  // Always show the player - this is the core requirement
   return (
-    <div className="audio-player">
-      {/* Expanded queue view */}
-      {isExpanded && queueLength > 0 && (
-        <div className="queue-expanded">
-          <div className="queue-header">
-            <h4>Call Queue ({queueLength})</h4>
-            <button 
-              type="button" 
-              className="clear-queue-btn"
-              onClick={clearQueue}
-              title="Clear all calls from queue"
-            >
-              Clear All
-            </button>
-          </div>
-          
-          <div className="queue-list">
-            {queue.map((call, index) => (
-              <div 
-                key={call.id} 
-                className={`queue-item ${call.id === currentCallId ? 'current' : ''}`}
-                onClick={() => handleQueueItemClick(call)}
-              >
-                <div className="queue-position">
-                  {index + 1}.
-                </div>
-                
-                <div className="queue-call-info">
-                  <div className="queue-talkgroup">
-                    <Link to={`/talkgroup/${call.talkGroupId}`} className="talkgroup-link" onClick={e => e.stopPropagation()}>
-                      TG {call.talkGroupId}
-                    </Link>
-                    {call.talkGroup?.alphaTag && (
-                      <span className="alpha-tag"> - {call.talkGroup.alphaTag}</span>
-                    )}
-                  </div>
-                  
-                  <div className="queue-details">
-                    <span className="queue-time">{formatTime(call.recordingTime)}</span>
-                    <span className="queue-duration">
-                      {formatDuration(call.durationSeconds)}
-                    </span>
-                  </div>
-                </div>
-                
-                <button
-                  type="button"
-                  className="remove-from-queue-btn"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    removeFromQueue(call.id)
-                  }}
-                  title="Remove from queue"
-                >
-                  ×
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Main player controls */}
-      <div className="player-controls">
-        {/* Left section - Play/Pause and track info */}
-        <div className="player-left">
+    <div className="new-audio-player">
+      <div className="player-main">
+        {/* Left section - Controls */}
+        <div className="player-controls">
           <button
-            className={`play-pause-btn ${playerState === 'playing' ? 'playing' : 'paused'} ${autoplayTestResult === 'testing' ? 'testing' : needsUserInteraction ? 'consent-needed' : ''}`}
-            onClick={handlePlayClick}
+            className={`play-pause-btn ${playerState === 'playing' ? 'playing' : ''} ${!hasUserInteracted ? 'blocked' : ''}`}
+            onClick={handlePlayPause}
             title={playButtonState.title}
           >
-            {playButtonState.icon}
+            <span className="play-icon">{playButtonState.icon}</span>
           </button>
-          
+        </div>
+
+        {/* Center section - Now playing info */}
+        <div className="player-left">
           <div className="track-info">
-            <div className={`track-title ${autoplayTestResult ? `test-${autoplayTestResult}` : ''} ${needsUserInteraction ? 'blocked' : ''} ${playerState === 'stopped' && !needsUserInteraction ? 'paused' : ''}`}>
+            <div className={`track-title ${!hasUserInteracted ? 'blocked' : ''} ${playerState === 'stopped' && hasUserInteracted ? 'stopped' : ''}`}>
               {getCurrentTalkGroupDisplay()}
             </div>
             {currentCall && isPlaying && (
@@ -250,69 +136,244 @@ export default function AudioPlayer() {
           </div>
         </div>
 
-        {/* Center section - Queue info and status */}
+        {/* Right section - Queue info */}
         <div className="player-center">
-          {queueLength > 0 && (
-            <button
-              className="queue-toggle"
-              onClick={toggleExpanded}
-              title={`${queueLength} calls in queue`}
-            >
-              <span className="queue-icon">🎵</span>
-              <span className="queue-count">{queueLength}</span>
-              <span className="expand-arrow">{isExpanded ? '▼' : '▲'}</span>
-            </button>
+          {queue.length > 0 && (
+            <>
+              <button
+                className="queue-toggle"
+                onClick={() => setIsExpanded(!isExpanded)}
+                title={`${queue.length} calls in queue`}
+              >
+                <span className="queue-icon">🎵</span>
+                <span className="queue-count">{queue.length}</span>
+                <span className="expand-arrow">{isExpanded ? '▼' : '▲'}</span>
+              </button>
+              
+              <button
+                className="clear-queue-btn"
+                onClick={handleClearQueue}
+                title="Clear queue"
+              >
+                🗑️
+              </button>
+            </>
           )}
-          
-          {userHasInteracted && autoplayEnabled && (
-            <div className="status-indicator">
-              <span className="status-dot live"></span>
-              <span className="status-text">Live</span>
-            </div>
-          )}
-
-          {userHasInteracted && !autoplayEnabled && (
-            <div className="status-indicator">
-              <span className="status-dot disabled"></span>
-              <span className="status-text">Manual</span>
-            </div>
-          )}
-        </div>
-
-        {/* Right section - Volume controls */}
-        <div className="player-right">
-          <div className="volume-control">
-            <span className="volume-icon">🔊</span>
-            <input
-              type="range"
-              min="0"
-              max="100"
-              value={volume}
-              onChange={handleVolumeChange}
-              className="volume-slider"
-              title={`Volume: ${volume}%`}
-            />
-            <span className="volume-value">{volume}%</span>
-          </div>
         </div>
       </div>
 
+      {/* Expanded queue */}
+      {isExpanded && queue.length > 0 && (
+        <div className="queue-expanded">
+          <div className="queue-header">
+            <h3>Playback Queue ({queue.length})</h3>
+            <button
+              className="queue-close"
+              onClick={() => setIsExpanded(false)}
+              title="Close queue"
+            >
+              ✕
+            </button>
+          </div>
+          
+          <div className="queue-list">
+            {queue.map((call, index) => (
+              <div 
+                key={call.id} 
+                className={`queue-item ${call.id === currentCall?.id ? 'current' : ''}`}
+                onClick={() => handleQueueItemClick(call)}
+              >
+                <div className="queue-position">
+                  {index + 1}.
+                </div>
+                
+                <div className="queue-call-info">
+                  <div className="queue-talkgroup">
+                    {call.talkGroup?.description ? (
+                      <Link 
+                        to={`/talkgroup/${call.talkGroupId}`} 
+                        className="talkgroup-link" 
+                        onClick={e => e.stopPropagation()}
+                      >
+                        {call.talkGroup.description}
+                      </Link>
+                    ) : (
+                      <Link 
+                        to={`/talkgroup/${call.talkGroupId}`} 
+                        className="talkgroup-link" 
+                        onClick={e => e.stopPropagation()}
+                      >
+                        TG {call.talkGroupId}
+                        {call.talkGroup?.alphaTag && (
+                          <span className="alpha-tag"> - {call.talkGroup.alphaTag}</span>
+                        )}
+                      </Link>
+                    )}
+                  </div>
+                  
+                  <div className="queue-details">
+                    <span className="queue-time">{formatTime(call.recordingTime)}</span>
+                    <span className="queue-duration">
+                      {formatDuration(call.durationSeconds || 0)}
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  className="queue-remove"
+                  onClick={(e) => handleRemoveFromQueue(call.id, e)}
+                  title="Remove from queue"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <style>{`
-        .audio-player {
+        .new-audio-player {
           position: fixed;
           bottom: 0;
           left: 0;
           right: 0;
-          background: var(--bg-secondary);
+          background: var(--bg-card);
           border-top: 1px solid var(--border);
+          backdrop-filter: blur(10px);
           z-index: 1000;
-          box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .player-main {
+          display: flex;
+          align-items: center;
+          padding: var(--space-2);
+          gap: var(--space-2);
+          max-width: var(--content-width);
+          margin: 0 auto;
+        }
+
+        .player-left {
+          flex: 1;
+          min-width: 0;
+        }
+
+        .track-info {
+          display: flex;
+          flex-direction: column;
+          gap: var(--space-1);
+        }
+
+        .track-title {
+          font-weight: 600;
+          color: var(--text-primary);
+          font-size: var(--font-size-sm);
+          truncate: ellipsis;
+          white-space: nowrap;
+          overflow: hidden;
+        }
+
+        .track-title.blocked {
+          color: var(--error-text);
+        }
+
+        .track-title.stopped {
+          color: var(--text-secondary);
+        }
+
+        .track-subtitle {
+          font-size: var(--font-size-xs);
+          color: var(--text-secondary);
+        }
+
+        .player-center {
+          display: flex;
+          align-items: center;
+          gap: var(--space-1);
+        }
+
+        .queue-toggle {
+          display: flex;
+          align-items: center;
+          gap: var(--space-1);
+          background: var(--bg-secondary);
+          border: 1px solid var(--border);
+          color: var(--text-primary);
+          padding: var(--space-1) var(--space-2);
+          border-radius: var(--radius);
+          cursor: pointer;
+          transition: var(--transition);
+          font-size: var(--font-size-sm);
+        }
+
+        .queue-toggle:hover {
+          background: var(--bg-card-hover);
+          border-color: var(--accent-primary);
+        }
+
+        .queue-count {
+          font-weight: 600;
+        }
+
+        .expand-arrow {
+          transition: transform 0.2s ease;
+        }
+
+        .player-controls {
+          display: flex;
+          align-items: center;
+          gap: var(--space-1);
+        }
+
+        .play-pause-btn {
+          background: var(--accent-primary);
+          border: none;
+          color: white;
+          width: 48px;
+          height: 48px;
+          border-radius: 50%;
+          cursor: pointer;
+          transition: var(--transition);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: var(--font-size-lg);
+        }
+
+        .play-pause-btn:hover {
+          background: var(--accent-primary-hover);
+          transform: scale(1.05);
+        }
+
+        .play-pause-btn.blocked {
+          background: var(--error-bg);
+          color: var(--error-text);
+        }
+
+        .clear-queue-btn {
+          background: none;
+          border: 1px solid var(--border);
+          color: var(--text-secondary);
+          width: 32px;
+          height: 32px;
+          border-radius: var(--radius);
+          cursor: pointer;
+          transition: var(--transition);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .clear-queue-btn:hover {
+          background: var(--error-bg);
+          border-color: var(--error-border);
+          color: var(--error-text);
         }
 
         .queue-expanded {
-          border-bottom: 1px solid var(--border);
-          background: rgba(0, 0, 0, 0.4);
-          max-height: 250px;
+          border-top: 1px solid var(--border);
+          background: var(--bg-secondary);
+          max-height: 300px;
           overflow-y: auto;
         }
 
@@ -321,30 +382,26 @@ export default function AudioPlayer() {
           justify-content: space-between;
           align-items: center;
           padding: var(--space-2);
-          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+          border-bottom: 1px solid var(--border);
         }
 
-        .queue-header h4 {
+        .queue-header h3 {
           margin: 0;
-          font-size: 0.9rem;
-          font-weight: 600;
+          font-size: var(--font-size-md);
           color: var(--text-primary);
         }
 
-        .clear-queue-btn {
-          background: var(--bg-danger);
+        .queue-close {
+          background: none;
           border: none;
-          border-radius: var(--radius-sm);
-          padding: var(--space-1) var(--space-2);
-          color: white;
-          font-size: 0.8rem;
-          font-weight: 500;
+          color: var(--text-secondary);
           cursor: pointer;
-          transition: var(--transition);
+          font-size: var(--font-size-lg);
+          padding: var(--space-1);
         }
 
-        .clear-queue-btn:hover {
-          background: var(--bg-danger-hover);
+        .queue-close:hover {
+          color: var(--text-primary);
         }
 
         .queue-list {
@@ -357,29 +414,24 @@ export default function AudioPlayer() {
           align-items: center;
           gap: var(--space-2);
           padding: var(--space-2);
-          border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+          border-bottom: 1px solid var(--border);
           cursor: pointer;
           transition: var(--transition);
         }
 
         .queue-item:hover {
-          background: rgba(255, 255, 255, 0.05);
+          background: var(--bg-card-hover);
         }
 
         .queue-item.current {
-          background: rgba(var(--accent-primary-rgb), 0.1);
-          border-left: 3px solid var(--accent-primary);
-        }
-
-        .queue-item:last-child {
-          border-bottom: none;
+          background: var(--accent-bg);
+          color: var(--accent-text);
         }
 
         .queue-position {
           font-weight: 600;
-          color: var(--accent-primary);
+          color: var(--text-secondary);
           min-width: 24px;
-          font-size: 0.8rem;
         }
 
         .queue-call-info {
@@ -390,363 +442,72 @@ export default function AudioPlayer() {
         .queue-talkgroup {
           display: flex;
           align-items: center;
+          gap: var(--space-1);
           margin-bottom: var(--space-1);
         }
 
         .talkgroup-link {
           color: var(--accent-primary);
           text-decoration: none;
-          font-weight: 500;
-          font-size: 0.85rem;
+          font-weight: 600;
           transition: var(--transition);
         }
 
         .talkgroup-link:hover {
           color: var(--accent-primary-hover);
-          text-decoration: underline;
         }
 
         .alpha-tag {
           color: var(--text-secondary);
-          font-size: 0.8em;
           font-weight: normal;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
+        }
+
+        .talkgroup-description {
+          color: var(--text-secondary);
+          font-weight: normal;
         }
 
         .queue-details {
           display: flex;
           gap: var(--space-2);
-          font-size: 0.75rem;
+          font-size: var(--font-size-xs);
           color: var(--text-secondary);
         }
 
-        .queue-time::before {
-          content: '🕐 ';
-        }
-
-        .queue-duration::before {
-          content: '⏱️ ';
-        }
-
-        .remove-from-queue-btn {
+        .queue-remove {
           background: none;
           border: none;
           color: var(--text-secondary);
           cursor: pointer;
-          font-size: 1rem;
-          font-weight: bold;
           padding: var(--space-1);
-          border-radius: var(--radius-sm);
-          transition: var(--transition);
-          min-width: 24px;
-          height: 24px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        .remove-from-queue-btn:hover {
-          background: var(--bg-danger);
-          color: white;
-        }
-
-        .player-controls {
-          display: flex;
-          align-items: center;
-          padding: var(--space-2) var(--space-3);
-          min-height: 64px;
-        }
-
-        .player-left {
-          display: flex;
-          align-items: center;
-          gap: var(--space-2);
-          flex: 1;
-          min-width: 0;
-        }
-
-        .play-pause-btn {
-          background: var(--accent-primary);
-          border: none;
-          border-radius: 50%;
-          width: 40px;
-          height: 40px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
-          transition: var(--transition);
-          font-size: 1.2rem;
-          flex-shrink: 0;
-        }
-
-        .play-pause-btn:hover {
-          background: var(--accent-primary-hover);
-          transform: scale(1.05);
-        }
-
-        .play-pause-btn.playing {
-          background: var(--accent-secondary);
-        }
-
-        .play-pause-btn.consent-needed {
-          background: var(--bg-warning);
-          animation: pulse-consent 2s infinite;
-        }
-
-        .play-pause-btn.testing {
-          background: var(--text-secondary);
-          cursor: not-allowed;
-          animation: pulse-testing 1.5s infinite;
-        }
-
-        .play-pause-btn.testing:hover {
-          transform: none;
-          background: var(--text-secondary);
-        }
-
-        @keyframes pulse-consent {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.7; }
-        }
-
-        @keyframes pulse-testing {
-          0%, 100% { opacity: 0.6; }
-          50% { opacity: 1; }
-        }
-
-        .track-info {
-          min-width: 0;
-          overflow: hidden;
-        }
-
-        .track-title {
-          font-weight: 600;
-          color: var(--text-primary);
-          font-size: 0.9rem;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-        }
-
-        .track-title.test-testing {
-          color: var(--text-secondary);
-          animation: pulse-text 1.5s infinite;
-        }
-
-        .track-title.test-passed {
-          color: var(--text-success, #10b981);
-        }
-
-        .track-title.test-failed,
-        .track-title.blocked {
-          color: var(--text-warning, #f59e0b);
-        }
-
-        .track-title.paused {
-          color: var(--text-secondary);
-          font-style: italic;
-        }
-
-        @keyframes pulse-text {
-          0%, 100% { opacity: 0.7; }
-          50% { opacity: 1; }
-        }
-
-        .track-subtitle {
-          font-size: 0.8rem;
-          color: var(--text-secondary);
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-        }
-
-        .consent-subtitle {
-          font-size: 0.75rem;
-          color: var(--bg-warning);
-          font-style: italic;
-        }
-
-        .player-center {
-          display: flex;
-          align-items: center;
-          gap: var(--space-3);
-          flex-shrink: 0;
-        }
-
-        .queue-toggle {
-          background: rgba(255, 255, 255, 0.05);
-          border: 1px solid rgba(255, 255, 255, 0.1);
+          font-size: var(--font-size-sm);
           border-radius: var(--radius);
-          padding: var(--space-1) var(--space-2);
-          display: flex;
-          align-items: center;
-          gap: var(--space-1);
-          cursor: pointer;
-          transition: var(--transition);
-          color: var(--text-secondary);
-          font-size: 0.8rem;
-        }
-
-        .queue-toggle:hover {
-          background: rgba(255, 255, 255, 0.1);
-          border-color: var(--accent-primary);
-        }
-
-        .queue-count {
-          background: var(--accent-primary);
-          color: white;
-          border-radius: 50%;
-          min-width: 16px;
-          height: 16px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 0.7rem;
-          font-weight: 600;
-          line-height: 1;
-        }
-
-        .status-indicator {
-          display: flex;
-          align-items: center;
-          gap: var(--space-1);
-          color: var(--text-secondary);
-          font-size: 0.8rem;
-        }
-
-        .status-dot {
-          width: 8px;
-          height: 8px;
-          border-radius: 50%;
-        }
-
-        .status-dot.live {
-          background: var(--accent-primary);
-          animation: pulse 2s infinite;
-        }
-
-        .status-dot.disabled {
-          background: var(--text-secondary);
-        }
-
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.4; }
-        }
-
-        .player-right {
-          flex: 1;
-          display: flex;
-          justify-content: flex-end;
-          min-width: 0;
-        }
-
-        .volume-control {
-          display: flex;
-          align-items: center;
-          gap: var(--space-2);
-          color: var(--text-secondary);
-        }
-
-        .volume-icon {
-          font-size: 0.9rem;
-          flex-shrink: 0;
-        }
-
-        .volume-slider {
-          width: 100px;
-          height: 4px;
-          border-radius: 2px;
-          background: rgba(255, 255, 255, 0.2);
-          outline: none;
-          appearance: none;
-          cursor: pointer;
-        }
-
-        .volume-slider::-webkit-slider-thumb {
-          appearance: none;
-          width: 16px;
-          height: 16px;
-          border-radius: 50%;
-          background: var(--accent-primary);
-          cursor: pointer;
           transition: var(--transition);
         }
 
-        .volume-slider::-webkit-slider-thumb:hover {
-          background: var(--accent-primary-hover);
-          transform: scale(1.1);
+        .queue-remove:hover {
+          background: var(--error-bg);
+          color: var(--error-text);
         }
 
-        .volume-slider::-moz-range-thumb {
-          width: 16px;
-          height: 16px;
-          border-radius: 50%;
-          background: var(--accent-primary);
-          border: none;
-          cursor: pointer;
-        }
-
-        .volume-value {
-          font-size: 0.8rem;
-          min-width: 35px;
-          text-align: right;
-        }
-
-        /* Mobile responsive */
-        @media (max-width: 768px) {
-          .player-controls {
-            padding: var(--space-2);
-            min-height: 56px;
-          }
-
-          .player-left {
-            flex: 2;
-          }
-
-          .player-center {
-            gap: var(--space-2);
-          }
-
-          .player-right {
-            flex: 1;
+        @media (max-width: 767px) {
+          .player-main {
+            gap: var(--space-1);
+            padding: var(--space-1);
           }
 
           .play-pause-btn {
-            width: 36px;
-            height: 36px;
-            font-size: 1rem;
+            width: 40px;
+            height: 40px;
+            font-size: var(--font-size-md);
           }
 
           .track-title {
-            font-size: 0.85rem;
-          }
-
-          .track-subtitle {
-            font-size: 0.75rem;
-          }
-
-          .volume-slider {
-            width: 80px;
-          }
-
-          .volume-control {
-            display: none;
+            font-size: var(--font-size-xs);
           }
 
           .queue-expanded {
             max-height: 200px;
-          }
-
-          .queue-item {
-            padding: var(--space-1) var(--space-2);
-          }
-          
-          .alpha-tag {
-            display: none;
           }
         }
       `}</style>

@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import CallCard from '../components/CallCard'
-import AutoplayBanner from '../components/AutoplayBanner'
+import AudioPlayer from '../components/AudioPlayer'
 import LoadingSpinner, { CallCardSkeleton } from '../components/LoadingSpinner'
 import Pagination from '../components/Pagination'
 import type { CallDto, PagedResult } from '../types/dtos'
-import { useAudioManager } from '../hooks/useAudioManager'
 import { useSubscriptions } from '../hooks/useSubscriptions'
 import { usePageTitle } from '../hooks/usePageTitle'
 import { apiGet } from '../api'
@@ -21,7 +20,6 @@ export default function SearchPage() {
   const [totalItems, setTotalItems] = useState(0)
   const pageSize = 20
   
-  const { playCall, isCallPlaying } = useAudioManager()
   const { toggle: toggleSubscription, isSubscribed } = useSubscriptions()
 
   // Update page title based on search
@@ -80,18 +78,12 @@ export default function SearchPage() {
     performSearch(query.trim(), 1)
   }
 
-  const handlePlayStateChange = (callId: number, isPlaying: boolean) => {
-    console.log(`Call ${callId} play state changed: ${isPlaying}`)
-  }
-
   return (
     <section className="search-page">
       <header className="search-header">
         <h1>Search Calls</h1>
         <p className="text-secondary">Search through call transcriptions</p>
       </header>
-
-      <AutoplayBanner />
 
       <form onSubmit={handleSearch} className="search-form">
         <div className="search-input-group">
@@ -145,10 +137,6 @@ export default function SearchPage() {
               <CallCard 
                 key={call.id} 
                 call={call}
-                isPlaying={isCallPlaying(call.id)}
-                onSubscribe={toggleSubscription}
-                isSubscribed={isSubscribed(call.talkGroupId)}
-                onPlayStateChange={handlePlayStateChange}
               />
             ))}
           </div>
@@ -283,6 +271,8 @@ export default function SearchPage() {
           }
         }
       `}</style>
+      
+      <AudioPlayer />
     </section>
   )
 }

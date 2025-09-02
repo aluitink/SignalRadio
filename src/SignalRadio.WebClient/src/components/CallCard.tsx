@@ -1,13 +1,16 @@
-import React, { useState } from 'react'
+import React from 'react'
 import { Link } from 'react-router-dom'
 import type { CallDto } from '../types/dtos'
-import { useAudioManager } from '../hooks/useAudioManager'
-import { useSubscriptions } from '../hooks/useSubscriptions'
+import { audioPlayerService } from '../services/AudioPlayerService'
+import { useSubscriptions } from '../contexts/SubscriptionContext'
 
 interface CallCardProps {
   call: CallDto
-  autoPlay?: boolean
-  showSubscribeButton?: boolean
+}
+
+function formatTime(dateString: string) {
+  const date = new Date(dateString)
+  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 }
 
 function secondsToHuman(s: number) {
@@ -17,25 +20,13 @@ function secondsToHuman(s: number) {
   return m ? `${m}m ${sec}s` : `${sec}s`
 }
 
-function formatTime(dateString: string) {
-  const date = new Date(dateString)
-  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-}
-
-export default function CallCard({ 
-  call, 
-  autoPlay = false, 
-  showSubscribeButton = true
-}: CallCardProps) {
-  const [hasError, setHasError] = useState(false)
-  const { playCall, isCallPlaying } = useAudioManager()
+export default function CallCard({ call }: CallCardProps) {
   const { isSubscribed, toggle: toggleSubscription, isPending } = useSubscriptions()
   
-  const isCardPlaying = isCallPlaying(call.id)
   const isSubscribedToTalkGroup = isSubscribed(call.talkGroupId)
   const isSubscriptionPending = isPending(call.talkGroupId)
 
-  // Calculate total duration from call duration or recordings
+  // Calculate duration and age
   const duration = call.durationSeconds || call.recordings.reduce((acc, r) => acc + (r.durationSeconds || 0), 0)
   const started = new Date(call.recordingTime)
   const ageSec = Math.floor((Date.now() - started.getTime()) / 1000)
@@ -46,27 +37,23 @@ export default function CallCard({
                           call.talkGroup?.name || 
                           `TG ${call.talkGroup?.number || call.talkGroupId}`
 
-  // Get recording URL
-  const recordingUrl = call.recordings[0]?.url
+  // Get transcription text
+  const transcriptionText = call.transcriptions && call.transcriptions.length > 0 
+    ? call.transcriptions.map(t => t.text).join(' ')
+    : null
 
-  const handlePlay = async () => {
-    if (!call.recordings?.length || hasError) return
-
-    try {
-      // Use the audio manager hook - clicking call now adds to queue
-      await playCall(call)
-    } catch (error) {
-      console.error('Audio play failed:', error)
-      setHasError(true)
-    }
-  }
-
-  const handleCardClick = (e: React.MouseEvent) => {
-    // Don't trigger play if clicking on links or buttons
-    if ((e.target as HTMLElement).closest('a, button')) return
+  const handleCardClick = () => {
+    if (!call.recordings?.length) return
     
-    e.preventDefault()
-    handlePlay()
+    // Add call to queue and start playing if not already playing
+    audioPlayerService.addToQueue(call)
+    
+    // If player is stopped, start it
+    if (audioPlayerService.getState() === 'stopped') {
+      audioPlayerService.play().catch(error => {
+        console.error('Failed to start audio player:', error)
+      })
+    }
   }
 
   const handleSubscribe = async (e: React.MouseEvent) => {
@@ -76,7 +63,6 @@ export default function CallCard({
       await toggleSubscription(call.talkGroupId)
     } catch (error) {
       console.error('Failed to toggle subscription:', error)
-      // Could show an error toast here
     }
   }
 
@@ -89,7 +75,7 @@ export default function CallCard({
       try {
         await navigator.share({
           title: `${talkGroupDisplay} - SignalRadio`,
-          text: call.transcriptions?.[0]?.text || 'Radio call',
+          text: transcriptionText || 'Radio call',
           url: shareUrl
         })
       } catch (error) {
@@ -105,28 +91,20 @@ export default function CallCard({
     }
   }
 
-  const transcriptionText = call.transcriptions && call.transcriptions.length > 0 
-    ? call.transcriptions.map(t => t.text).join(' ')
-    : null
-
   return (
     <article 
-      className={`call-card ${isCardPlaying ? 'playing' : ''} ${hasError ? 'error' : ''}`}
+      className="new-call-card"
       onClick={handleCardClick}
       role="button"
       tabIndex={0}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault()
-          handlePlay()
+          handleCardClick()
         }
       }}
       aria-label={`Play call from ${talkGroupDisplay}`}
     >
-      {isCardPlaying && (
-        <div className="audio-progress-indicator" />
-      )}
-
       <div className="call-header">
         <div className="call-talkgroup">
           <Link 
@@ -136,23 +114,32 @@ export default function CallCard({
           >
             {talkGroupDisplay}
           </Link>
-          {call.talkGroup?.priority && (
-            <span className="priority-badge">P{call.talkGroup.priority}</span>
-          )}
+          <div className="badges">
+            {call.talkGroup?.priority && (
+              <span className="badge priority-badge">P{call.talkGroup.priority}</span>
+            )}
+            {call.talkGroup?.tag && (
+              <span className="badge tag-badge">{call.talkGroup.tag}</span>
+            )}
+            {call.talkGroup?.category && (
+              <span className="badge category-badge">{call.talkGroup.category}</span>
+            )}
+            {call.talkGroup?.alphaTag && call.talkGroup.alphaTag !== call.talkGroup.tag && (
+              <span className="badge alpha-badge">{call.talkGroup.alphaTag}</span>
+            )}
+          </div>
         </div>
         
         <div className="call-actions">
-          {showSubscribeButton && (
-            <button
-              className={`subscribe-btn ${isSubscribedToTalkGroup ? 'subscribed' : ''} ${isSubscriptionPending ? 'pending' : ''}`}
-              onClick={handleSubscribe}
-              disabled={isSubscriptionPending}
-              aria-label={isSubscribedToTalkGroup ? 'Unsubscribe from talkgroup' : 'Subscribe to talkgroup'}
-              title={isSubscribedToTalkGroup ? 'Unsubscribe from talkgroup' : 'Subscribe to talkgroup'}
-            >
-              {isSubscriptionPending ? '⏳' : (isSubscribedToTalkGroup ? '⭐' : '☆')}
-            </button>
-          )}
+          <button
+            className={`subscribe-btn ${isSubscribedToTalkGroup ? 'subscribed' : ''} ${isSubscriptionPending ? 'pending' : ''}`}
+            onClick={handleSubscribe}
+            disabled={isSubscriptionPending}
+            aria-label={isSubscribedToTalkGroup ? 'Unsubscribe from talkgroup' : 'Subscribe to talkgroup'}
+            title={isSubscribedToTalkGroup ? 'Unsubscribe from talkgroup' : 'Subscribe to talkgroup'}
+          >
+            {isSubscriptionPending ? '⏳' : (isSubscribedToTalkGroup ? '⭐' : '☆')}
+          </button>
           
           <button
             className="share-btn"
@@ -173,7 +160,7 @@ export default function CallCard({
         <span className="call-frequency">
           {(call.frequencyHz / 1000000).toFixed(3)} MHz
         </span>
-        <span className="call-age text-muted">{secondsToHuman(ageSec)} ago</span>
+        <span className="call-age">{secondsToHuman(ageSec)} ago</span>
       </div>
 
       {transcriptionText && (
@@ -184,65 +171,31 @@ export default function CallCard({
 
       {!transcriptionText && (
         <div className="call-transcript">
-          <p className="text-muted">No transcription available</p>
-        </div>
-      )}
-
-      {isCardPlaying && (
-        <div className="playing-indicator">
-          <span className="playing-icon">🔊</span>
-          <span className="playing-text">Playing...</span>
+          <p className="no-transcript">No transcription available</p>
         </div>
       )}
 
       <style>{`
-        .call-card {
+        .new-call-card {
           background: var(--bg-card);
           border: 1px solid var(--border);
           border-radius: var(--radius);
           padding: var(--space-2);
-          margin-bottom: var(--space-2);
           cursor: pointer;
           transition: var(--transition);
           position: relative;
           overflow: hidden;
         }
 
-        .call-card:hover {
+        .new-call-card:hover {
           background: var(--bg-card-hover);
           border-color: var(--accent-primary);
           transform: translateY(-1px);
         }
 
-        .call-card:focus {
+        .new-call-card:focus {
           outline: 2px solid var(--accent-primary);
           outline-offset: 2px;
-        }
-
-        .call-card.playing {
-          border-color: var(--accent-primary);
-          background: var(--bg-card-hover);
-        }
-
-        .call-card.error {
-          border-color: #ef4444;
-          opacity: 0.7;
-        }
-
-        .audio-progress-indicator {
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          height: 2px;
-          background: var(--accent-primary);
-          animation: pulse 2s ease-in-out infinite;
-          z-index: 1;
-        }
-
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.5; }
         }
 
         .call-header {
@@ -255,10 +208,19 @@ export default function CallCard({
 
         .call-talkgroup {
           display: flex;
-          align-items: center;
-          gap: var(--space-1);
+          align-items: flex-start;
+          gap: var(--space-2);
           flex: 1;
           min-width: 0;
+          flex-direction: column;
+        }
+
+        .badges {
+          display: flex;
+          align-items: center;
+          gap: var(--space-1);
+          flex-wrap: wrap;
+          margin-top: var(--space-1);
         }
 
         .talkgroup-link {
@@ -274,14 +236,33 @@ export default function CallCard({
           color: var(--accent-primary);
         }
 
-        .priority-badge {
-          background: var(--accent-secondary);
-          color: white;
+        .badge {
           padding: 2px 6px;
           border-radius: var(--radius-sm);
           font-size: var(--font-size-xs);
           font-weight: 600;
           flex-shrink: 0;
+          line-height: 1.2;
+        }
+
+        .priority-badge {
+          background: var(--accent-secondary);
+          color: white;
+        }
+
+        .tag-badge {
+          background: var(--accent-primary);
+          color: white;
+        }
+
+        .category-badge {
+          background: rgba(147, 51, 234, 0.9);
+          color: white;
+        }
+
+        .alpha-badge {
+          background: rgba(34, 197, 94, 0.9);
+          color: white;
         }
 
         .call-actions {
@@ -353,26 +334,14 @@ export default function CallCard({
           color: var(--text-primary);
         }
 
-        .playing-indicator {
-          display: flex;
-          align-items: center;
-          gap: var(--space-1);
-          color: var(--accent-primary);
-          font-size: var(--font-size-sm);
-          font-weight: 500;
-        }
-
-        .playing-icon {
-          animation: pulse 1.5s ease-in-out infinite;
-        }
-
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.5; }
+        .call-transcript .no-transcript {
+          color: var(--text-secondary);
+          font-style: italic;
         }
 
         @media (max-width: 767px) {
           .call-meta {
+            flex-direction: column;
             gap: var(--space-1);
             font-size: var(--font-size-xs);
           }

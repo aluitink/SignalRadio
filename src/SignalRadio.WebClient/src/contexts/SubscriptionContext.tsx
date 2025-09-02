@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import { subscriptionManager } from '../hooks/useSubscriptions'
 import { useSignalR } from '../hooks/useSignalR'
-import { useAudioManager } from '../hooks/useAudioManager'
+import { audioQueue } from '../services/AudioQueue'
+import { audioPlayerService } from '../services/AudioPlayerService'
 import type { CallDto } from '../types/dtos'
 
 interface SubscriptionContextType {
@@ -25,7 +26,6 @@ interface SubscriptionProviderProps {
 
 export function SubscriptionProvider({ children }: SubscriptionProviderProps) {
   const { connection, connected } = useSignalR('/hubs/talkgroup')
-  const { playFromSubscription } = useAudioManager()
   
   const [subscriptions, setSubscriptions] = useState<Set<number>>(
     new Set(subscriptionManager.getSubscriptions())
@@ -67,14 +67,17 @@ export function SubscriptionProvider({ children }: SubscriptionProviderProps) {
             hasRecordings: !!call.recordings?.length
           })
           
-          if (callTime >= fiveMinutesAgo && call.recordings?.length) {
-            console.log(`[SubscriptionContext] Playing subscribed call ${call.id}`)
-            // Auto-play if conditions are met (handled by audio manager)
-            playFromSubscription(call).catch(error => {
-              console.error('[SubscriptionContext] Failed to play subscribed call:', error)
-            })
+          if (callTime >= fiveMinutesAgo && call.recordings?.length && call.recordings[0]?.id) {
+            console.log(`[SubscriptionContext] Adding subscribed call ${call.id} to queue`)
+            // Auto-queue subscribed calls for playback - the audio player will pick them up
+            audioQueue.add(call)
           } else {
-            console.log(`[SubscriptionContext] Skipping auto-play for older call ${call.id} (${call.recordingTime}) or no recordings`)
+            console.log(`[SubscriptionContext] Skipping auto-play for call ${call.id}:`, {
+              isRecent: callTime >= fiveMinutesAgo,
+              hasRecordings: !!call.recordings?.length,
+              hasValidRecordingId: !!call.recordings?.[0]?.id,
+              recordingTime: call.recordingTime
+            })
           }
         } else {
           console.log(`[SubscriptionContext] Call ${call.id} is not from a subscribed talk group (${call.talkGroupId})`)
@@ -90,7 +93,7 @@ export function SubscriptionProvider({ children }: SubscriptionProviderProps) {
         connection.off('CallUpdated', handleCallUpdated)
       }
     }
-  }, [connection, hasInitialized, playFromSubscription])
+  }, [connection, hasInitialized])
 
   // Handle connection state changes - only resubscribe once per connection
   useEffect(() => {

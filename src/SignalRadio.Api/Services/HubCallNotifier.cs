@@ -40,11 +40,15 @@ public class HubCallNotifier : ICallNotifier
             // Convert to DTO format - same as API returns
             var callDto = updatedCall.ToDto(apiBaseUrl);
 
-            // Log that we're pushing this call to the global all-calls monitor group
-            _logger.LogInformation("Pushing call {CallId} to all_calls_monitor (TalkGroup={TalkGroupId}, RecordingCount={RecordingCount})",
+            // Log that we're pushing this call to both the global all-calls monitor group and specific talkgroup subscribers
+            _logger.LogInformation("Pushing call {CallId} to all_calls_monitor and talkgroup_{TalkGroupId} (RecordingCount={RecordingCount})",
                 updatedCall.Id, updatedCall.TalkGroupId, callDto.Recordings.Count);
+            
+            // Send to all calls monitor (for general stream)
             await hubContext.Clients.Group("all_calls_monitor").SendAsync("CallUpdated", callDto, cancellationToken);
-            //await hubContext.Clients.Group($"talkgroup_{updatedCall.TalkGroupId}").SendAsync("CallUpdated", callDto, cancellationToken);
+            
+            // Send to specific talkgroup subscribers (for auto-play functionality)
+            await hubContext.Clients.Group($"talkgroup_{updatedCall.TalkGroupId}").SendAsync("CallUpdated", callDto, cancellationToken);
         }
         catch (Exception ex)
         {

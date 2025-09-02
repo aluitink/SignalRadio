@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import CallCard from '../components/CallCard'
-import AutoplayBanner from '../components/AutoplayBanner'
+import AudioPlayer from '../components/AudioPlayer'
 import { CallCardSkeleton } from '../components/LoadingSpinner'
 import Pagination from '../components/Pagination'
 import type { CallDto, PagedResult, TalkGroupDto } from '../types/dtos'
-import { useAudioManager } from '../hooks/useAudioManager'
-import { useSubscriptions } from '../hooks/useSubscriptions'
+import { audioPlayerService } from '../services/AudioPlayerService'
+import { useSubscriptions } from '../contexts/SubscriptionContext'
 import { usePageTitle } from '../hooks/usePageTitle'
 import { apiGet } from '../api'
 
@@ -23,8 +23,18 @@ export default function TalkGroupPage() {
   const [totalItems, setTotalItems] = useState(0)
   const pageSize = 20
   
-  const { playCall, isCallPlaying } = useAudioManager()
   const { toggle: toggleSubscription, isSubscribed } = useSubscriptions()
+
+  const playCall = (call: CallDto) => {
+    audioPlayerService.addToQueue(call)
+    
+    // If player is stopped, start it
+    if (audioPlayerService.getState() === 'stopped') {
+      audioPlayerService.play().catch(error => {
+        console.error('Failed to start audio player:', error)
+      })
+    }
+  }
 
   useEffect(() => {
     if (!talkGroupId) {
@@ -199,8 +209,6 @@ export default function TalkGroupPage() {
         )}
       </div>
 
-      <AutoplayBanner />
-
       {calls.length === 0 ? (
         <div className="empty-state">
           <div className="empty-icon">📻</div>
@@ -217,10 +225,6 @@ export default function TalkGroupPage() {
               <CallCard 
                 key={call.id} 
                 call={call}
-                isPlaying={isCallPlaying(call.id)}
-                onSubscribe={toggleSubscription}
-                isSubscribed={isSubscribed(call.talkGroupId)}
-                onPlayStateChange={handlePlayStateChange}
               />
             ))}
           </div>
@@ -393,6 +397,8 @@ export default function TalkGroupPage() {
           }
         }
       `}</style>
+      
+      <AudioPlayer />
     </section>
   )
 }

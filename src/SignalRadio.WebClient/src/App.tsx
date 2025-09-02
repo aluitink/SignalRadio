@@ -4,7 +4,7 @@ import ErrorBoundary from './components/ErrorBoundary'
 import Navigation from './components/Navigation'
 import Breadcrumb from './components/Breadcrumb'
 import PageTransition from './components/PageTransition'
-import CallStream from './pages/CallStream'
+import CallStreamPage from './pages/CallStreamPage'
 import Admin from './pages/Admin'
 import SearchPage from './pages/SearchPage'
 import TalkGroupPage from './pages/TalkGroupPage'
@@ -36,7 +36,7 @@ export default function App() {
                 <ErrorBoundary>
                   <PageTransition>
                     <Routes>
-                      <Route path="/" element={<CallStream />} />
+                      <Route path="/" element={<CallStreamPage />} />
                       <Route path="/search" element={<SearchPage />} />
                       <Route path="/subscriptions" element={<SubscriptionsPage />} />
                       <Route path="/talkgroup/:id" element={<TalkGroupPage />} />
