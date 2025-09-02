@@ -340,20 +340,72 @@ export default function CallCard({ call }: CallCardProps) {
         }
 
         @media (max-width: 767px) {
-          .call-meta {
-            flex-direction: column;
-            gap: var(--space-1);
-            font-size: var(--font-size-xs);
+          .new-call-card {
+            padding: var(--space-1-5);
+          }
+
+          .call-header {
+            margin-bottom: var(--space-1-5);
           }
           
-          .call-header {
+          .call-talkgroup {
             flex-direction: column;
             align-items: flex-start;
             gap: var(--space-1);
           }
+
+          .badges {
+            margin-top: 0;
+            gap: 4px;
+          }
+
+          .badge {
+            padding: 1px 4px;
+            font-size: 10px;
+          }
+
+          .talkgroup-link {
+            font-size: var(--font-size-base);
+            flex-shrink: 0;
+          }
           
-          .call-actions {
-            align-self: flex-end;
+          .call-meta {
+            display: grid;
+            grid-template-columns: auto auto;
+            gap: var(--space-1) var(--space-2);
+            margin-bottom: var(--space-1-5);
+            font-size: var(--font-size-xs);
+          }
+
+          .call-meta span:nth-child(1) { /* time */
+            grid-column: 1;
+            grid-row: 1;
+          }
+
+          .call-meta span:nth-child(2) { /* duration */
+            grid-column: 2;
+            grid-row: 1;
+            justify-self: end;
+          }
+
+          .call-meta span:nth-child(3) { /* frequency */
+            grid-column: 1;
+            grid-row: 2;
+          }
+
+          .call-meta span:nth-child(4) { /* age */
+            grid-column: 2;
+            grid-row: 2;
+            justify-self: end;
+          }
+
+          .call-transcript {
+            margin-bottom: var(--space-1);
+          }
+
+          .call-transcript p {
+            font-size: var(--font-size-sm);
+            line-height: 1.4;
           }
         }
       `}</style>
