@@ -1,9 +1,12 @@
 import React, { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
+import { useSignalR } from '../hooks/useSignalR'
+import WakeLockIndicator from './WakeLockIndicator'
 
 export default function Navigation() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const location = useLocation()
+  const { connected } = useSignalR('/hubs/talkgroup')
 
   const navItems = [
     { path: '/', label: 'Live Stream', icon: '📡' },
@@ -22,19 +25,26 @@ export default function Navigation() {
         <Link to="/" className="nav-brand">
           <span className="nav-brand-icon">📻</span>
           <span className="nav-brand-text">SignalRadio</span>
+          <span className={`nav-connection-status ${connected ? 'connected' : 'disconnected'}`}>
+            <span className="connection-indicator" />
+          </span>
         </Link>
 
-        <button 
-          className="nav-toggle"
-          onClick={() => setIsMenuOpen(!isMenuOpen)}
-          aria-label="Toggle navigation menu"
-        >
-          <span className={`hamburger ${isMenuOpen ? 'open' : ''}`}>
-            <span></span>
-            <span></span>
-            <span></span>
-          </span>
-        </button>
+        <div className="nav-actions">
+          <WakeLockIndicator className="nav-wake-lock" />
+          
+          <button 
+            className="nav-toggle"
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            aria-label="Toggle navigation menu"
+          >
+            <span className={`hamburger ${isMenuOpen ? 'open' : ''}`}>
+              <span></span>
+              <span></span>
+              <span></span>
+            </span>
+          </button>
+        </div>
 
         <div className={`nav-menu ${isMenuOpen ? 'open' : ''}`}>
           {navItems.map(item => (
@@ -60,6 +70,17 @@ export default function Navigation() {
           z-index: 100;
         }
 
+        /* Ensure proper positioning in fullscreen */
+        @media (max-width: 767px) {
+          .navigation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+          }
+        }
+
         .nav-container {
           max-width: 1200px;
           margin: 0 auto;
@@ -82,6 +103,41 @@ export default function Navigation() {
 
         .nav-brand-icon {
           font-size: var(--font-size-xl);
+        }
+
+        .nav-connection-status {
+          display: flex;
+          align-items: center;
+          margin-left: var(--space-1);
+        }
+
+        .connection-indicator {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          transition: var(--transition);
+        }
+
+        .nav-connection-status.connected .connection-indicator {
+          background: var(--success-color, #22c55e);
+          animation: pulse 2s ease-in-out infinite;
+        }
+
+        .nav-connection-status.disconnected .connection-indicator {
+          background: var(--error-color, #ef4444);
+        }
+
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.5; }
+        }
+
+        .nav-actions {
+          display: flex;
+          align-items: center;
+          gap: var(--space-2);
+          position: relative;
+          z-index: 101; /* Ensure it stays above other elements in fullscreen */
         }
 
         .nav-toggle {

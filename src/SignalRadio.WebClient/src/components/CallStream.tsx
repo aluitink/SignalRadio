@@ -6,9 +6,10 @@ import { audioPlayerService } from '../services/AudioPlayerService'
 import type { CallDto } from '../types/dtos'
 import CallCard from './CallCard'
 import LoadingSpinner from './LoadingSpinner'
+import TranscriptionTicker from './TranscriptionTicker'
 
 export default function CallStream() {
-  const { connection, connected } = useSignalR('/hubs/talkgroup')
+  const { connection } = useSignalR('/hubs/talkgroup')
   const { isSubscribed } = useSubscriptions()
   const [calls, setCalls] = useState<CallDto[]>([])
   const [loading, setLoading] = useState(true)
@@ -117,16 +118,6 @@ export default function CallStream() {
   if (loading) {
     return (
       <section className="call-stream">
-        <header className="stream-header">
-          <h1>Live Call Stream</h1>
-          <div className="connection-status">
-            <span className={`status-badge ${connected ? 'connected' : 'disconnected'}`}>
-              <span className="status-indicator" />
-              {connected ? 'Connected' : 'Connecting...'}
-            </span>
-          </div>
-        </header>
-        
         <div className="loading-container">
           <LoadingSpinner />
           <p>Loading recent calls...</p>
@@ -137,15 +128,7 @@ export default function CallStream() {
 
   return (
     <section className="call-stream">
-      <header className="stream-header">
-        <h1>Live Call Stream</h1>
-        <div className="connection-status">
-          <span className={`status-badge ${connected ? 'connected' : 'disconnected'}`}>
-            <span className="status-indicator" />
-            {connected ? 'Connected' : 'Connecting...'}
-          </span>
-        </div>
-      </header>
+      <TranscriptionTicker />
 
       <div className="call-list">
         {calls.length === 0 ? (
@@ -164,63 +147,6 @@ export default function CallStream() {
           max-width: var(--content-width);
           margin: 0 auto;
           padding: var(--space-2);
-        }
-
-        .stream-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: var(--space-3);
-          padding-bottom: var(--space-2);
-          border-bottom: 1px solid var(--border);
-        }
-
-        .stream-header h1 {
-          margin: 0;
-          color: var(--text-primary);
-          font-size: var(--font-size-xl);
-        }
-
-        .connection-status {
-          display: flex;
-          align-items: center;
-          gap: var(--space-1);
-        }
-
-        .status-badge {
-          display: flex;
-          align-items: center;
-          gap: var(--space-1);
-          padding: var(--space-1) var(--space-2);
-          border-radius: var(--radius);
-          font-size: var(--font-size-sm);
-          font-weight: 500;
-        }
-
-        .status-badge.connected {
-          background: var(--success-bg);
-          color: var(--success-text);
-        }
-
-        .status-badge.disconnected {
-          background: var(--error-bg);
-          color: var(--error-text);
-        }
-
-        .status-indicator {
-          width: 8px;
-          height: 8px;
-          border-radius: 50%;
-          background: currentColor;
-        }
-
-        .status-badge.connected .status-indicator {
-          animation: pulse 2s ease-in-out infinite;
-        }
-
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.5; }
         }
 
         .loading-container {
@@ -246,17 +172,7 @@ export default function CallStream() {
 
         @media (max-width: 767px) {
           .call-stream {
-            padding: var(--space-1);
-          }
-
-          .stream-header {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: var(--space-1);
-          }
-
-          .stream-header h1 {
-            font-size: var(--font-size-lg);
+            padding: var(--space-1-5) var(--space-1);
           }
         }
       `}</style>

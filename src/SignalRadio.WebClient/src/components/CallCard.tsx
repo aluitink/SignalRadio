@@ -20,6 +20,23 @@ function secondsToHuman(s: number) {
   return m ? `${m}m ${sec}s` : `${sec}s`
 }
 
+function secondsToAge(s: number) {
+  if (!isFinite(s) || s <= 0) return '0s'
+  
+  const days = Math.floor(s / 86400)
+  const hours = Math.floor((s % 86400) / 3600)
+  const minutes = Math.floor((s % 3600) / 60)
+  const seconds = Math.floor(s % 60)
+  
+  const parts = []
+  if (days > 0) parts.push(`${days}d`)
+  if (hours > 0) parts.push(`${hours}h`)
+  if (minutes > 0) parts.push(`${minutes}m`)
+  if (seconds > 0 || parts.length === 0) parts.push(`${seconds}s`)
+  
+  return parts.join(' ')
+}
+
 export default function CallCard({ call }: CallCardProps) {
   const { isSubscribed, toggle: toggleSubscription, isPending } = useSubscriptions()
   
@@ -160,7 +177,7 @@ export default function CallCard({ call }: CallCardProps) {
         <span className="call-frequency">
           {(call.frequencyHz / 1000000).toFixed(3)} MHz
         </span>
-        <span className="call-age">{secondsToHuman(ageSec)} ago</span>
+        <span className="call-age">{secondsToAge(ageSec)} ago</span>
       </div>
 
       {transcriptionText && (

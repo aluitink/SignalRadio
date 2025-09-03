@@ -29,6 +29,7 @@
   
   /* Spacing (8px base unit) */
   --space-1: 8px;
+  --space-1-5: 10px;
   --space-2: 16px;
   --space-3: 24px;
   --space-4: 32px;
@@ -41,7 +42,7 @@
   --radius-lg: 12px;
   
   /* Transitions */
-  --transition: all 0.2s ease;
+  --transition: all 0.3s ease;
 }
 
 * {
@@ -74,7 +75,7 @@ body {
 .container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0 var(--space-2);
+  padding: 0;
 }
 
 @media (min-width: 768px) {

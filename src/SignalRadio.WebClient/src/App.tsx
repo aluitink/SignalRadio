@@ -13,6 +13,7 @@ import SubscriptionsPage from './pages/SubscriptionsPage'
 import NotFoundPage from './pages/NotFoundPage'
 import { createApiTester } from './utils/ApiTester'
 import { SubscriptionProvider } from './contexts/SubscriptionContext'
+import { WakeLockProvider } from './contexts/WakeLockContext'
 
 export default function App() {
   // Initialize API tester for development
@@ -25,32 +26,34 @@ export default function App() {
 
   return (
     <Router>
-      <SubscriptionProvider>
-        <ErrorBoundary>
-          <div className="app">
-            <Navigation />
-            
-            <main className="main-content">
-              <div className="container">
-                <Breadcrumb />
-                <ErrorBoundary>
-                  <PageTransition>
-                    <Routes>
-                      <Route path="/" element={<CallStreamPage />} />
-                      <Route path="/search" element={<SearchPage />} />
-                      <Route path="/subscriptions" element={<SubscriptionsPage />} />
-                      <Route path="/talkgroup/:id" element={<TalkGroupPage />} />
-                      <Route path="/call/:id" element={<CallDetailPage />} />
-                      <Route path="/admin" element={<Admin />} />
-                      <Route path="*" element={<NotFoundPage />} />
-                    </Routes>
-                  </PageTransition>
-                </ErrorBoundary>
-              </div>
-            </main>
+      <WakeLockProvider>
+        <SubscriptionProvider>
+          <ErrorBoundary>
+            <div className="app">
+              <Navigation />
+              
+              <main className="main-content">
+                <div className="container">
+                  <Breadcrumb />
+                  <ErrorBoundary>
+                    <PageTransition>
+                      <Routes>
+                        <Route path="/" element={<CallStreamPage />} />
+                        <Route path="/search" element={<SearchPage />} />
+                        <Route path="/subscriptions" element={<SubscriptionsPage />} />
+                        <Route path="/talkgroup/:id" element={<TalkGroupPage />} />
+                        <Route path="/call/:id" element={<CallDetailPage />} />
+                        <Route path="/admin" element={<Admin />} />
+                        <Route path="*" element={<NotFoundPage />} />
+                      </Routes>
+                    </PageTransition>
+                  </ErrorBoundary>
+                </div>
+              </main>
           </div>
         </ErrorBoundary>
       </SubscriptionProvider>
+      </WakeLockProvider>
 
       <style>{`
         .main-content {
@@ -61,8 +64,7 @@ export default function App() {
 
         @media (max-width: 767px) {
           .main-content {
-            padding: var(--space-2) 0;
-            padding-bottom: calc(var(--space-2) + 70px); /* Account for fixed audio player on mobile */
+            padding: 64px 0 70px 0; /* Top padding for fixed nav, bottom for audio player */
           }
         }
       `}</style>

@@ -13,6 +13,7 @@ class SubscriptionManager {
   private listeners: Array<(subscriptions: Set<number>) => void> = []
   private signalRConnection: any = null
   private pendingSubscriptions = new Set<number>() // Track subscriptions waiting for SignalR confirmation
+  private pendingTimeouts = new Map<number, number>() // Track timeouts for pending operations
 
   constructor() {
     this.loadFromStorage()
@@ -26,7 +27,7 @@ class SubscriptionManager {
       connection.on('SubscriptionConfirmed', (talkGroupId: string) => {
         const id = parseInt(talkGroupId)
         if (!isNaN(id)) {
-          this.pendingSubscriptions.delete(id)
+          this.clearPendingState(id)
           if (!this.subscriptions.has(id)) {
             this.subscriptions.add(id)
             this.saveToStorage()
@@ -39,7 +40,7 @@ class SubscriptionManager {
       connection.on('UnsubscriptionConfirmed', (talkGroupId: string) => {
         const id = parseInt(talkGroupId)
         if (!isNaN(id)) {
-          this.pendingSubscriptions.delete(id)
+          this.clearPendingState(id)
           if (this.subscriptions.has(id)) {
             this.subscriptions.delete(id)
             this.saveToStorage()
@@ -88,6 +89,29 @@ class SubscriptionManager {
     }
   }
 
+  private clearPendingState(talkGroupId: number) {
+    this.pendingSubscriptions.delete(talkGroupId)
+    const timeoutId = this.pendingTimeouts.get(talkGroupId)
+    if (timeoutId) {
+      clearTimeout(timeoutId)
+      this.pendingTimeouts.delete(talkGroupId)
+    }
+    this.notifyListeners()
+  }
+
+  private setPendingState(talkGroupId: number) {
+    this.pendingSubscriptions.add(talkGroupId)
+    
+    // Set a timeout to clear pending state if no confirmation is received
+    const timeoutId = window.setTimeout(() => {
+      console.warn(`Subscription operation for talk group ${talkGroupId} timed out`)
+      this.clearPendingState(talkGroupId)
+    }, 10000) // 10 second timeout
+    
+    this.pendingTimeouts.set(talkGroupId, timeoutId)
+    this.notifyListeners()
+  }
+
   async subscribe(talkGroupId: number) {
     // Always update local state first for immediate UI feedback
     if (!this.subscriptions.has(talkGroupId)) {
@@ -99,11 +123,11 @@ class SubscriptionManager {
     // Then try to subscribe via SignalR if connected
     if (this.signalRConnection) {
       try {
-        this.pendingSubscriptions.add(talkGroupId)
+        this.setPendingState(talkGroupId)
         await this.signalRConnection.invoke('SubscribeToTalkGroup', talkGroupId.toString())
       } catch (error) {
         console.error(`Failed to subscribe to talk group ${talkGroupId} via SignalR:`, error)
-        this.pendingSubscriptions.delete(talkGroupId)
+        this.clearPendingState(talkGroupId)
         // Don't revert local state - user can retry later
         throw error
       }
@@ -114,11 +138,11 @@ class SubscriptionManager {
     // Try to unsubscribe via SignalR first if connected
     if (this.signalRConnection) {
       try {
-        this.pendingSubscriptions.add(talkGroupId)
+        this.setPendingState(talkGroupId)
         await this.signalRConnection.invoke('UnsubscribeFromTalkGroup', talkGroupId.toString())
       } catch (error) {
         console.error(`Failed to unsubscribe from talk group ${talkGroupId} via SignalR:`, error)
-        this.pendingSubscriptions.delete(talkGroupId)
+        this.clearPendingState(talkGroupId)
         throw error
       }
     }
@@ -164,8 +188,15 @@ class SubscriptionManager {
       }
     }
 
+    // Clear all timeouts
+    for (const timeoutId of this.pendingTimeouts.values()) {
+      clearTimeout(timeoutId)
+    }
+    this.pendingTimeouts.clear()
+
     // Clear local state
     this.subscriptions.clear()
+    this.pendingSubscriptions.clear()
     this.saveToStorage()
     this.notifyListeners()
   }
