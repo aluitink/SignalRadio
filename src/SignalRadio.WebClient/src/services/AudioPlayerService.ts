@@ -16,6 +16,7 @@ export interface AudioPlayerService {
   
   // Queue management (delegated to AudioQueue)
   addToQueue(call: CallDto): void
+  addToFront(call: CallDto): void
   clearQueue(): void
   removeFromQueue(callId: number): void
   moveToFront(callId: number): void
@@ -134,6 +135,10 @@ export class AudioPlayerServiceImpl implements AudioPlayerService {
 
   addToQueue(call: CallDto): void {
     audioQueue.add(call)
+  }
+
+  addToFront(call: CallDto): void {
+    audioQueue.addToFront(call)
   }
 
   clearQueue(): void {

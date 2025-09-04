@@ -168,8 +168,8 @@ export default function CallCard({ call }: CallCardProps) {
   const handleCardClick = () => {
     if (!call.recordings?.length) return
     
-    // Add call to queue and start playing if not already playing
-    audioPlayerService.addToQueue(call)
+    // Add call to front of queue so it plays next
+    audioPlayerService.addToFront(call)
     
     // If player is stopped, start it
     if (audioPlayerService.getState() === 'stopped') {

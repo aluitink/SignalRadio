@@ -2,6 +2,7 @@ import type { CallDto } from '../types/dtos'
 
 export interface AudioQueue {
   add(call: CallDto): void
+  addToFront(call: CallDto): void
   remove(callId: number): void
   clear(): void
   moveToFront(callId: number): void
@@ -26,6 +27,16 @@ export class AudioQueueImpl implements AudioQueue {
     }
 
     this.queue.push(call)
+    this.notifyListeners()
+  }
+
+  addToFront(call: CallDto): void {
+    // Don't add if already in queue
+    if (this.queue.some(c => c.id === call.id)) {
+      return
+    }
+
+    this.queue.unshift(call)
     this.notifyListeners()
   }
 
