@@ -37,6 +37,35 @@ function secondsToAge(s: number) {
   return parts.join(' ')
 }
 
+function getFrequencyColor(frequencyHz: number): string {
+  // Generate consistent colors based on frequency
+  const colors = [
+    '#3b82f6', // blue
+    '#10b981', // emerald  
+    '#f59e0b', // amber
+    '#ef4444', // red
+    '#8b5cf6', // violet
+    '#06b6d4', // cyan
+    '#84cc16', // lime
+    '#f97316', // orange
+  ]
+  
+  // Convert to MHz and use the full decimal value for hashing
+  const freqMHz = frequencyHz / 1000000
+  // Create a hash from the string representation to maintain precision
+  const freqString = freqMHz.toFixed(6) // Use 6 decimal places for precision
+  let hash = 0
+  for (let i = 0; i < freqString.length; i++) {
+    const char = freqString.charCodeAt(i)
+    hash = ((hash << 5) - hash) + char
+    hash = hash & hash // Convert to 32-bit integer
+  }
+  
+  // Ensure positive value and get color index
+  const index = Math.abs(hash) % colors.length
+  return colors[index]
+}
+
 export default function CallCard({ call }: CallCardProps) {
   const { isSubscribed, toggle: toggleSubscription, isPending } = useSubscriptions()
   const [currentPlayingCall, setCurrentPlayingCall] = useState<CallDto | null>(null)
@@ -100,6 +129,9 @@ export default function CallCard({ call }: CallCardProps) {
   }
 
   const priorityIntensity = getPriorityIntensity()
+
+  const frequencyColor = getFrequencyColor(call.frequencyHz)
+  const frequencyMHz = (call.frequencyHz / 1000000).toFixed(3)
 
   // Get category-based icon and animation class
   const getCategoryData = () => {
@@ -249,8 +281,16 @@ export default function CallCard({ call }: CallCardProps) {
           {formatTime(call.recordingTime)}
         </span>
         <span className="call-duration">{secondsToHuman(duration)}</span>
-        <span className="call-frequency">
-          {(call.frequencyHz / 1000000).toFixed(3)} MHz
+        <span 
+          className="call-frequency"
+          style={{ 
+            backgroundColor: frequencyColor, 
+            color: 'white',
+            fontWeight: '600'
+          }}
+          title={`Frequency: ${frequencyMHz} MHz`}
+        >
+          {frequencyMHz} MHz
         </span>
         <span className={`call-age age-${ageState}`}>{secondsToAge(ageSec)} ago</span>
       </div>
@@ -1231,6 +1271,20 @@ export default function CallCard({ call }: CallCardProps) {
 
         .call-age.age-old {
           color: rgba(107, 114, 128, 0.6);
+        }
+
+        .call-frequency {
+          padding: 2px var(--space-1-5) !important;
+          border-radius: var(--radius-sm) !important;
+          font-size: var(--font-size-xs) !important;
+          font-weight: 600 !important;
+          letter-spacing: 0.025em !important;
+          white-space: nowrap !important;
+          min-width: fit-content !important;
+          display: inline-block !important;
+          text-align: center !important;
+          border: 1px solid transparent !important;
+          box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
         }
 
         .call-transcript {

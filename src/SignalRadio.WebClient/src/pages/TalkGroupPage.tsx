@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import CallCard from '../components/CallCard'
+import FrequencyTabs from '../components/FrequencyTabs'
 import { CallCardSkeleton } from '../components/LoadingSpinner'
 import Pagination from '../components/Pagination'
 import type { CallDto, PagedResult, TalkGroupDto } from '../types/dtos'
@@ -21,6 +22,7 @@ export default function TalkGroupPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [totalItems, setTotalItems] = useState(0)
+  const [viewMode, setViewMode] = useState<'chronological' | 'frequency'>('chronological')
   const pageSize = 20
   
   const { toggle: toggleSubscription, isSubscribed } = useSubscriptions()
@@ -220,56 +222,79 @@ export default function TalkGroupPage() {
         )}
       </div>
 
-      {calls.length === 0 && !callsLoading ? (
-        <div className="empty-state">
-          <div className="empty-icon">📻</div>
-          <h3>No Recent Calls</h3>
-          <p className="text-muted">
-            {totalItems === 0 
-              ? `No calls found for ${talkGroupDisplay}. This talkgroup may be inactive or new.`
-              : "No calls found for the current page. Try navigating to a different page."
-            }
-          </p>
-          {totalItems === 0 && (
-            <p className="text-muted">
-              You can subscribe to this talkgroup to get notified when new calls arrive.
-            </p>
-          )}
-        </div>
-      ) : (
-        <div className="calls-section">
-          <div className="calls-header">
-            <h2>Recent Calls</h2>
+      <div className="calls-section">
+        <div className="calls-header">
+          <h2>Recent Calls</h2>
+          <div className="header-right">
+            <div className="view-toggle">
+              <button
+                className={`toggle-btn ${viewMode === 'chronological' ? 'active' : ''}`}
+                onClick={() => setViewMode('chronological')}
+                title="Chronological view"
+              >
+                📅
+              </button>
+              <button
+                className={`toggle-btn ${viewMode === 'frequency' ? 'active' : ''}`}
+                onClick={() => setViewMode('frequency')}
+                title="Group by frequency"
+              >
+                📡
+              </button>
+            </div>
             <div className="calls-count">
               {totalItems.toLocaleString()} total calls
             </div>
           </div>
-          <div className="calls-list">
-            {callsLoading && (
-              <div className="calls-loading">
-                {Array.from({ length: 3 }).map((_, i) => (
-                  <CallCardSkeleton key={i} />
-                ))}
-              </div>
-            )}
-            {!callsLoading && calls.map(call => (
-              <CallCard 
-                key={call.id} 
-                call={call}
-              />
-            ))}
-          </div>
-          
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            totalItems={totalItems}
-            itemsPerPage={pageSize}
-            onPageChange={setCurrentPage}
-            loading={callsLoading}
-          />
         </div>
-      )}
+
+        {calls.length === 0 && !callsLoading ? (
+          <div className="empty-state">
+            <div className="empty-icon">📻</div>
+            <h3>No Recent Calls</h3>
+            <p className="text-muted">
+              {totalItems === 0 
+                ? `No calls found for ${talkGroupDisplay}. This talkgroup may be inactive or new.`
+                : "No calls found for the current page. Try navigating to a different page."
+              }
+            </p>
+            {totalItems === 0 && (
+              <p className="text-muted">
+                You can subscribe to this talkgroup to get notified when new calls arrive.
+              </p>
+            )}
+          </div>
+        ) : viewMode === 'frequency' ? (
+          <FrequencyTabs talkGroupId={talkGroupId} limit={100} />
+        ) : (
+          <>
+            <div className="calls-list">
+              {callsLoading && (
+                <div className="calls-loading">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <CallCardSkeleton key={i} />
+                  ))}
+                </div>
+              )}
+              {!callsLoading && calls.map(call => (
+                <CallCard 
+                  key={call.id} 
+                  call={call}
+                />
+              ))}
+            </div>
+            
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={totalItems}
+              itemsPerPage={pageSize}
+              onPageChange={setCurrentPage}
+              loading={callsLoading}
+            />
+          </>
+        )}
+      </div>
 
       <style>{`
         .talkgroup-page {
@@ -414,6 +439,46 @@ export default function TalkGroupPage() {
           color: var(--text-primary);
         }
 
+        .header-right {
+          display: flex;
+          align-items: center;
+          gap: var(--space-3);
+        }
+
+        .view-toggle {
+          display: flex;
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          border-radius: var(--radius);
+          overflow: hidden;
+        }
+
+        .toggle-btn {
+          background: transparent;
+          border: none;
+          padding: var(--space-1) var(--space-2);
+          cursor: pointer;
+          transition: var(--transition);
+          font-size: 16px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          min-width: 40px;
+        }
+
+        .toggle-btn:hover {
+          background: var(--bg-card-hover);
+        }
+
+        .toggle-btn.active {
+          background: var(--accent-primary);
+          color: white;
+        }
+
+        .toggle-btn:not(:last-child) {
+          border-right: 1px solid var(--border);
+        }
+
         .calls-count {
           font-size: var(--font-size-sm);
           color: var(--text-secondary);
@@ -486,11 +551,22 @@ export default function TalkGroupPage() {
           .calls-header {
             flex-direction: column;
             align-items: flex-start;
-            gap: var(--space-1);
+            gap: var(--space-2);
+          }
+
+          .header-right {
+            align-self: stretch;
+            justify-content: space-between;
+            gap: var(--space-2);
           }
 
           .calls-count {
             font-size: var(--font-size-xs);
+          }
+
+          .toggle-btn {
+            min-width: 36px;
+            font-size: 14px;
           }
         }
       `}</style>

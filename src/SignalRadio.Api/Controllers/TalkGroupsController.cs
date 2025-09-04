@@ -68,6 +68,27 @@ public class TalkGroupsController : ControllerBase
         return Ok(dtoResult);
     }
 
+    [HttpGet("{id:int}/calls-by-frequency")]
+    public async Task<IActionResult> GetCallsByFrequencyForTalkGroup(int id, [FromQuery] int limit = 50)
+    {
+        // First verify the talkgroup exists
+        var talkGroup = await _svc.GetByIdAsync(id);
+        if (talkGroup == null) return NotFound($"TalkGroup with ID {id} not found");
+
+        limit = Math.Clamp(limit, 1, 1000);
+        
+        var result = await _callsService.GetCallsByFrequencyForTalkGroupAsync(id, limit);
+        
+        // Convert to DTOs with TalkGroup information included
+        var apiBaseUrl = $"{Request.Scheme}://{Request.Host}";
+        var dtoResult = result.ToDictionary(
+            kvp => kvp.Key,
+            kvp => kvp.Value.Select(call => call.ToDto(apiBaseUrl)).ToList()
+        );
+        
+        return Ok(dtoResult);
+    }
+
     [HttpPost]
     public async Task<IActionResult> Create(TalkGroup model)
     {

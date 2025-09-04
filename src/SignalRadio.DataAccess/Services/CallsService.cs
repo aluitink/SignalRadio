@@ -111,6 +111,24 @@ public class CallsService : ICallsService
         };
     }
 
+    public async Task<Dictionary<double, List<Call>>> GetCallsByFrequencyForTalkGroupAsync(int talkGroupId, int limit = 50)
+    {
+        var calls = await _db.Calls
+            .Where(c => c.TalkGroupId == talkGroupId)
+            .Include(c => c.Recordings)
+                .ThenInclude(r => r.Transcriptions)
+            .Include(c => c.TalkGroup)
+            .AsNoTracking()
+            .OrderByDescending(c => c.RecordingTime)
+            .Take(limit)
+            .ToListAsync();
+
+        return calls
+            .GroupBy(c => c.FrequencyHz)
+            .OrderByDescending(g => g.Count()) // Most active frequencies first
+            .ToDictionary(g => g.Key, g => g.OrderByDescending(c => c.RecordingTime).ToList());
+    }
+
     public async Task<Call?> GetByIdAsync(int id)
     {
         return await _db.Calls
