@@ -4,16 +4,19 @@ import ErrorBoundary from './components/ErrorBoundary'
 import Navigation from './components/Navigation'
 import Breadcrumb from './components/Breadcrumb'
 import PageTransition from './components/PageTransition'
+import AudioPlayer from './components/AudioPlayer'
 import CallStreamPage from './pages/CallStreamPage'
 import Admin from './pages/Admin'
 import SearchPage from './pages/SearchPage'
 import TalkGroupPage from './pages/TalkGroupPage'
 import CallDetailPage from './pages/CallDetailPage'
-import SubscriptionsPage from './pages/SubscriptionsPage'
+import TalkGroupsPage from './pages/TalkGroupsPage'
+import RadioCodesPage from './pages/RadioCodesPage'
 import NotFoundPage from './pages/NotFoundPage'
 import { createApiTester } from './utils/ApiTester'
 import { SubscriptionProvider } from './contexts/SubscriptionContext'
 import { WakeLockProvider } from './contexts/WakeLockContext'
+import { NightModeProvider } from './contexts/NightModeContext'
 
 export default function App() {
   // Initialize API tester for development
@@ -26,21 +29,23 @@ export default function App() {
 
   return (
     <Router>
-      <WakeLockProvider>
-        <SubscriptionProvider>
-          <ErrorBoundary>
-            <div className="app">
-              <Navigation />
-              
-              <main className="main-content">
-                <div className="container">
-                  <Breadcrumb />
+      <NightModeProvider>
+        <WakeLockProvider>
+          <SubscriptionProvider>
+            <ErrorBoundary>
+              <div className="app">
+                <Navigation />
+                
+                <main className="main-content">
+                  <div className="container">
+                    <Breadcrumb />
                   <ErrorBoundary>
                     <PageTransition>
                       <Routes>
                         <Route path="/" element={<CallStreamPage />} />
                         <Route path="/search" element={<SearchPage />} />
-                        <Route path="/subscriptions" element={<SubscriptionsPage />} />
+                        <Route path="/talkgroups" element={<TalkGroupsPage />} />
+                        <Route path="/radio-codes" element={<RadioCodesPage />} />
                         <Route path="/talkgroup/:id" element={<TalkGroupPage />} />
                         <Route path="/call/:id" element={<CallDetailPage />} />
                         <Route path="/admin" element={<Admin />} />
@@ -50,10 +55,14 @@ export default function App() {
                   </ErrorBoundary>
                 </div>
               </main>
+              
+              {/* Global Audio Player - persists across all pages */}
+              <AudioPlayer />
           </div>
         </ErrorBoundary>
       </SubscriptionProvider>
       </WakeLockProvider>
+      </NightModeProvider>
 
       <style>{`
         .main-content {

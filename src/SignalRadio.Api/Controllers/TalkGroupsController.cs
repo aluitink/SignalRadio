@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SignalRadio.DataAccess;
 using SignalRadio.DataAccess.Services;
+using SignalRadio.Api.Extensions;
+using SignalRadio.Api.Dtos;
 using System;
 using System.Linq;
 
@@ -12,11 +14,13 @@ namespace SignalRadio.Api.Controllers2;
 public class TalkGroupsController : ControllerBase
 {
     private readonly ITalkGroupsService _svc;
+    private readonly ICallsService _callsService;
     private readonly ILogger<TalkGroupsController> _logger;
 
-    public TalkGroupsController(ITalkGroupsService svc, ILogger<TalkGroupsController> logger)
+    public TalkGroupsController(ITalkGroupsService svc, ICallsService callsService, ILogger<TalkGroupsController> logger)
     {
         _svc = svc;
+        _callsService = callsService;
         _logger = logger;
     }
 
@@ -35,6 +39,33 @@ public class TalkGroupsController : ControllerBase
     {
     var item = await _svc.GetByIdAsync(id);
     return item == null ? NotFound() : Ok(item);
+    }
+
+    [HttpGet("{id:int}/calls")]
+    public async Task<IActionResult> GetCallsByTalkGroupId(int id, [FromQuery] int page = 1, [FromQuery] int pageSize = 50,
+        [FromQuery] string sortBy = "recordingTime", [FromQuery] string sortDir = "desc")
+    {
+        // First verify the talkgroup exists
+        var talkGroup = await _svc.GetByIdAsync(id);
+        if (talkGroup == null) return NotFound($"TalkGroup with ID {id} not found");
+
+        page = Math.Max(1, page);
+        pageSize = Math.Clamp(pageSize, 1, 1000);
+
+        var result = await _callsService.GetAllCallsByTalkGroupAsync(id, page, pageSize, sortBy, sortDir);
+        
+        // Convert to DTOs with TalkGroup information included
+        var apiBaseUrl = $"{Request.Scheme}://{Request.Host}";
+        var dtoResult = new 
+        {
+            Items = result.Items.Select(call => call.ToDto(apiBaseUrl)).ToList(),
+            result.TotalCount,
+            result.Page,
+            result.PageSize,
+            result.TotalPages
+        };
+        
+        return Ok(dtoResult);
     }
 
     [HttpPost]

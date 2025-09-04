@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import CallCard from '../components/CallCard'
-import AudioPlayer from '../components/AudioPlayer'
 import { CallCardSkeleton } from '../components/LoadingSpinner'
 import Pagination from '../components/Pagination'
 import type { CallDto, PagedResult, TalkGroupDto } from '../types/dtos'
@@ -17,6 +16,7 @@ export default function TalkGroupPage() {
   const [calls, setCalls] = useState<CallDto[]>([])
   const [talkGroup, setTalkGroup] = useState<TalkGroupDto | null>(null)
   const [loading, setLoading] = useState(true)
+  const [callsLoading, setCallsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
@@ -24,17 +24,6 @@ export default function TalkGroupPage() {
   const pageSize = 20
   
   const { toggle: toggleSubscription, isSubscribed } = useSubscriptions()
-
-  const playCall = (call: CallDto) => {
-    audioPlayerService.addToQueue(call)
-    
-    // If player is stopped, start it
-    if (audioPlayerService.getState() === 'stopped') {
-      audioPlayerService.play().catch(error => {
-        console.error('Failed to start audio player:', error)
-      })
-    }
-  }
 
   useEffect(() => {
     if (!talkGroupId) {
@@ -47,35 +36,51 @@ export default function TalkGroupPage() {
   }, [talkGroupId, currentPage])
 
   const loadTalkGroupData = async () => {
-    setLoading(true)
+    const isInitialLoad = !talkGroup
+    
+    if (isInitialLoad) {
+      setLoading(true)
+    } else {
+      setCallsLoading(true)
+    }
+    
     setError(null)
 
     try {
-      // Load both talkgroup info and calls for this specific talkgroup
-      const [talkGroupRes, callsRes] = await Promise.all([
-        apiGet<TalkGroupDto>(`/talkgroups/${talkGroupId}`).catch(() => null),
-        apiGet<PagedResult<CallDto>>(`/calls?page=${currentPage}&pageSize=${pageSize}&talkGroupId=${talkGroupId}&sortBy=recordingTime&sortDir=desc`)
-      ])
+      // For initial load, get both talkgroup and calls
+      // For pagination, only get calls
+      if (isInitialLoad) {
+        const [talkGroupRes, callsRes] = await Promise.all([
+          apiGet<TalkGroupDto>(`/talkgroups/${talkGroupId}`).catch(() => null),
+          apiGet<PagedResult<CallDto>>(`/talkgroups/${talkGroupId}/calls?page=${currentPage}&pageSize=${pageSize}&sortBy=recordingTime&sortDir=desc`)
+        ])
 
-      if (talkGroupRes) {
-        setTalkGroup(talkGroupRes)
-      }
+        if (talkGroupRes) {
+          setTalkGroup(talkGroupRes)
+        }
 
-      if (callsRes) {
-        setCalls(callsRes.items || [])
-        setTotalPages(callsRes.totalPages || 1)
-        setTotalItems(callsRes.totalCount || 0)
+        if (callsRes) {
+          setCalls(callsRes.items || [])
+          setTotalPages(callsRes.totalPages || 1)
+          setTotalItems(callsRes.totalCount || 0)
+        }
+      } else {
+        // Just get calls for pagination
+        const callsRes = await apiGet<PagedResult<CallDto>>(`/talkgroups/${talkGroupId}/calls?page=${currentPage}&pageSize=${pageSize}&sortBy=recordingTime&sortDir=desc`)
+        
+        if (callsRes) {
+          setCalls(callsRes.items || [])
+          setTotalPages(callsRes.totalPages || 1)
+          setTotalItems(callsRes.totalCount || 0)
+        }
       }
     } catch (err) {
       console.error('Failed to load talkgroup data:', err)
       setError('Failed to load talkgroup data')
     } finally {
       setLoading(false)
+      setCallsLoading(false)
     }
-  }
-
-  const handlePlayStateChange = (callId: number, isPlaying: boolean) => {
-    console.log(`Call ${callId} play state changed: ${isPlaying}`)
   }
 
   const talkGroupDisplay = talkGroup?.description || 
@@ -183,7 +188,7 @@ export default function TalkGroupPage() {
 
         <div className="header-actions">
           <button
-            className={`subscribe-btn ${isSubscribed(talkGroupId) ? 'subscribed' : ''}`}
+            className={`talkgroup-subscribe-btn ${isSubscribed(talkGroupId) ? 'subscribed' : ''}`}
             onClick={() => toggleSubscription(talkGroupId)}
           >
             <span className="subscribe-icon">
@@ -198,9 +203,15 @@ export default function TalkGroupPage() {
 
       <div className="talkgroup-stats">
         <div className="stat">
-          <span className="stat-label">Recent Calls</span>
-          <span className="stat-value">{calls.length}</span>
+          <span className="stat-label">Showing</span>
+          <span className="stat-value">{calls.length} of {totalItems.toLocaleString()}</span>
         </div>
+        {talkGroup?.number && (
+          <div className="stat">
+            <span className="stat-label">TG Number</span>
+            <span className="stat-value">{talkGroup.number}</span>
+          </div>
+        )}
         {isSubscribed(talkGroupId) && (
           <div className="stat">
             <span className="stat-label">Auto-play</span>
@@ -209,19 +220,39 @@ export default function TalkGroupPage() {
         )}
       </div>
 
-      {calls.length === 0 ? (
+      {calls.length === 0 && !callsLoading ? (
         <div className="empty-state">
           <div className="empty-icon">📻</div>
           <h3>No Recent Calls</h3>
           <p className="text-muted">
-            No calls found for this talkgroup. Check back later for new activity.
+            {totalItems === 0 
+              ? `No calls found for ${talkGroupDisplay}. This talkgroup may be inactive or new.`
+              : "No calls found for the current page. Try navigating to a different page."
+            }
           </p>
+          {totalItems === 0 && (
+            <p className="text-muted">
+              You can subscribe to this talkgroup to get notified when new calls arrive.
+            </p>
+          )}
         </div>
       ) : (
         <div className="calls-section">
-          <h2>Recent Calls ({totalItems.toLocaleString()})</h2>
+          <div className="calls-header">
+            <h2>Recent Calls</h2>
+            <div className="calls-count">
+              {totalItems.toLocaleString()} total calls
+            </div>
+          </div>
           <div className="calls-list">
-            {calls.map(call => (
+            {callsLoading && (
+              <div className="calls-loading">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <CallCardSkeleton key={i} />
+                ))}
+              </div>
+            )}
+            {!callsLoading && calls.map(call => (
               <CallCard 
                 key={call.id} 
                 call={call}
@@ -235,7 +266,7 @@ export default function TalkGroupPage() {
             totalItems={totalItems}
             itemsPerPage={pageSize}
             onPageChange={setCurrentPage}
-            loading={loading}
+            loading={callsLoading}
           />
         </div>
       )}
@@ -251,6 +282,10 @@ export default function TalkGroupPage() {
           align-items: flex-start;
           margin-bottom: var(--space-4);
           gap: var(--space-3);
+          padding: var(--space-4);
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          border-radius: var(--radius-lg);
         }
 
         .header-main {
@@ -288,7 +323,7 @@ export default function TalkGroupPage() {
           flex-shrink: 0;
         }
 
-        .subscribe-btn {
+        .talkgroup-subscribe-btn {
           display: flex;
           align-items: center;
           gap: var(--space-1);
@@ -300,18 +335,27 @@ export default function TalkGroupPage() {
           cursor: pointer;
           transition: var(--transition);
           font-weight: 500;
+          min-width: 120px;
+          justify-content: center;
         }
 
-        .subscribe-btn:hover {
+        .talkgroup-subscribe-btn:hover {
           background: var(--bg-card-hover);
           border-color: var(--accent-primary);
           color: var(--text-primary);
+          transform: translateY(-1px);
         }
 
-        .subscribe-btn.subscribed {
+        .talkgroup-subscribe-btn.subscribed {
           background: var(--accent-primary);
           border-color: var(--accent-primary);
           color: white;
+        }
+
+        .talkgroup-subscribe-btn.subscribed:hover {
+          background: var(--accent-primary-hover);
+          border-color: var(--accent-primary-hover);
+          transform: translateY(-1px);
         }
 
         .subscribe-icon {
@@ -321,8 +365,12 @@ export default function TalkGroupPage() {
         .talkgroup-stats {
           display: flex;
           gap: var(--space-4);
-          margin-bottom: var(--space-4);
+          margin-bottom: var(--space-6);
           flex-wrap: wrap;
+          padding: var(--space-3);
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          border-radius: var(--radius);
         }
 
         .stat {
@@ -352,9 +400,48 @@ export default function TalkGroupPage() {
           margin-bottom: var(--space-3);
         }
 
+        .calls-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: var(--space-4);
+          padding-bottom: var(--space-2);
+          border-bottom: 1px solid var(--border);
+        }
+
+        .calls-header h2 {
+          margin: 0;
+          color: var(--text-primary);
+        }
+
+        .calls-count {
+          font-size: var(--font-size-sm);
+          color: var(--text-secondary);
+          font-weight: 500;
+        }
+
+        .calls-loading {
+          display: flex;
+          flex-direction: column;
+          gap: var(--space-2);
+        }        .calls-count {
+          font-size: var(--font-size-sm);
+          color: var(--text-secondary);
+          font-weight: 500;
+        }
+
         .calls-list {
           display: flex;
           flex-direction: column;
+          gap: var(--space-2);
+          margin-bottom: var(--space-4);
+        }
+
+        .calls-loading {
+          display: flex;
+          flex-direction: column;
+          gap: var(--space-2);
+          opacity: 0.6;
         }
 
         .empty-state {
@@ -395,10 +482,18 @@ export default function TalkGroupPage() {
           .talkgroup-stats {
             gap: var(--space-2);
           }
+
+          .calls-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: var(--space-1);
+          }
+
+          .calls-count {
+            font-size: var(--font-size-xs);
+          }
         }
       `}</style>
-      
-      <AudioPlayer />
     </section>
   )
 }

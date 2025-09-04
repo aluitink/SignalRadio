@@ -45,6 +45,27 @@
   --transition: all 0.3s ease;
 }
 
+/* Night Mode - Reduced contrast and intensity for nighttime use */
+.night-mode {
+  /* Darker, softer colors */
+  --bg-primary: #0a0e1a;
+  --bg-secondary: #141824;
+  --bg-card: rgba(255,255,255,0.01);
+  --bg-card-hover: rgba(255,255,255,0.02);
+  --text-primary: #b8c5d6;
+  --text-secondary: #6b7280;
+  --text-muted: #4b5563;
+  --accent-primary: #4f46e5;
+  --accent-primary-hover: #4338ca;
+  --border: rgba(255,255,255,0.05);
+  
+  /* Reduced intensity for warnings/errors */
+  --bg-danger: #7f1d1d;
+  --bg-danger-hover: #991b1b;
+  --bg-warning: #78350f;
+  --bg-warning-hover: #92400e;
+}
+
 * {
   box-sizing: border-box;
 }

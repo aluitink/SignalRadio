@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { getDynamicBreadcrumbTitle } from '../hooks/usePageTitle'
 
@@ -14,9 +14,26 @@ interface BreadcrumbProps {
 
 export default function Breadcrumb({ items }: BreadcrumbProps) {
   const location = useLocation()
+  const [dynamicTitle, setDynamicTitle] = useState(getDynamicBreadcrumbTitle())
+  
+  // Watch for changes to the dynamic breadcrumb title
+  useEffect(() => {
+    const checkForUpdates = () => {
+      const currentTitle = getDynamicBreadcrumbTitle()
+      setDynamicTitle(currentTitle)
+    }
+    
+    // Check immediately
+    checkForUpdates()
+    
+    // Set up a polling mechanism to check for changes
+    const interval = setInterval(checkForUpdates, 100)
+    
+    return () => clearInterval(interval)
+  }, [location.pathname])
   
   // Auto-generate breadcrumbs if not provided
-  const breadcrumbItems = items || generateBreadcrumbs(location.pathname)
+  const breadcrumbItems = items || generateBreadcrumbs(location.pathname, dynamicTitle)
 
   if (breadcrumbItems.length <= 1) {
     return null
@@ -120,7 +137,7 @@ export default function Breadcrumb({ items }: BreadcrumbProps) {
   )
 }
 
-function generateBreadcrumbs(pathname: string): BreadcrumbItem[] {
+function generateBreadcrumbs(pathname: string, dynamicTitle?: string): BreadcrumbItem[] {
   const items: BreadcrumbItem[] = [
     { label: 'Live Stream', path: '/', icon: '📡' }
   ]
@@ -131,11 +148,10 @@ function generateBreadcrumbs(pathname: string): BreadcrumbItem[] {
 
   if (pathname === '/search') {
     items.push({ label: 'Search', icon: '🔍' })
-  } else if (pathname === '/subscriptions') {
-    items.push({ label: 'Subscriptions', icon: '⭐' })
+  } else if (pathname === '/talkgroups') {
+    items.push({ label: 'TalkGroups', icon: '📻' })
   } else if (pathname.startsWith('/talkgroup/')) {
     const talkGroupId = pathname.split('/')[2]
-    const dynamicTitle = getDynamicBreadcrumbTitle()
     items.push({ 
       label: dynamicTitle || `TalkGroup ${talkGroupId}`, 
       path: `/talkgroup/${talkGroupId}`,

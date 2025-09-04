@@ -52,9 +52,9 @@ export default function TranscriptionTicker() {
           }))
           
           setTickerItems(prev => {
-            // Add new items and keep only the last 20
+            // Add new items and keep only the last 50
             const combined = [...newItems, ...prev]
-            return combined.slice(0, 20)
+            return combined.slice(0, 50)
           })
         }
       },
@@ -83,7 +83,7 @@ export default function TranscriptionTicker() {
           if (newItems.length > 0) {
             setTickerItems(prev => {
               const combined = [...newItems, ...prev]
-              return combined.slice(0, 20)
+              return combined.slice(0, 50)
             })
           }
         }
@@ -216,7 +216,7 @@ export default function TranscriptionTicker() {
 
         .ticker-text {
           color: var(--text-secondary);
-          max-width: 600px; /* Increased from 400px */
+          max-width: 800px; /* Increased from 600px */
           overflow: hidden;
           text-overflow: ellipsis;
           margin-right: var(--space-2);
@@ -241,7 +241,7 @@ export default function TranscriptionTicker() {
           }
 
           .ticker-text {
-            max-width: 350px; /* Increased from 250px */
+            max-width: 500px; /* Increased from 350px */
           }
 
           .ticker-time {

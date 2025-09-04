@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import type { CallDto } from '../types/dtos'
-import AudioPlayer from '../components/AudioPlayer'
 import { useSubscriptions } from '../hooks/useSubscriptions'
 import { usePageTitle } from '../hooks/usePageTitle'
 import { audioPlayerService } from '../services/AudioPlayerService'
@@ -99,7 +98,6 @@ export default function CallDetailPage() {
           <div className="loading-spinner"></div>
           <p>Loading call details...</p>
         </div>
-        <AudioPlayer />
       </section>
     )
   }
@@ -122,7 +120,6 @@ export default function CallDetailPage() {
             <Link to="/" className="back-btn">← Back to Live Stream</Link>
           </div>
         </div>
-        <AudioPlayer />
       </section>
     )
   }
@@ -232,8 +229,6 @@ export default function CallDetailPage() {
           </div>
         )}
       </div>
-
-      <AudioPlayer />
 
       <style>{`
         .call-detail-page {

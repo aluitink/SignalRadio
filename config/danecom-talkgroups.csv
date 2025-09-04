@@ -13,15 +13,15 @@ Decimal,Hex,Mode,Alpha Tag,Description,Tag,Category,Priority
 14,e,D,RTAC14SW,RTAC14SW,Interop,Interop,3
 21,15,D,RCALL21SE,RCALL21SE,Interop,Interop,3
 31,1f,D,RCALL31EC,RCALL31EC,Interop,Interop,3
-111,006f,D,WSPSW1,WSP Southwest 1 - DispatchLaw Dispatch,Law,3
-4619,120b,D,MERITMAD,Meriter Hospital,Hospital,Medical,4
-4620,120c,D,STMSUNP,St Mary's Sun Prairie,Hospital,Medical,4
-4621,120d,D,STMMAD,St Mary's Hospital,Hospital,Medical,4
-4622,120e,D,STOUGHH,Stoughton Hospital,Hospital,Medical,4
-4623,120f,D,UWMAD,UW Hospital,Hospital,Medical,4
-4624,1210,D,VAMEDMAD,VA Hospital,Hospital,Medical,4
-4704,1260,D,SAUKPRMH,Sauk Prairie Hospital,Hospital,Medical,4
-4740,1284,D,UWAMCNTR,UW Hospital - East,Hospital,Medical,4
+111,006f,D,WSPSW1,WSP Southwest 1 - DispatchLaw Dispatch,Law,2
+4619,120b,D,MERITMAD,Meriter Hospital,Hospital,Medical,3
+4620,120c,D,STMSUNP,St Mary's Sun Prairie,Hospital,Medical,3
+4621,120d,D,STMMAD,St Mary's Hospital,Hospital,Medical,3
+4622,120e,D,STOUGHH,Stoughton Hospital,Hospital,Medical,3
+4623,120f,D,UWMAD,UW Hospital,Hospital,Medical,3
+4624,1210,D,VAMEDMAD,VA Hospital,Hospital,Medical,3
+4704,1260,D,SAUKPRMH,Sauk Prairie Hospital,Hospital,Medical,3
+4740,1284,D,UWAMCNTR,UW Hospital - East,Hospital,Medical,3
 8501,2135,D,DOACPD,Capitol Police,Law Dispatch,Law,3
 13000,32c8,D,DAATG,Dane County Announcement,Multi-Dispatch,Law,3
 13001,32c9,D,DALAW1,Dane County Sheriff Law 1,Law Dispatch,Law,1

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import CallCard from '../components/CallCard'
-import AudioPlayer from '../components/AudioPlayer'
 import LoadingSpinner, { CallCardSkeleton } from '../components/LoadingSpinner'
 import Pagination from '../components/Pagination'
 import type { CallDto, PagedResult } from '../types/dtos'
@@ -271,8 +270,6 @@ export default function SearchPage() {
           }
         }
       `}</style>
-      
-      <AudioPlayer />
     </section>
   )
 }

@@ -31,9 +31,9 @@ export default function NotFoundPage() {
               <span className="link-icon">🔍</span>
               <span>Search</span>
             </Link>
-            <Link to="/subscriptions" className="quick-link">
-              <span className="link-icon">⭐</span>
-              <span>Subscriptions</span>
+            <Link to="/talkgroups" className="quick-link">
+              <span className="link-icon">📻</span>
+              <span>TalkGroups</span>
             </Link>
           </div>
         </div>

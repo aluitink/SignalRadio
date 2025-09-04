@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useSignalR } from '../hooks/useSignalR'
 import WakeLockIndicator from './WakeLockIndicator'
+import NightModeToggle from './NightModeToggle'
 
 export default function Navigation() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -11,7 +12,8 @@ export default function Navigation() {
   const navItems = [
     { path: '/', label: 'Live Stream', icon: '📡' },
     { path: '/search', label: 'Search', icon: '🔍' },
-    { path: '/subscriptions', label: 'Subscriptions', icon: '⭐' },
+    { path: '/talkgroups', label: 'TalkGroups', icon: '📻' },
+    { path: '/radio-codes', label: 'Radio Codes', icon: '�' },
   ]
 
   const isActive = (path: string) => {
@@ -31,6 +33,7 @@ export default function Navigation() {
         </Link>
 
         <div className="nav-actions">
+          <NightModeToggle className="nav-night-mode" />
           <WakeLockIndicator className="nav-wake-lock" />
           
           <button 

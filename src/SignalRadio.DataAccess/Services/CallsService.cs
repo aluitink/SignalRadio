@@ -61,6 +61,56 @@ public class CallsService : ICallsService
         };
     }
 
+    public async Task<PagedResult<Call>> GetAllCallsByTalkGroupAsync(int talkGroupId, int page, int pageSize, string? sortBy = null, string? sortDir = null)
+    {
+        page = Math.Max(1, page);
+        pageSize = Math.Clamp(pageSize, 1, 1000);
+
+        sortBy = string.IsNullOrWhiteSpace(sortBy) ? "recordingTime" : sortBy.Trim().ToLowerInvariant();
+        sortDir = string.IsNullOrWhiteSpace(sortDir) ? "desc" : sortDir.Trim().ToLowerInvariant();
+
+        var q = _db.Calls
+            .Where(c => c.TalkGroupId == talkGroupId)
+            .Include(c => c.Recordings)
+                .ThenInclude(r => r.Transcriptions)
+            .Include(c => c.TalkGroup)
+            .AsNoTracking();
+
+        // Apply supported sorting options. Default: recordingTime desc
+        bool ascending = sortDir == "asc" || sortDir == "ascending";
+        switch (sortBy)
+        {
+            case "createdat":
+            case "created_at":
+            case "created":
+                q = ascending ? q.OrderBy(c => c.CreatedAt) : q.OrderByDescending(c => c.CreatedAt);
+                break;
+            case "talkgroupid":
+            case "talkgroup":
+            case "talk_group":
+                q = ascending ? q.OrderBy(c => c.TalkGroupId) : q.OrderByDescending(c => c.TalkGroupId);
+                break;
+            case "recordingtime":
+            case "recording_time":
+            default:
+                q = ascending ? q.OrderBy(c => c.RecordingTime) : q.OrderByDescending(c => c.RecordingTime);
+                break;
+        }
+
+        var query = q;
+        var total = await query.CountAsync();
+        var items = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
+
+        return new PagedResult<Call>
+        {
+            Items = items,
+            TotalCount = total,
+            Page = page,
+            PageSize = pageSize,
+            TotalPages = (int)Math.Ceiling(total / (double)pageSize)
+        };
+    }
+
     public async Task<Call?> GetByIdAsync(int id)
     {
         return await _db.Calls
