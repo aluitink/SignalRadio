@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import type { CallDto } from '../types/dtos'
 import { audioPlayerService } from '../services/AudioPlayerService'
+import { audioQueue } from '../services/AudioQueue'
 import { useSubscriptions } from '../contexts/SubscriptionContext'
 
 interface CallCardProps {
   call: CallDto
+  onPlayCall?: (call: CallDto) => void
 }
 
 function formatTime(dateString: string) {
@@ -66,10 +68,11 @@ function getFrequencyColor(frequencyHz: number): string {
   return colors[index]
 }
 
-export default function CallCard({ call }: CallCardProps) {
+export default function CallCard({ call, onPlayCall }: CallCardProps) {
   const { isSubscribed, toggle: toggleSubscription, isPending } = useSubscriptions()
   const [currentPlayingCall, setCurrentPlayingCall] = useState<CallDto | null>(null)
   const [isPlayingState, setIsPlayingState] = useState(false)
+  const [queuedCalls, setQueuedCalls] = useState<CallDto[]>([])
   
   const isSubscribedToTalkGroup = isSubscribed(call.talkGroupId)
   const isSubscriptionPending = isPending(call.talkGroupId)
@@ -90,8 +93,25 @@ export default function CallCard({ call }: CallCardProps) {
     return unsubscribe
   }, [])
 
+  // Subscribe to queue changes to know if this call is queued
+  useEffect(() => {
+    const unsubscribe = audioQueue.subscribe({
+      onQueueChanged: (calls) => {
+        setQueuedCalls(calls)
+      }
+    })
+
+    return unsubscribe
+  }, [])
+
   // Check if this call is currently playing
   const isCurrentlyPlaying = currentPlayingCall?.id === call.id && isPlayingState
+
+  // Check if this call is queued
+  const isQueued = queuedCalls.some(queuedCall => queuedCall.id === call.id)
+
+  // Get queue position (1-based index)
+  const queuePosition = queuedCalls.findIndex(queuedCall => queuedCall.id === call.id) + 1
 
   // Calculate duration and age
   const duration = call.durationSeconds || call.recordings.reduce((acc, r) => acc + (r.durationSeconds || 0), 0)
@@ -168,14 +188,19 @@ export default function CallCard({ call }: CallCardProps) {
   const handleCardClick = () => {
     if (!call.recordings?.length) return
     
-    // Add call to front of queue so it plays next
-    audioPlayerService.addToFront(call)
-    
-    // If player is stopped, start it
-    if (audioPlayerService.getState() === 'stopped') {
-      audioPlayerService.play().catch(error => {
-        console.error('Failed to start audio player:', error)
-      })
+    if (onPlayCall) {
+      // Use custom play behavior if provided (for sequential playback)
+      onPlayCall(call)
+    } else {
+      // Default behavior: add call to front of queue so it plays next
+      audioPlayerService.addToFront(call)
+      
+      // If player is stopped, start it
+      if (audioPlayerService.getState() === 'stopped') {
+        audioPlayerService.play().catch(error => {
+          console.error('Failed to start audio player:', error)
+        })
+      }
     }
   }
 
@@ -216,7 +241,7 @@ export default function CallCard({ call }: CallCardProps) {
 
   return (
     <article 
-      className={`new-call-card age-${ageState} priority-${priorityIntensity} ${isCurrentlyPlaying ? `playing playing-${categoryAnimationClass}` : ''} ${isSubscribedToTalkGroup ? 'subscribed-tg' : ''}`}
+      className={`new-call-card age-${ageState} priority-${priorityIntensity} ${isCurrentlyPlaying ? `playing playing-${categoryAnimationClass}` : ''} ${isSubscribedToTalkGroup ? 'subscribed-tg' : ''} ${isQueued ? 'queued' : ''}`}
       onClick={handleCardClick}
       role="button"
       tabIndex={0}
@@ -278,6 +303,7 @@ export default function CallCard({ call }: CallCardProps) {
       <div className="call-meta">
         <span className={`call-time ${isCurrentlyPlaying ? 'playing' : ''}`} title={started.toLocaleString()}>
           {isCurrentlyPlaying && '▶️ '}
+          {isQueued && `🎵${queuePosition} `}
           {formatTime(call.recordingTime)}
         </span>
         <span className="call-duration">{secondsToHuman(duration)}</span>
@@ -375,6 +401,55 @@ export default function CallCard({ call }: CallCardProps) {
 
         .new-call-card.subscribed-tg.age-fresh {
           border-left: 3px solid rgba(34, 197, 94, 0.8);
+        }
+
+        /* Queued state styling */
+        .new-call-card.queued {
+          border-right: 3px solid #6366f1;
+          background: linear-gradient(135deg, var(--bg-card) 0%, rgba(99, 102, 241, 0.05) 100%);
+          position: relative;
+        }
+
+        .new-call-card.queued::after {
+          content: '';
+          position: absolute;
+          top: 8px;
+          right: 8px;
+          width: 8px;
+          height: 8px;
+          background: #6366f1;
+          border-radius: 50%;
+          animation: queue-pulse 2s infinite ease-in-out;
+        }
+
+        @keyframes queue-pulse {
+          0%, 100% {
+            opacity: 0.6;
+            transform: scale(1);
+          }
+          50% {
+            opacity: 1;
+            transform: scale(1.2);
+          }
+        }
+
+        .new-call-card.queued .call-time {
+          color: #6366f1;
+          font-weight: 600;
+        }
+
+        /* Night mode support for queued state */
+        .night-mode .new-call-card.queued {
+          border-right: 3px solid #4f46e5;
+          background: linear-gradient(135deg, var(--bg-card) 0%, rgba(79, 70, 229, 0.03) 100%);
+        }
+
+        .night-mode .new-call-card.queued::after {
+          background: #4f46e5;
+        }
+
+        .night-mode .new-call-card.queued .call-time {
+          color: #4f46e5;
         }
 
         /* Playing state with category-specific animations */

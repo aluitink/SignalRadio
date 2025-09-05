@@ -276,10 +276,30 @@ export default function TalkGroupPage() {
                   ))}
                 </div>
               )}
-              {!callsLoading && calls.map(call => (
+              {!callsLoading && calls.map((call, index) => (
                 <CallCard 
                   key={call.id} 
                   call={call}
+                  onPlayCall={(selectedCall) => {
+                    // Queue from the selected call forward in time (towards newer calls)
+                    // Since calls array is sorted newest first, we need from 0 to index (inclusive), then reverse
+                    const callsToQueue = calls.slice(0, index + 1).reverse()
+                    
+                    // Clear existing queue to start fresh
+                    audioPlayerService.clearQueue()
+                    
+                    // Add all calls from the selected one forward in time
+                    callsToQueue.forEach(callToQueue => {
+                      audioPlayerService.addToQueue(callToQueue)
+                    })
+                    
+                    // Start playing if not already playing
+                    if (audioPlayerService.getState() === 'stopped') {
+                      audioPlayerService.play().catch(error => {
+                        console.error('Failed to start audio player:', error)
+                      })
+                    }
+                  }}
                 />
               ))}
             </div>
