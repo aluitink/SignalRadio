@@ -129,6 +129,22 @@ public class CallsService : ICallsService
             .ToDictionary(g => g.Key, g => g.OrderByDescending(c => c.RecordingTime).ToList());
     }
 
+    public async Task<Dictionary<int, TalkGroupStats>> GetTalkGroupStatsAsync()
+    {
+        var stats = await _db.Calls
+            .GroupBy(c => c.TalkGroupId)
+            .Select(g => new TalkGroupStats
+            {
+                TalkGroupId = g.Key,
+                CallCount = g.Count(),
+                LastActivity = g.Max(c => c.RecordingTime),
+                TotalDurationSeconds = g.Sum(c => c.DurationSeconds)
+            })
+            .ToDictionaryAsync(s => s.TalkGroupId);
+
+        return stats;
+    }
+
     public async Task<Call?> GetByIdAsync(int id)
     {
         return await _db.Calls

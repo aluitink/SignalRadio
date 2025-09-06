@@ -8,7 +8,7 @@ import type { CallDto, PagedResult, TalkGroupDto } from '../types/dtos'
 import { audioPlayerService } from '../services/AudioPlayerService'
 import { useSubscriptions } from '../contexts/SubscriptionContext'
 import { usePageTitle } from '../hooks/usePageTitle'
-import { apiGet } from '../api'
+import { apiGet, apiPut } from '../api'
 
 export default function TalkGroupPage() {
   const { id } = useParams<{ id: string }>()
@@ -23,6 +23,8 @@ export default function TalkGroupPage() {
   const [totalPages, setTotalPages] = useState(1)
   const [totalItems, setTotalItems] = useState(0)
   const [viewMode, setViewMode] = useState<'chronological' | 'frequency'>('chronological')
+  const [editingPriority, setEditingPriority] = useState(false)
+  const [priorityValue, setPriorityValue] = useState<number | undefined>(undefined)
   const pageSize = 20
   
   const { toggle: toggleSubscription, isSubscribed } = useSubscriptions()
@@ -36,6 +38,39 @@ export default function TalkGroupPage() {
 
     loadTalkGroupData()
   }, [talkGroupId, currentPage])
+
+  const updateTalkGroupPriority = async (newPriority: number | undefined) => {
+    if (!talkGroup) return
+
+    try {
+      const updatedTalkGroup = {
+        ...talkGroup,
+        priority: newPriority
+      }
+
+      await apiPut(`/talkgroups/${talkGroupId}`, updatedTalkGroup)
+      setTalkGroup(updatedTalkGroup)
+      setPriorityValue(newPriority)
+      setEditingPriority(false)
+    } catch (err) {
+      console.error('Failed to update talkgroup priority:', err)
+      // Reset to original value on error
+      setPriorityValue(talkGroup.priority)
+    }
+  }
+
+  const handlePriorityEdit = () => {
+    setEditingPriority(true)
+  }
+
+  const handlePrioritySave = () => {
+    updateTalkGroupPriority(priorityValue)
+  }
+
+  const handlePriorityCancel = () => {
+    setPriorityValue(talkGroup?.priority)
+    setEditingPriority(false)
+  }
 
   const loadTalkGroupData = async () => {
     const isInitialLoad = !talkGroup
@@ -59,6 +94,7 @@ export default function TalkGroupPage() {
 
         if (talkGroupRes) {
           setTalkGroup(talkGroupRes)
+          setPriorityValue(talkGroupRes.priority)
         }
 
         if (callsRes) {
@@ -181,8 +217,33 @@ export default function TalkGroupPage() {
               {talkGroup.category && (
                 <span className="meta-item">{talkGroup.category}</span>
               )}
-              {talkGroup.priority && (
-                <span className="meta-item priority">Priority {talkGroup.priority}</span>
+              {talkGroup.priority && !editingPriority && (
+                <span className={`priority-badge priority-${talkGroup.priority}`} onClick={handlePriorityEdit} title="Click to edit priority">
+                  P{talkGroup.priority} ✏️
+                </span>
+              )}
+              {!talkGroup.priority && !editingPriority && (
+                <span className="priority-badge-empty" onClick={handlePriorityEdit} title="Click to set priority">
+                  No Priority ✏️
+                </span>
+              )}
+              {editingPriority && (
+                <div className="priority-editor">
+                  <select
+                    className="priority-select"
+                    value={priorityValue || ''}
+                    onChange={(e) => setPriorityValue(e.target.value ? parseInt(e.target.value) : undefined)}
+                  >
+                    <option value="">No Priority</option>
+                    <option value="1">Priority 1 (Highest)</option>
+                    <option value="2">Priority 2</option>
+                    <option value="3">Priority 3</option>
+                    <option value="4">Priority 4</option>
+                    <option value="5">Priority 5 (Lowest)</option>
+                  </select>
+                  <button className="priority-save-btn" onClick={handlePrioritySave}>✓</button>
+                  <button className="priority-cancel-btn" onClick={handlePriorityCancel}>✕</button>
+                </div>
               )}
             </div>
           )}
@@ -358,10 +419,93 @@ export default function TalkGroupPage() {
           border: 1px solid var(--border);
         }
 
-        .meta-item.priority {
-          background: var(--accent-secondary);
-          color: white;
-          border-color: var(--accent-secondary);
+        .priority-badge {
+          background: var(--bg-secondary);
+          color: var(--text-primary);
+          padding: 2px 6px;
+          border-radius: var(--radius-sm);
+          font-weight: 600;
+          font-size: var(--font-size-xs);
+          cursor: pointer;
+          transition: var(--transition);
+        }
+
+        .priority-badge:hover {
+          opacity: 0.8;
+        }
+
+        .priority-1 { background: #ef4444; color: white; }
+        .priority-2 { background: #f97316; color: white; }
+        .priority-3 { background: #eab308; color: white; }
+        .priority-4 { background: #22c55e; color: white; }
+        .priority-5 { background: #6b7280; color: white; }
+
+        .priority-badge-empty {
+          background: var(--bg-card);
+          color: var(--text-muted);
+          padding: 2px 6px;
+          border-radius: var(--radius-sm);
+          font-weight: 600;
+          font-size: var(--font-size-xs);
+          border: 1px solid var(--border);
+          cursor: pointer;
+          transition: var(--transition);
+        }
+
+        .priority-badge-empty:hover {
+          background: var(--bg-card-hover);
+          color: var(--text-primary);
+        }
+
+        .priority-editor {
+          display: flex;
+          align-items: center;
+          gap: var(--space-1);
+          padding: var(--space-1);
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          border-radius: var(--radius-sm);
+        }
+
+        .priority-select {
+          background: var(--bg-primary);
+          border: 1px solid var(--border);
+          border-radius: var(--radius-sm);
+          color: var(--text-primary);
+          font-size: var(--font-size-sm);
+          padding: 2px 4px;
+          min-width: 120px;
+        }
+
+        .priority-save-btn, .priority-cancel-btn {
+          background: none;
+          border: none;
+          cursor: pointer;
+          font-size: var(--font-size-sm);
+          padding: 2px 4px;
+          border-radius: var(--radius-sm);
+          transition: var(--transition);
+          min-width: 20px;
+          height: 20px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .priority-save-btn {
+          color: #10b981;
+        }
+
+        .priority-save-btn:hover {
+          background: rgba(16, 185, 129, 0.1);
+        }
+
+        .priority-cancel-btn {
+          color: #ef4444;
+        }
+
+        .priority-cancel-btn:hover {
+          background: rgba(239, 68, 68, 0.1);
         }
 
         .header-actions {

@@ -27,6 +27,13 @@ export interface TalkGroupDto {
   priority?: number
 }
 
+export interface TalkGroupStats {
+  talkGroupId: number
+  callCount: number
+  lastActivity?: string // ISO string
+  totalDurationSeconds: number
+}
+
 export interface CallDto {
   id: number
   talkGroupId: number

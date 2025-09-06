@@ -34,6 +34,13 @@ public class TalkGroupsController : ControllerBase
     return Ok(result);
     }
 
+    [HttpGet("stats")]
+    public async Task<IActionResult> GetTalkGroupStats()
+    {
+        var stats = await _callsService.GetTalkGroupStatsAsync();
+        return Ok(stats);
+    }
+
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetById(int id)
     {

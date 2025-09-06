@@ -12,7 +12,7 @@ interface CallCardProps {
 
 function formatTime(dateString: string) {
   const date = new Date(dateString)
-  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
 }
 
 function secondsToHuman(s: number) {
@@ -279,34 +279,37 @@ export default function CallCard({ call, onPlayCall }: CallCardProps) {
         </div>
         
         <div className="call-actions">
-          <button
-            className={`subscribe-btn ${isSubscribedToTalkGroup ? 'subscribed' : ''} ${isSubscriptionPending ? 'pending' : ''}`}
-            onClick={handleSubscribe}
-            disabled={isSubscriptionPending}
-            aria-label={isSubscribedToTalkGroup ? 'Unsubscribe from talkgroup' : 'Subscribe to talkgroup'}
-            title={isSubscribedToTalkGroup ? 'Unsubscribe from talkgroup' : 'Subscribe to talkgroup'}
-          >
-            {isSubscriptionPending ? '⏳' : (isSubscribedToTalkGroup ? '⭐' : '☆')}
-          </button>
+          <div className="call-timing">
+            <span className={`call-time ${isCurrentlyPlaying ? 'playing' : ''}`} title={started.toLocaleString()}>
+              {isCurrentlyPlaying && '▶️ '}
+              {formatTime(call.recordingTime)}
+            </span>
+          </div>
           
-          <button
-            className="share-btn"
-            onClick={handleShare}
-            aria-label="Share call"
-            title="Share call"
-          >
-            📤
-          </button>
+          <div className="call-buttons">
+            <button
+              className={`subscribe-btn ${isSubscribedToTalkGroup ? 'subscribed' : ''} ${isSubscriptionPending ? 'pending' : ''}`}
+              onClick={handleSubscribe}
+              disabled={isSubscriptionPending}
+              aria-label={isSubscribedToTalkGroup ? 'Unsubscribe from talkgroup' : 'Subscribe to talkgroup'}
+              title={isSubscribedToTalkGroup ? 'Unsubscribe from talkgroup' : 'Subscribe to talkgroup'}
+            >
+              {isSubscriptionPending ? '⏳' : (isSubscribedToTalkGroup ? '⭐' : '☆')}
+            </button>
+            
+            <button
+              className="share-btn"
+              onClick={handleShare}
+              aria-label="Share call"
+              title="Share call"
+            >
+              📤
+            </button>
+          </div>
         </div>
       </div>
 
-      <div className="call-meta">
-        <span className={`call-time ${isCurrentlyPlaying ? 'playing' : ''}`} title={started.toLocaleString()}>
-          {isCurrentlyPlaying && '▶️ '}
-          {isQueued && `🎵${queuePosition} `}
-          {formatTime(call.recordingTime)}
-        </span>
-        <span className="call-duration">{secondsToHuman(duration)}</span>
+      <div className="call-frequency-row">
         <span 
           className="call-frequency"
           style={{ 
@@ -318,7 +321,16 @@ export default function CallCard({ call, onPlayCall }: CallCardProps) {
         >
           {frequencyMHz} MHz
         </span>
-        <span className={`call-age age-${ageState}`}>{secondsToAge(ageSec)} ago</span>
+        {isQueued && (
+          <span className="queue-position">🎵{queuePosition}</span>
+        )}
+      </div>
+
+      <div className="call-age-row">
+        <span className="call-duration">{secondsToHuman(duration)}</span>
+        <div className="call-bottom-meta">
+          <span className={`call-age age-${ageState}`}>{secondsToAge(ageSec)} ago</span>
+        </div>
       </div>
 
       {transcriptionText && (
@@ -413,13 +425,14 @@ export default function CallCard({ call, onPlayCall }: CallCardProps) {
         .new-call-card.queued::after {
           content: '';
           position: absolute;
-          top: 8px;
-          right: 8px;
-          width: 8px;
-          height: 8px;
+          top: 12px;
+          left: 12px;
+          width: 10px;
+          height: 10px;
           background: #6366f1;
           border-radius: 50%;
           animation: queue-pulse 2s infinite ease-in-out;
+          z-index: 5;
         }
 
         @keyframes queue-pulse {
@@ -446,9 +459,13 @@ export default function CallCard({ call, onPlayCall }: CallCardProps) {
 
         .night-mode .new-call-card.queued::after {
           background: #4f46e5;
+          top: 12px;
+          left: 12px;
+          width: 10px;
+          height: 10px;
         }
 
-        .night-mode .new-call-card.queued .call-time {
+        .night-mode .queue-position {
           color: #4f46e5;
         }
 
@@ -1254,8 +1271,39 @@ export default function CallCard({ call, onPlayCall }: CallCardProps) {
 
         .call-actions {
           display: flex;
-          gap: var(--space-1);
+          flex-direction: row;
+          gap: var(--space-2);
           flex-shrink: 0;
+          align-items: center;
+        }
+
+        .call-timing {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-end;
+          gap: 2px;
+          font-size: var(--font-size-sm);
+        }
+
+        .call-timing .call-time {
+          color: var(--text-primary);
+          font-weight: 600;
+          transition: all 0.3s ease;
+        }
+
+        .call-timing .call-time.playing {
+          color: rgba(220, 38, 38, 0.9);
+          font-weight: 700;
+          background: linear-gradient(90deg, rgba(220, 38, 38, 0.9), rgba(59, 130, 246, 0.9));
+          background-clip: text;
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          animation: playingText 1.5s ease-in-out infinite;
+        }
+
+        .call-buttons {
+          display: flex;
+          gap: var(--space-1);
         }
 
         .subscribe-btn,
@@ -1298,21 +1346,63 @@ export default function CallCard({ call, onPlayCall }: CallCardProps) {
           color: var(--text-secondary);
         }
 
-        .call-meta {
+        .call-frequency-row {
           display: flex;
+          align-items: center;
           gap: var(--space-2);
           margin-bottom: var(--space-2);
-          font-size: var(--font-size-sm);
-          color: var(--text-secondary);
-          flex-wrap: wrap;
         }
 
-        .call-meta span {
-          white-space: nowrap;
+        .queue-position {
+          color: #6366f1;
+          font-weight: 600;
+          font-size: var(--font-size-sm);
+        }
+
+        .call-age-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: var(--space-2);
+          font-size: var(--font-size-sm);
+        }
+
+        .call-age-row .call-duration {
+          color: var(--text-secondary);
+          font-size: var(--font-size-sm);
+        }
+
+        .call-bottom-meta {
+          display: flex;
+          align-items: center;
+          gap: var(--space-2);
+          font-size: var(--font-size-sm);
+        }
+
+        .call-bottom-meta .call-age.age-fresh {
+          color: rgba(34, 197, 94, 0.8);
+          font-weight: 600;
+        }
+
+        .call-bottom-meta .call-age.age-recent {
+          color: rgba(59, 130, 246, 0.8);
+        }
+
+        .call-bottom-meta .call-age.age-aging {
+          color: rgba(245, 158, 11, 0.8);
+        }
+
+        .call-bottom-meta .call-age.age-old {
+          color: rgba(107, 114, 128, 0.6);
+        }
+
+        .call-bottom-meta .call-time {
+          color: var(--text-primary);
+          font-weight: 600;
           transition: all 0.3s ease;
         }
 
-        .call-time.playing {
+        .call-bottom-meta .call-time.playing {
           color: rgba(220, 38, 38, 0.9);
           font-weight: 700;
           background: linear-gradient(90deg, rgba(220, 38, 38, 0.9), rgba(59, 130, 246, 0.9));
@@ -1322,6 +1412,11 @@ export default function CallCard({ call, onPlayCall }: CallCardProps) {
           animation: playingText 1.5s ease-in-out infinite;
         }
 
+        .call-meta span {
+          white-space: nowrap;
+          transition: all 0.3s ease;
+        }
+
         @keyframes playingText {
           0%, 100% {
             opacity: 1;
@@ -1329,23 +1424,6 @@ export default function CallCard({ call, onPlayCall }: CallCardProps) {
           50% {
             opacity: 0.7;
           }
-        }
-
-        .call-age.age-fresh {
-          color: rgba(34, 197, 94, 0.8);
-          font-weight: 600;
-        }
-
-        .call-age.age-recent {
-          color: rgba(59, 130, 246, 0.8);
-        }
-
-        .call-age.age-aging {
-          color: rgba(245, 158, 11, 0.8);
-        }
-
-        .call-age.age-old {
-          color: rgba(107, 114, 128, 0.6);
         }
 
         .call-frequency {
@@ -1392,6 +1470,16 @@ export default function CallCard({ call, onPlayCall }: CallCardProps) {
             gap: var(--space-1);
           }
 
+          .call-actions {
+            flex-direction: row;
+            align-items: center;
+            gap: var(--space-2);
+          }
+
+          .call-timing {
+            align-items: flex-end;
+          }
+
           .badges {
             margin-top: 0;
             gap: 4px;
@@ -1407,34 +1495,13 @@ export default function CallCard({ call, onPlayCall }: CallCardProps) {
             flex-shrink: 0;
           }
           
-          .call-meta {
-            display: grid;
-            grid-template-columns: auto auto;
-            gap: var(--space-1) var(--space-2);
+          .call-frequency-row {
+            margin-bottom: var(--space-1-5);
+          }
+
+          .call-age-row {
             margin-bottom: var(--space-1-5);
             font-size: var(--font-size-xs);
-          }
-
-          .call-meta span:nth-child(1) { /* time */
-            grid-column: 1;
-            grid-row: 1;
-          }
-
-          .call-meta span:nth-child(2) { /* duration */
-            grid-column: 2;
-            grid-row: 1;
-            justify-self: end;
-          }
-
-          .call-meta span:nth-child(3) { /* frequency */
-            grid-column: 1;
-            grid-row: 2;
-          }
-
-          .call-meta span:nth-child(4) { /* age */
-            grid-column: 2;
-            grid-row: 2;
-            justify-self: end;
           }
 
           .call-transcript {
