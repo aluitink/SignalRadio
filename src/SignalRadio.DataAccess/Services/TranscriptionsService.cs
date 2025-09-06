@@ -1,6 +1,7 @@
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using SignalRadio.Core.Models;
+using SignalRadio.Core.AI.Models;
 
 namespace SignalRadio.DataAccess.Services;
 
@@ -138,5 +139,68 @@ public class TranscriptionsService : ITranscriptionsService
             PageSize = pageSize,
             TotalPages = (int)Math.Ceiling(total / (double)pageSize)
         };
+    }
+    
+    // AI Summary methods implementation
+    public async Task<IEnumerable<Transcription>> GetTranscriptionsNeedingSummaryAsync(int limit = 10)
+    {
+        return await _db.Transcriptions
+            .Where(t => t.IsFinal && 
+                       !t.HasSummary && 
+                       !string.IsNullOrWhiteSpace(t.FullText) &&
+                       t.SummaryAttempts < 3) // Limit retry attempts
+            .Include(t => t.Recording)
+                .ThenInclude(r => r!.Call)
+                    .ThenInclude(c => c!.TalkGroup)
+            .OrderByDescending(t => t.CreatedAt)
+            .Take(limit)
+            .ToListAsync();
+    }
+    
+    public async Task<bool> UpdateTranscriptionSummaryAsync(int transcriptionId, SummaryResult? summaryResult, string? errorMessage = null)
+    {
+        var transcription = await _db.Transcriptions.FindAsync(transcriptionId);
+        if (transcription == null)
+            return false;
+
+        if (summaryResult != null && summaryResult.IsSuccessful)
+        {
+            transcription.HasSummary = true;
+            transcription.SummaryText = summaryResult.Summary;
+            transcription.SummaryModel = summaryResult.Model;
+            transcription.SummaryConfidence = summaryResult.Confidence;
+            transcription.SummaryGeneratedAt = DateTimeOffset.UtcNow;
+            transcription.SummaryProcessingTimeMs = summaryResult.ProcessingTimeMs;
+            transcription.LastSummaryError = null;
+        }
+        else
+        {
+            transcription.LastSummaryError = errorMessage ?? summaryResult?.ErrorMessage ?? "Unknown error";
+            transcription.SummaryAttempts++;
+        }
+
+        _db.Entry(transcription).State = EntityState.Modified;
+        await _db.SaveChangesAsync();
+        return true;
+    }
+    
+    public async Task<IEnumerable<Transcription>> GetTranscriptionsWithSummariesAsync(int? recordingId = null, int limit = 50)
+    {
+        var query = _db.Transcriptions
+            .Where(t => t.HasSummary)
+            .Include(t => t.Recording)
+                .ThenInclude(r => r!.Call)
+                    .ThenInclude(c => c!.TalkGroup)
+            .AsNoTracking();
+
+        if (recordingId.HasValue)
+        {
+            query = query.Where(t => t.RecordingId == recordingId.Value);
+        }
+
+        return await query
+            .OrderByDescending(t => t.SummaryGeneratedAt)
+            .Take(limit)
+            .ToListAsync();
     }
 }

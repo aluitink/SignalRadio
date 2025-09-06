@@ -9,6 +9,9 @@ using DotNetEnv;
 using SignalRadio.DataAccess.Services;
 using SignalRadio.DataAccess;
 using SignalRadio.Api.Services;
+using SignalRadio.Core.AI.Models;
+using SignalRadio.Core.AI.Interfaces;
+using SignalRadio.Core.AI.Services;
 
 // Load .env file if it exists
 var envPath = Path.Combine(Directory.GetCurrentDirectory(), ".env");
@@ -67,6 +70,10 @@ builder.Services.Configure<LocalStorageOptions>(
 builder.Services.Configure<AsrOptions>(
     builder.Configuration.GetSection(AsrOptions.SectionName));
 
+// Configure AI Summary Settings
+builder.Services.Configure<AiSummaryOptions>(
+    builder.Configuration.GetSection(AiSummaryOptions.SectionName));
+
 // Register services
 // Choose storage service based on config
 var storageType = builder.Configuration["StorageType"] ?? "Azure";
@@ -98,6 +105,9 @@ else
     builder.Services.AddScoped<IAsrService, WhisperAsrService>();
 }
 
+// Register AI Summary services
+builder.Services.AddScoped<IAiSummaryService, AzureOpenAiSummaryService>();
+
 // Register background services
 // Configure LocalFileCacheService options
 builder.Services.Configure<LocalFileCacheOptions>(
@@ -106,6 +116,7 @@ builder.Services.AddSingleton<ILocalFileCacheService, LocalFileCacheService>();
 
 // Register background services
 builder.Services.AddHostedService<TranscriptionBackgroundService>();
+builder.Services.AddHostedService<AiSummaryBackgroundService>();
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();

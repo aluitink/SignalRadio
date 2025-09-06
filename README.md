@@ -389,11 +389,70 @@ curl -X POST http://localhost:5210/api/recording/upload \
 - Full CRUD API for recordings
 - Development and production storage configurations
 
-⏳ **Phase 4: Advanced Features** - NEXT
+✅ **Phase 4: AI-Powered Transcription & Summarization** - COMPLETE
+- Automatic Speech Recognition (ASR) with Azure Speech Services and Whisper
+- AI-powered transcript summarization using Azure OpenAI
+- Background processing for transcription and summarization
+- Configurable AI models and parameters
+- Full API endpoints for managing transcripts and summaries
+
+⏳ **Phase 5: Advanced Features** - NEXT
 - Background processing queues
 - Monitoring and alerting
 - Advanced audio analysis
 - Performance optimization
+
+## AI Summary Configuration
+
+SignalRadio now includes AI-powered summarization of radio transcripts using Azure OpenAI and Semantic Kernel.
+
+### Prerequisites
+
+1. **Azure OpenAI Resource**: Create an Azure OpenAI resource in the Azure portal
+2. **Model Deployment**: Deploy a chat completion model (e.g., `gpt-35-turbo` or `gpt-4`)
+3. **API Access**: Obtain the endpoint URL and API key
+
+### Configuration
+
+Add the following settings to your `.env` file or `appsettings.json`:
+
+```bash
+# Enable AI Summary
+AiSummary__Enabled=true
+AiSummary__AutoSummarize=true
+
+# Azure OpenAI Configuration
+AiSummary__AzureOpenAiEndpoint=https://your-openai-resource.openai.azure.com
+AiSummary__AzureOpenAiApiKey=your-api-key
+AiSummary__ModelDeployment=gpt-35-turbo
+
+# Optional: Customize AI behavior
+AiSummary__MaxTokens=150
+AiSummary__Temperature=0.3
+AiSummary__TimeoutSeconds=30
+AiSummary__MinTranscriptLength=50
+AiSummary__ProcessingIntervalSeconds=5
+```
+
+### API Endpoints
+
+- `GET /api/transcriptions/summaries` - Get transcriptions with summaries
+- `POST /api/transcriptions/{id}/generate-summary` - Manually generate summary
+- `GET /api/transcriptions/ai-summary-status` - Check AI service status
+
+### Features
+
+- **Automatic Processing**: Background service processes new transcriptions
+- **Context-Aware**: Includes talkgroup, time, and confidence information
+- **Error Handling**: Retry logic and error tracking
+- **Manual Triggering**: Generate summaries on-demand via API
+- **Health Monitoring**: Service status and queue monitoring
+
+### Example Summary
+
+For a transcript: *"Unit 23 to dispatch, traffic stop on Main Street, requesting backup"*
+
+Generated summary: *"Police unit conducting traffic stop on Main Street and requesting backup assistance."*
 
 ## Contributing
 
