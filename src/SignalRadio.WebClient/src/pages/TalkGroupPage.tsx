@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import CallCard from '../components/CallCard'
 import FrequencyTabs from '../components/FrequencyTabs'
+import TranscriptSummary from '../components/TranscriptSummary'
 import { CallCardSkeleton } from '../components/LoadingSpinner'
 import Pagination from '../components/Pagination'
 import type { CallDto, PagedResult, TalkGroupDto } from '../types/dtos'
@@ -282,6 +283,12 @@ export default function TalkGroupPage() {
           </div>
         )}
       </div>
+
+      {/* AI Transcript Summary */}
+      <TranscriptSummary 
+        talkGroupId={talkGroupId} 
+        talkGroupName={talkGroupDisplay} 
+      />
 
       <div className="calls-section">
         <div className="calls-header">

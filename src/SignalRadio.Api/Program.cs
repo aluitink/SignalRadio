@@ -1,6 +1,7 @@
 using SignalRadio.Core.Models;
 using System.Text.Json.Serialization;
 using SignalRadio.Core.Services;
+using SignalRadio.Core.Interfaces;
 using SignalRadio.Api.Hubs;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Data.SqlClient;
@@ -97,6 +98,12 @@ else
     builder.Services.AddHttpClient<WhisperAsrService>();
     builder.Services.AddScoped<IAsrService, WhisperAsrService>();
 }
+
+// Configure Semantic Kernel for transcript summarization
+builder.Services.Configure<SemanticKernelOptions>(
+    builder.Configuration.GetSection(SemanticKernelOptions.SectionName));
+builder.Services.AddMemoryCache();
+builder.Services.AddScoped<ITranscriptSummaryService, SignalRadio.Api.Services.SemanticKernelTranscriptSummaryService>();
 
 // Register background services
 // Configure LocalFileCacheService options

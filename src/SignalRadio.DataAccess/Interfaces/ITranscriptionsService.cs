@@ -12,4 +12,5 @@ public interface ITranscriptionsService
     Task<bool> DeleteAsync(int id);
     Task<PagedResult<Transcription>> SearchAsync(string q, int page, int pageSize);
     Task<PagedResult<Call>> SearchCallsAsync(string q, int page, int pageSize);
+    Task<List<Transcription>> GetByTalkGroupAndTimeRangeAsync(int talkGroupId, DateTimeOffset startTime, DateTimeOffset endTime);
 }

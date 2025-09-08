@@ -9,6 +9,7 @@ public interface ICallsService
     Task<PagedResult<Call>> GetAllCallsByTalkGroupAsync(int talkGroupId, int page, int pageSize, string? sortBy = null, string? sortDir = null);
     Task<Dictionary<double, List<Call>>> GetCallsByFrequencyForTalkGroupAsync(int talkGroupId, int limit = 50);
     Task<Dictionary<int, TalkGroupStats>> GetTalkGroupStatsAsync();
+    Task<List<int>> GetTalkGroupsWithTranscriptsAsync(int windowMinutes = 15);
     Task<Call?> GetByIdAsync(int id);
     Task<Call> CreateAsync(Call model);
     Task<bool> UpdateAsync(int id, Call model);

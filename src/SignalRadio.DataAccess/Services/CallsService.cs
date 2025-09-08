@@ -145,6 +145,20 @@ public class CallsService : ICallsService
         return stats;
     }
 
+    public async Task<List<int>> GetTalkGroupsWithTranscriptsAsync(int windowMinutes = 15)
+    {
+        var cutoffTime = DateTime.UtcNow.AddMinutes(-windowMinutes);
+        
+        var talkGroupIds = await _db.Calls
+            .Where(c => c.RecordingTime >= cutoffTime)
+            .Where(c => c.Recordings.Any(r => r.Transcriptions.Any()))
+            .Select(c => c.TalkGroupId)
+            .Distinct()
+            .ToListAsync();
+
+        return talkGroupIds;
+    }
+
     public async Task<Call?> GetByIdAsync(int id)
     {
         return await _db.Calls

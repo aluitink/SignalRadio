@@ -46,6 +46,26 @@ export interface CallDto {
   createdAt: string // ISO string
 }
 
+export interface TranscriptSummaryDto {
+  talkGroupId: number
+  talkGroupName: string
+  startTime: string // ISO string
+  endTime: string // ISO string
+  transcriptCount: number
+  totalDurationSeconds: number
+  summary: string
+  keyTopics: string[]
+  notableIncidents: string[]
+  notableIncidentsWithCallIds: NotableIncidentDto[]
+  generatedAt: string // ISO string
+  fromCache: boolean
+}
+
+export interface NotableIncidentDto {
+  description: string
+  callIds: number[]
+}
+
 export interface PagedResult<T> {
   items: T[]
   totalCount: number

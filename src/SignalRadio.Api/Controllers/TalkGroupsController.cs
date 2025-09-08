@@ -4,6 +4,8 @@ using SignalRadio.DataAccess;
 using SignalRadio.DataAccess.Services;
 using SignalRadio.Api.Extensions;
 using SignalRadio.Api.Dtos;
+using SignalRadio.Core.Interfaces;
+using SignalRadio.Core.Models;
 using System;
 using System.Linq;
 
@@ -15,12 +17,15 @@ public class TalkGroupsController : ControllerBase
 {
     private readonly ITalkGroupsService _svc;
     private readonly ICallsService _callsService;
+    private readonly ITranscriptSummaryService _summaryService;
     private readonly ILogger<TalkGroupsController> _logger;
 
-    public TalkGroupsController(ITalkGroupsService svc, ICallsService callsService, ILogger<TalkGroupsController> logger)
+    public TalkGroupsController(ITalkGroupsService svc, ICallsService callsService, 
+        ITranscriptSummaryService summaryService, ILogger<TalkGroupsController> logger)
     {
         _svc = svc;
         _callsService = callsService;
+        _summaryService = summaryService;
         _logger = logger;
     }
 
@@ -94,6 +99,50 @@ public class TalkGroupsController : ControllerBase
         );
         
         return Ok(dtoResult);
+    }
+
+    [HttpGet("{id:int}/summary")]
+    public async Task<IActionResult> GetTalkGroupSummary(int id, [FromQuery] int windowMinutes = 60)
+    {
+        // First verify the talkgroup exists
+        var talkGroup = await _svc.GetByIdAsync(id);
+        if (talkGroup == null) return NotFound($"TalkGroup with ID {id} not found");
+
+        // Check if summary service is available
+        if (!await _summaryService.IsAvailableAsync())
+        {
+            return BadRequest("Transcript summary service is not available or not configured");
+        }
+
+        try
+        {
+            windowMinutes = Math.Clamp(windowMinutes, 5, 1440); // 5 minutes to 24 hours
+
+            var endTime = DateTimeOffset.UtcNow;
+            var startTime = endTime.AddMinutes(-windowMinutes);
+
+            var request = new TranscriptSummaryRequest
+            {
+                TalkGroupId = id,
+                StartTime = startTime,
+                EndTime = endTime,
+                ForceRefresh = false
+            };
+
+            var summary = await _summaryService.GenerateSummaryAsync(request);
+            
+            if (summary == null)
+            {
+                return StatusCode(500, "Failed to generate summary");
+            }
+
+            return Ok(summary);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generating summary for TalkGroup {TalkGroupId}", id);
+            return StatusCode(500, "An error occurred while generating the summary");
+        }
     }
 
     [HttpPost]

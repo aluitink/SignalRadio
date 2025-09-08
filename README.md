@@ -176,6 +176,80 @@ Recordings are automatically organized using a configurable path pattern:
 - **Path sanitization** - Ensures valid blob names for Azure Storage
 - **Error handling** - Graceful handling of storage failures with proper logging
 
+## AI Transcript Summarization (Optional)
+
+SignalRadio includes AI-powered transcript summarization using Microsoft Semantic Kernel and Azure OpenAI. This feature analyzes radio communication transcripts over configurable time windows and provides intelligent summaries.
+
+### Features
+
+- **Intelligent Analysis**: Context-aware summaries of radio communications
+- **Key Topic Extraction**: Identifies important themes and subjects
+- **Notable Incident Detection**: Highlights significant events and emergencies
+- **Configurable Time Windows**: 15 minutes to 24 hours
+- **Caching**: Reduces API costs with intelligent caching (30-minute default)
+- **Mobile-Responsive UI**: Clean interface integrated into TalkGroup pages
+
+### Configuration
+
+1. **Copy environment template**:
+```bash
+cp .env.sample .env
+```
+
+2. **Enable AI summarization** in your `.env` file:
+```bash
+# Enable AI Transcript Summarization
+SEMANTIC_KERNEL_ENABLED=true
+AZURE_OPENAI_ENDPOINT=https://your-openai-resource.openai.azure.com/
+AZURE_OPENAI_KEY=your-azure-openai-api-key-here
+AZURE_OPENAI_DEPLOYMENT=gpt-4
+```
+
+3. **Optional fine-tuning** (advanced):
+```bash
+# Optional: Adjust AI behavior
+SEMANTIC_KERNEL_MAX_TOKENS=1500
+SEMANTIC_KERNEL_TEMPERATURE=0.3
+SEMANTIC_KERNEL_CACHE_DURATION=30
+SEMANTIC_KERNEL_DEFAULT_WINDOW=60
+```
+
+4. **Restart services**:
+```bash
+docker-compose up -d
+```
+
+### Azure OpenAI Setup
+
+1. **Create Azure OpenAI Resource**: Go to Azure Portal → Create Resource → Azure OpenAI
+2. **Deploy a Model**: Deploy GPT-4 or GPT-3.5-turbo in your resource
+3. **Get Credentials**: Copy the endpoint URL and API key
+4. **Configure**: Add credentials to your `.env` file
+
+### Usage
+
+Once configured, AI summaries appear automatically on TalkGroup pages when transcripts are available. Users can:
+
+- Select different time windows (15 minutes to 24 hours)
+- Force refresh cached summaries
+- View key topics as tags
+- See notable incidents in a bulleted list
+- Expand/collapse long summaries
+
+### API Endpoints
+
+- `GET /api/talkgroups/{id}/summary` - Generate summary for last hour
+- `POST /api/transcriptsummary/custom` - Custom time range summary
+- `GET /api/transcriptsummary/status` - Check service availability
+- `DELETE /api/transcriptsummary/cache` - Clear cached summaries
+
+### Privacy & Security
+
+- All processing via Azure OpenAI (GDPR compliant)
+- No transcript data stored by OpenAI
+- Configurable token limits prevent excessive usage
+- Service can be completely disabled via configuration
+
 ## Configuration Guide
 
 ### Trunk-Recorder Configuration

@@ -1,5 +1,6 @@
 # Sample Docker Compose Override File
 # Copy this file to docker-compose.override.yml and customize for your environment
+# Also copy .env.sample to .env and configure your environment variables
 
 services:
   signalradio-ui:
@@ -38,6 +39,24 @@ services:
     #   - AzureStorage__ConnectionString=your-azure-storage-connection-string
     #   - AzureStorage__ContainerName=your-container-name
 
+    # Example: AI Transcript Summarization (Azure OpenAI) configuration
+    # environment:
+    #   - SEMANTIC_KERNEL_ENABLED=true
+    #   - AZURE_OPENAI_ENDPOINT=https://your-openai-resource.openai.azure.com/
+    #   - AZURE_OPENAI_KEY=your-azure-openai-api-key-here
+    #   - AZURE_OPENAI_DEPLOYMENT=gpt-4
+    #   - SEMANTIC_KERNEL_MAX_TOKENS=1500
+    #   - SEMANTIC_KERNEL_TEMPERATURE=0.3
+    #   - SEMANTIC_KERNEL_CACHE_DURATION=30
+    #   - SEMANTIC_KERNEL_DEFAULT_WINDOW=60
+
+    # Example: Advanced ASR configuration
+    # environment:
+    #   - ASR_ENABLED=true
+    #   - ASR_PROVIDER=azure
+    #   - AZURE_SPEECH_KEY=your-azure-speech-key
+    #   - AZURE_SPEECH_REGION=eastus
+
 
   # Example: External database (comment out sqlserver service in main compose if using external DB)
   # sqlserver:
@@ -68,3 +87,13 @@ services:
   #       o: bind
 # Tip: copy this file to docker-compose.override.yml and set API_RECORDINGS_HOST_PATH
 # in your .env (or export it) if you want to store API recordings on the host.
+
+# AI Transcript Summarization Setup Instructions:
+# 1. Copy .env.sample to .env
+# 2. Set SEMANTIC_KERNEL_ENABLED=true in your .env file
+# 3. Configure Azure OpenAI settings in your .env file:
+#    - AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
+#    - AZURE_OPENAI_KEY=your-api-key
+#    - AZURE_OPENAI_DEPLOYMENT=gpt-4 (or your deployment name)
+# 4. Restart the services: docker-compose up -d
+# 5. The AI summary will appear on TalkGroup pages when transcripts are available

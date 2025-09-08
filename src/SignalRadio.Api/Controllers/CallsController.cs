@@ -54,6 +54,13 @@ public class CallsController : ControllerBase
         return Ok(item.ToDto(apiBaseUrl));
     }
 
+    [HttpGet("transcripts-available")]
+    public async Task<IActionResult> GetTalkGroupsWithTranscripts([FromQuery] int windowMinutes = 15)
+    {
+        var talkGroupIds = await _svc.GetTalkGroupsWithTranscriptsAsync(windowMinutes);
+        return Ok(talkGroupIds);
+    }
+
     [HttpPost]
     public async Task<IActionResult> Create(Call model)
     {

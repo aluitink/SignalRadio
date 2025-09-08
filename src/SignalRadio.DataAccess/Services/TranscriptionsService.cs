@@ -139,4 +139,20 @@ public class TranscriptionsService : ITranscriptionsService
             TotalPages = (int)Math.Ceiling(total / (double)pageSize)
         };
     }
+
+    public async Task<List<Transcription>> GetByTalkGroupAndTimeRangeAsync(int talkGroupId, DateTimeOffset startTime, DateTimeOffset endTime)
+    {
+        return await _db.Transcriptions
+            .Include(t => t.Recording)
+                .ThenInclude(r => r!.Call)
+            .AsNoTracking()
+            .Where(t => t.Recording != null && 
+                       t.Recording.Call != null &&
+                       t.Recording.Call.TalkGroupId == talkGroupId &&
+                       t.CreatedAt >= startTime && 
+                       t.CreatedAt <= endTime &&
+                       !string.IsNullOrWhiteSpace(t.FullText))
+            .OrderBy(t => t.CreatedAt)
+            .ToListAsync();
+    }
 }

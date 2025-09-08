@@ -40,6 +40,14 @@ services:
       - AsrSettings__Provider=${ASR_PROVIDER:-whisper}
       - LocalFileCache__CacheDirectory=${LOCALFILECACHE__CACHEDIRECTORY:-/tmp/signalradio-cache}
       - LocalFileCache__CacheDurationMinutes=${LOCALFILECACHE__CACHEDURATIONMINUTES:-10}
+      - SemanticKernel__Enabled=${SEMANTIC_KERNEL_ENABLED:-false}
+      - SemanticKernel__AzureOpenAIEndpoint=${AZURE_OPENAI_ENDPOINT:-}
+      - SemanticKernel__AzureOpenAIKey=${AZURE_OPENAI_KEY:-}
+      - SemanticKernel__ChatDeploymentName=${AZURE_OPENAI_DEPLOYMENT:-gpt-4}
+      - SemanticKernel__MaxTokens=${SEMANTIC_KERNEL_MAX_TOKENS:-1500}
+      - SemanticKernel__Temperature=${SEMANTIC_KERNEL_TEMPERATURE:-0.3}
+      - SemanticKernel__CacheDurationMinutes=${SEMANTIC_KERNEL_CACHE_DURATION:-30}
+      - SemanticKernel__DefaultTimeWindowMinutes=${SEMANTIC_KERNEL_DEFAULT_WINDOW:-60}
     volumes:
       # Temporary processing (named volume)
       - temp:/app/temp
