@@ -49,11 +49,18 @@ builder.Services.AddCors(options =>
     });
 });
 
-// Configure Entity Framework
+// Configure Entity Framework and Data Access services
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+builder.Services.AddDataAccess(connectionString!);
+
+// Override the DbContext registration to include migrations assembly
 builder.Services.AddDbContext<SignalRadioDbContext>(options =>
 {
-    var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-    options.UseSqlServer(connectionString, b => b.MigrationsAssembly("SignalRadio.Api"));
+    options.UseSqlServer(connectionString, b => 
+    {
+        b.MigrationsAssembly("SignalRadio.Api");
+        b.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
+    });
 });
 
 // Configure Azure Storage
@@ -79,12 +86,9 @@ else
 {
     builder.Services.AddScoped<IStorageService, AzureBlobStorageService>();
 }
-builder.Services.AddScoped<ICallsService, CallsService>();
-builder.Services.AddScoped<ITalkGroupsService, TalkGroupsService>();
-builder.Services.AddScoped<IRecordingsService, RecordingsService>();
+
 // Notification service to broadcast call/recording updates to SignalR subscribers
 builder.Services.AddScoped<SignalRadio.Core.Services.ICallNotifier, SignalRadio.Api.Services.HubCallNotifier>();
-builder.Services.AddScoped<ITranscriptionsService, TranscriptionsService>();
 
 // Register ASR services - provider can be toggled via ASR_PROVIDER (azure|whisper)
 var asrProvider = builder.Configuration["ASR_PROVIDER"] ?? builder.Configuration["AsrSettings:Provider"] ?? "whisper";

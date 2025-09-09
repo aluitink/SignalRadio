@@ -7,6 +7,7 @@ using SignalRadio.Core.Interfaces;
 using SignalRadio.Core.Models;
 using SignalRadio.DataAccess.Services;
 using SignalRadio.DataAccess;
+using SignalRadio.DataAccess.Extensions;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
@@ -20,10 +21,11 @@ public class SemanticKernelTranscriptSummaryService : ITranscriptSummaryService
     private readonly ILogger<SemanticKernelTranscriptSummaryService> _logger;
     private readonly ITranscriptionsService _transcriptionsService;
     private readonly ITalkGroupsService _talkGroupsService;
+    private readonly ITranscriptSummariesService _summariesService;
     private readonly Kernel _kernel;
     private readonly KernelFunction _summaryFunction;
 
-    private const string CACHE_KEY_PREFIX = "transcript_summary_";
+
     private const string SUMMARY_PROMPT = """
         You are an expert radio communications analyst. You will be provided with transcripts from radio communications over a specific time period for a particular talk group.
 
@@ -81,13 +83,15 @@ public class SemanticKernelTranscriptSummaryService : ITranscriptSummaryService
         IMemoryCache cache,
         ILogger<SemanticKernelTranscriptSummaryService> logger,
         ITranscriptionsService transcriptionsService,
-        ITalkGroupsService talkGroupsService)
+        ITalkGroupsService talkGroupsService,
+        ITranscriptSummariesService summariesService)
     {
         _options = options.Value;
         _cache = cache;
         _logger = logger;
         _transcriptionsService = transcriptionsService;
         _talkGroupsService = talkGroupsService;
+        _summariesService = summariesService;
 
         // Initialize Semantic Kernel
         var kernelBuilder = Kernel.CreateBuilder();
@@ -114,13 +118,31 @@ public class SemanticKernelTranscriptSummaryService : ITranscriptSummaryService
 
         try
         {
-            // Check cache first
-            var cacheKey = GenerateCacheKey(request.TalkGroupId, request.StartTime, request.EndTime);
-            if (!request.ForceRefresh && _cache.TryGetValue(cacheKey, out TranscriptSummaryResponse? cachedSummary))
+            // Check database cache first for summaries less than 15 minutes old
+            if (!request.ForceRefresh)
             {
-                _logger.LogInformation("Retrieved cached summary for TalkGroup {TalkGroupId}", request.TalkGroupId);
-                cachedSummary!.FromCache = true;
-                return cachedSummary;
+                var existingSummary = await _summariesService.FindExistingSummaryAsync(
+                    request.TalkGroupId, request.StartTime, request.EndTime);
+                
+                if (existingSummary != null)
+                {
+                    var summaryAge = DateTimeOffset.UtcNow - existingSummary.GeneratedAt;
+                    if (summaryAge.TotalMinutes < 15)
+                    {
+                        _logger.LogInformation("Retrieved cached database summary for TalkGroup {TalkGroupId} (age: {Age} minutes)", 
+                            request.TalkGroupId, summaryAge.TotalMinutes);
+                        var cachedResponse = existingSummary.ToResponse();
+                        cachedResponse.FromCache = true;
+                        return cachedResponse;
+                    }
+                    else
+                    {
+                        _logger.LogInformation("Existing summary for TalkGroup {TalkGroupId} is {Age} minutes old, regenerating", 
+                            request.TalkGroupId, summaryAge.TotalMinutes);
+                        // Delete the old summary to replace it with a fresh one
+                        await _summariesService.DeleteAsync(existingSummary.Id);
+                    }
+                }
             }
 
             // Get talk group information
@@ -150,7 +172,7 @@ public class SemanticKernelTranscriptSummaryService : ITranscriptSummaryService
                     Summary = "No radio communications recorded during this time period.",
                     KeyTopics = new List<string>(),
                     NotableIncidents = new List<string>(),
-                    NotableIncidentsWithCallIds = new List<NotableIncident>(),
+                    NotableIncidentsWithCallIds = new List<SignalRadio.Core.Models.NotableIncident>(),
                     GeneratedAt = DateTimeOffset.UtcNow,
                     FromCache = false
                 };
@@ -181,27 +203,27 @@ public class SemanticKernelTranscriptSummaryService : ITranscriptSummaryService
                 return null;
             }
 
-            var response = new TranscriptSummaryResponse
+            // Save to database
+            var summaryEntity = new TranscriptSummaryResponse
             {
                 TalkGroupId = request.TalkGroupId,
-                TalkGroupName = GetTalkGroupDisplayName(talkGroup),
                 StartTime = request.StartTime,
                 EndTime = request.EndTime,
                 TranscriptCount = transcripts.Count,
                 TotalDurationSeconds = totalDuration,
                 Summary = aiResponse.Summary,
                 KeyTopics = aiResponse.KeyTopics,
-                NotableIncidents = aiResponse.NotableIncidents,
                 NotableIncidentsWithCallIds = aiResponse.NotableIncidentsWithCallIds,
                 GeneratedAt = DateTimeOffset.UtcNow,
                 FromCache = false
-            };
+            }.ToEntity();
 
-            // Cache the result
-            var cacheExpiry = TimeSpan.FromMinutes(_options.CacheDurationMinutes);
-            _cache.Set(cacheKey, response, cacheExpiry);
+            var savedSummary = await _summariesService.CreateAsync(summaryEntity);
 
-            _logger.LogInformation("Generated and cached summary for TalkGroup {TalkGroupId} with {TranscriptCount} transcripts", 
+            var response = savedSummary.ToResponse();
+            response.FromCache = false;
+
+            _logger.LogInformation("Generated and saved summary to database for TalkGroup {TalkGroupId} with {TranscriptCount} transcripts", 
                 request.TalkGroupId, transcripts.Count);
 
             return response;
@@ -236,21 +258,29 @@ public class SemanticKernelTranscriptSummaryService : ITranscriptSummaryService
         {
             if (talkGroupId.HasValue)
             {
-                // Clear cache for specific talkgroup - this is simplified for now
-                // In a production environment, you might want to track cache keys more explicitly
-                _logger.LogInformation("Cache clearing for specific TalkGroup {TalkGroupId} requested", talkGroupId);
+                // Get summaries for specific talkgroup and delete them
+                var summaries = await _summariesService.GetByTalkGroupAsync(talkGroupId.Value, 1, 1000);
+                foreach (var summary in summaries.Items)
+                {
+                    await _summariesService.DeleteAsync(summary.Id);
+                }
+                _logger.LogInformation("Cleared {Count} cached summaries for TalkGroup {TalkGroupId}", 
+                    summaries.Items.Count, talkGroupId);
             }
             else
             {
-                // Clear all cached summaries - this is simplified for now
-                _logger.LogInformation("Full cache clearing requested");
+                // Get all summaries and delete them
+                var allSummaries = await _summariesService.GetAllAsync(1, 10000);
+                foreach (var summary in allSummaries.Items)
+                {
+                    await _summariesService.DeleteAsync(summary.Id);
+                }
+                _logger.LogInformation("Cleared {Count} cached summaries", allSummaries.Items.Count);
             }
-            
-            await Task.CompletedTask;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error clearing cache");
+            _logger.LogError(ex, "Error clearing cache for TalkGroup {TalkGroupId}", talkGroupId);
         }
     }
 
@@ -350,7 +380,7 @@ public class SemanticKernelTranscriptSummaryService : ITranscriptSummaryService
                     Summary = responseText,
                     KeyTopics = new List<string>(),
                     NotableIncidents = new List<string>(),
-                    NotableIncidentsWithCallIds = new List<NotableIncident>()
+                    NotableIncidentsWithCallIds = new List<SignalRadio.Core.Models.NotableIncident>()
                 };
             }
         }
@@ -378,12 +408,7 @@ public class SemanticKernelTranscriptSummaryService : ITranscriptSummaryService
         return string.Join(" ", parts);
     }
 
-    private string GenerateCacheKey(int talkGroupId, DateTimeOffset startTime, DateTimeOffset endTime)
-    {
-        var startKey = startTime.ToString("yyyy-MM-dd-HH-mm");
-        var endKey = endTime.ToString("yyyy-MM-dd-HH-mm");
-        return $"{CACHE_KEY_PREFIX}{talkGroupId}_{startKey}_{endKey}";
-    }
+
 
     private void LogTokenUsage(FunctionResult result, int talkGroupId)
     {
@@ -472,6 +497,6 @@ public class SemanticKernelTranscriptSummaryService : ITranscriptSummaryService
         public string Summary { get; set; } = string.Empty;
         public List<string> KeyTopics { get; set; } = new();
         public List<string> NotableIncidents { get; set; } = new();
-        public List<NotableIncident> NotableIncidentsWithCallIds { get; set; } = new();
+        public List<SignalRadio.Core.Models.NotableIncident> NotableIncidentsWithCallIds { get; set; } = new();
     }
 }

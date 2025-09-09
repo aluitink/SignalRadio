@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SignalRadio.DataAccess;
 
@@ -11,9 +12,11 @@ using SignalRadio.DataAccess;
 namespace SignalRadio.Api.Migrations
 {
     [DbContext(typeof(SignalRadioDbContext))]
-    partial class SignalRadioDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250908215104_AddTranscriptSummaryTables")]
+    partial class AddTranscriptSummaryTables
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -52,66 +55,6 @@ namespace SignalRadio.Api.Migrations
                     b.HasIndex("TalkGroupId", "RecordingTime");
 
                     b.ToTable("Calls");
-                });
-
-            modelBuilder.Entity("SignalRadio.DataAccess.NotableIncident", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("datetimeoffset")
-                        .HasColumnName("CreatedAtUtc");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<double?>("ImportanceScore")
-                        .HasColumnType("float");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ImportanceScore");
-
-                    b.ToTable("NotableIncidents");
-                });
-
-            modelBuilder.Entity("SignalRadio.DataAccess.NotableIncidentCall", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("CallId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("CallNote")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("datetimeoffset")
-                        .HasColumnName("CreatedAtUtc");
-
-                    b.Property<int>("NotableIncidentId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CallId");
-
-                    b.HasIndex("NotableIncidentId");
-
-                    b.HasIndex("NotableIncidentId", "CallId")
-                        .IsUnique();
-
-                    b.ToTable("NotableIncidentCalls");
                 });
 
             modelBuilder.Entity("SignalRadio.DataAccess.Recording", b =>
@@ -225,37 +168,6 @@ namespace SignalRadio.Api.Migrations
                     b.ToTable("TalkGroups");
                 });
 
-            modelBuilder.Entity("SignalRadio.DataAccess.Topic", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Category")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("datetimeoffset")
-                        .HasColumnName("CreatedAtUtc");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Category");
-
-                    b.HasIndex("Name")
-                        .IsUnique();
-
-                    b.ToTable("Topics");
-                });
-
             modelBuilder.Entity("SignalRadio.DataAccess.TranscriptSummary", b =>
                 {
                     b.Property<int>("Id")
@@ -302,7 +214,7 @@ namespace SignalRadio.Api.Migrations
                     b.ToTable("TranscriptSummaries");
                 });
 
-            modelBuilder.Entity("SignalRadio.DataAccess.TranscriptSummaryNotableIncident", b =>
+            modelBuilder.Entity("SignalRadio.DataAccess.TranscriptSummaryNotableCall", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -310,26 +222,30 @@ namespace SignalRadio.Api.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<int>("CallId")
+                        .HasColumnType("int");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("datetimeoffset")
                         .HasColumnName("CreatedAtUtc");
 
-                    b.Property<int>("NotableIncidentId")
-                        .HasColumnType("int");
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<double?>("ImportanceScore")
+                        .HasColumnType("float");
 
                     b.Property<int>("TranscriptSummaryId")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("NotableIncidentId");
+                    b.HasIndex("CallId");
 
                     b.HasIndex("TranscriptSummaryId");
 
-                    b.HasIndex("TranscriptSummaryId", "NotableIncidentId")
-                        .IsUnique();
-
-                    b.ToTable("TranscriptSummaryNotableIncidents");
+                    b.ToTable("TranscriptSummaryNotableCalls");
                 });
 
             modelBuilder.Entity("SignalRadio.DataAccess.TranscriptSummaryTopic", b =>
@@ -347,20 +263,19 @@ namespace SignalRadio.Api.Migrations
                     b.Property<double?>("Relevance")
                         .HasColumnType("float");
 
-                    b.Property<int>("TopicId")
-                        .HasColumnType("int");
+                    b.Property<string>("Topic")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<int>("TranscriptSummaryId")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("TopicId");
+                    b.HasIndex("Topic");
 
                     b.HasIndex("TranscriptSummaryId");
-
-                    b.HasIndex("TranscriptSummaryId", "TopicId")
-                        .IsUnique();
 
                     b.ToTable("TranscriptSummaryTopics");
                 });
@@ -420,25 +335,6 @@ namespace SignalRadio.Api.Migrations
                     b.Navigation("TalkGroup");
                 });
 
-            modelBuilder.Entity("SignalRadio.DataAccess.NotableIncidentCall", b =>
-                {
-                    b.HasOne("SignalRadio.DataAccess.Call", "Call")
-                        .WithMany()
-                        .HasForeignKey("CallId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("SignalRadio.DataAccess.NotableIncident", "NotableIncident")
-                        .WithMany("NotableIncidentCalls")
-                        .HasForeignKey("NotableIncidentId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Call");
-
-                    b.Navigation("NotableIncident");
-                });
-
             modelBuilder.Entity("SignalRadio.DataAccess.Recording", b =>
                 {
                     b.HasOne("SignalRadio.DataAccess.Call", "Call")
@@ -469,40 +365,32 @@ namespace SignalRadio.Api.Migrations
                     b.Navigation("TalkGroup");
                 });
 
-            modelBuilder.Entity("SignalRadio.DataAccess.TranscriptSummaryNotableIncident", b =>
+            modelBuilder.Entity("SignalRadio.DataAccess.TranscriptSummaryNotableCall", b =>
                 {
-                    b.HasOne("SignalRadio.DataAccess.NotableIncident", "NotableIncident")
-                        .WithMany("TranscriptSummaryNotableIncidents")
-                        .HasForeignKey("NotableIncidentId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                    b.HasOne("SignalRadio.DataAccess.Call", "Call")
+                        .WithMany()
+                        .HasForeignKey("CallId")
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("SignalRadio.DataAccess.TranscriptSummary", "TranscriptSummary")
-                        .WithMany("TranscriptSummaryNotableIncidents")
+                        .WithMany("NotableCalls")
                         .HasForeignKey("TranscriptSummaryId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("NotableIncident");
+                    b.Navigation("Call");
 
                     b.Navigation("TranscriptSummary");
                 });
 
             modelBuilder.Entity("SignalRadio.DataAccess.TranscriptSummaryTopic", b =>
                 {
-                    b.HasOne("SignalRadio.DataAccess.Topic", "Topic")
-                        .WithMany("TranscriptSummaryTopics")
-                        .HasForeignKey("TopicId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("SignalRadio.DataAccess.TranscriptSummary", "TranscriptSummary")
-                        .WithMany("TranscriptSummaryTopics")
+                        .WithMany("Topics")
                         .HasForeignKey("TranscriptSummaryId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("Topic");
 
                     b.Navigation("TranscriptSummary");
                 });
@@ -523,13 +411,6 @@ namespace SignalRadio.Api.Migrations
                     b.Navigation("Recordings");
                 });
 
-            modelBuilder.Entity("SignalRadio.DataAccess.NotableIncident", b =>
-                {
-                    b.Navigation("NotableIncidentCalls");
-
-                    b.Navigation("TranscriptSummaryNotableIncidents");
-                });
-
             modelBuilder.Entity("SignalRadio.DataAccess.Recording", b =>
                 {
                     b.Navigation("Transcriptions");
@@ -545,16 +426,11 @@ namespace SignalRadio.Api.Migrations
                     b.Navigation("Calls");
                 });
 
-            modelBuilder.Entity("SignalRadio.DataAccess.Topic", b =>
-                {
-                    b.Navigation("TranscriptSummaryTopics");
-                });
-
             modelBuilder.Entity("SignalRadio.DataAccess.TranscriptSummary", b =>
                 {
-                    b.Navigation("TranscriptSummaryNotableIncidents");
+                    b.Navigation("NotableCalls");
 
-                    b.Navigation("TranscriptSummaryTopics");
+                    b.Navigation("Topics");
                 });
 #pragma warning restore 612, 618
         }
