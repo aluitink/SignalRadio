@@ -53,4 +53,35 @@ public interface ITranscriptSummariesService
     /// Get notable calls for a specific call ID
     /// </summary>
     Task<IEnumerable<NotableIncidentCall>> GetNotableCallsByCallIdAsync(int callId);
+
+    /// <summary>
+    /// Performs full-text search across summaries, incidents, and topics
+    /// </summary>
+    /// <param name="searchTerm">The term to search for</param>
+    /// <param name="contentTypes">Optional filter for specific content types (Summary, Incident, Topic)</param>
+    /// <param name="page">Page number for pagination</param>
+    /// <param name="pageSize">Number of results per page</param>
+    /// <returns>Paged search results</returns>
+    Task<SearchResultPage> SearchAsync(string searchTerm, IEnumerable<string>? contentTypes = null, int page = 1, int pageSize = 50);
+
+    /// <summary>
+    /// Searches specifically within transcript summaries using full-text search
+    /// </summary>
+    Task<IEnumerable<TranscriptSummary>> SearchSummariesAsync(string searchTerm, int? talkGroupId = null, 
+        DateTimeOffset? startDate = null, DateTimeOffset? endDate = null, int maxResults = 50);
+
+    /// <summary>
+    /// Searches specifically within notable incidents using full-text search
+    /// </summary>
+    Task<IEnumerable<NotableIncident>> SearchIncidentsAsync(string searchTerm, double? minImportanceScore = null, int maxResults = 50);
+
+    /// <summary>
+    /// Searches specifically within topics using full-text search
+    /// </summary>
+    Task<IEnumerable<Topic>> SearchTopicsAsync(string searchTerm, string? category = null, int maxResults = 50);
+
+    /// <summary>
+    /// Find a similar summary within a time tolerance to help with caching
+    /// </summary>
+    Task<TranscriptSummary?> FindSimilarSummaryAsync(int talkGroupId, DateTimeOffset startTime, DateTimeOffset endTime, int toleranceMinutes = 10);
 }

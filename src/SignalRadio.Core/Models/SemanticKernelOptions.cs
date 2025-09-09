@@ -43,4 +43,19 @@ public class SemanticKernelOptions
     /// Default time window for summaries in minutes
     /// </summary>
     public int DefaultTimeWindowMinutes { get; set; } = 60;
+
+    /// <summary>
+    /// Maximum number of concurrent AI requests
+    /// </summary>
+    public int MaxConcurrentRequests { get; set; } = 3;
+
+    /// <summary>
+    /// Minimum time between duplicate requests in minutes
+    /// </summary>
+    public int MinRequestIntervalMinutes { get; set; } = 2;
+
+    /// <summary>
+    /// Minimum transcript content length to trigger AI processing
+    /// </summary>
+    public int MinTranscriptLength { get; set; } = 50;
 }

@@ -14,7 +14,7 @@ using System.Text.Json;
 
 namespace SignalRadio.Api.Services;
 
-public class SemanticKernelTranscriptSummaryService : ITranscriptSummaryService
+public class SemanticKernelTranscriptSummaryService : ITranscriptSummaryService, IDisposable
 {
     private readonly SemanticKernelOptions _options;
     private readonly IMemoryCache _cache;
@@ -24,6 +24,8 @@ public class SemanticKernelTranscriptSummaryService : ITranscriptSummaryService
     private readonly ITranscriptSummariesService _summariesService;
     private readonly Kernel _kernel;
     private readonly KernelFunction _summaryFunction;
+    private readonly SemaphoreSlim _semaphore;
+    private static readonly Dictionary<string, DateTimeOffset> _lastRequestTimes = new();
 
 
     private const string SUMMARY_PROMPT = """
@@ -92,6 +94,10 @@ public class SemanticKernelTranscriptSummaryService : ITranscriptSummaryService
         _transcriptionsService = transcriptionsService;
         _talkGroupsService = talkGroupsService;
         _summariesService = summariesService;
+        
+        // Initialize rate limiting - use configurable max concurrent requests
+        var maxConcurrent = _options.MaxConcurrentRequests > 0 ? _options.MaxConcurrentRequests : 3;
+        _semaphore = new SemaphoreSlim(maxConcurrent, maxConcurrent);
 
         // Initialize Semantic Kernel
         var kernelBuilder = Kernel.CreateBuilder();
@@ -118,29 +124,46 @@ public class SemanticKernelTranscriptSummaryService : ITranscriptSummaryService
 
         try
         {
-            // Check database cache first for summaries less than 15 minutes old
+            // Check database cache first - extend cache duration and add flexible time range matching
             if (!request.ForceRefresh)
             {
+                // First try exact match
                 var existingSummary = await _summariesService.FindExistingSummaryAsync(
                     request.TalkGroupId, request.StartTime, request.EndTime);
+                
+                // If no exact match, try finding similar summaries within tolerance
+                if (existingSummary == null)
+                {
+                    existingSummary = await _summariesService.FindSimilarSummaryAsync(
+                        request.TalkGroupId, request.StartTime, request.EndTime, toleranceMinutes: 15);
+                }
                 
                 if (existingSummary != null)
                 {
                     var summaryAge = DateTimeOffset.UtcNow - existingSummary.GeneratedAt;
-                    if (summaryAge.TotalMinutes < 15)
+                    var maxCacheMinutes = _options.CacheDurationMinutes > 0 ? _options.CacheDurationMinutes : 60; // Default to 60 minutes
+                    
+                    if (summaryAge.TotalMinutes < maxCacheMinutes)
                     {
-                        _logger.LogInformation("Retrieved cached database summary for TalkGroup {TalkGroupId} (age: {Age} minutes)", 
-                            request.TalkGroupId, summaryAge.TotalMinutes);
+                        _logger.LogInformation("Retrieved cached database summary for TalkGroup {TalkGroupId} (age: {Age} minutes, max: {MaxAge})", 
+                            request.TalkGroupId, summaryAge.TotalMinutes, maxCacheMinutes);
                         var cachedResponse = existingSummary.ToResponse();
                         cachedResponse.FromCache = true;
                         return cachedResponse;
+                    }
+                    else if (summaryAge.TotalMinutes < maxCacheMinutes * 2) // Serve stale data if not too old
+                    {
+                        _logger.LogInformation("Serving stale summary for TalkGroup {TalkGroupId} (age: {Age} minutes) - consider background refresh", 
+                            request.TalkGroupId, summaryAge.TotalMinutes);
+                        var staleResponse = existingSummary.ToResponse();
+                        staleResponse.FromCache = true;
+                        return staleResponse;
                     }
                     else
                     {
                         _logger.LogInformation("Existing summary for TalkGroup {TalkGroupId} is {Age} minutes old, regenerating", 
                             request.TalkGroupId, summaryAge.TotalMinutes);
-                        // Delete the old summary to replace it with a fresh one
-                        await _summariesService.DeleteAsync(existingSummary.Id);
+                        // Keep the old summary until we generate a new one
                     }
                 }
             }
@@ -177,6 +200,36 @@ public class SemanticKernelTranscriptSummaryService : ITranscriptSummaryService
                     FromCache = false
                 };
             }
+            
+            // Check if we have meaningful content to summarize (avoid AI calls for trivial content)
+            var preliminaryTranscriptText = PrepareTranscriptText(transcripts);
+            var minLength = _options.MinTranscriptLength > 0 ? _options.MinTranscriptLength : 50;
+            if (string.IsNullOrWhiteSpace(preliminaryTranscriptText) || preliminaryTranscriptText.Length < minLength)
+            {
+                _logger.LogInformation("Insufficient transcript content for TalkGroup {TalkGroupId} (length: {Length})", 
+                    request.TalkGroupId, preliminaryTranscriptText?.Length ?? 0);
+                
+                var totalDurationForMinimal = transcripts.Where(t => t.Recording?.Call?.DurationSeconds > 0)
+                                                        .Sum(t => t.Recording!.Call!.DurationSeconds);
+                
+                return new TranscriptSummaryResponse
+                {
+                    TalkGroupId = request.TalkGroupId,
+                    TalkGroupName = GetTalkGroupDisplayName(talkGroup),
+                    StartTime = request.StartTime,
+                    EndTime = request.EndTime,
+                    TranscriptCount = transcripts.Count,
+                    TotalDurationSeconds = totalDurationForMinimal,
+                    Summary = transcripts.Count == 1 ? 
+                        "Single brief communication with minimal or no transcribed content." :
+                        $"{transcripts.Count} brief communications with minimal or no transcribed content.",
+                    KeyTopics = new List<string>(),
+                    NotableIncidents = new List<string>(),
+                    NotableIncidentsWithCallIds = new List<SignalRadio.Core.Models.NotableIncident>(),
+                    GeneratedAt = DateTimeOffset.UtcNow,
+                    FromCache = false
+                };
+            }
 
             // Prepare transcript data for AI analysis
             var transcriptText = PrepareTranscriptText(transcripts);
@@ -194,39 +247,80 @@ public class SemanticKernelTranscriptSummaryService : ITranscriptSummaryService
                 callTimes.Last().RecordingTime - callTimes.First().RecordingTime : 
                 TimeSpan.Zero;
 
-            // Generate AI summary with enhanced timing context
-            var aiResponse = await GenerateAISummary(transcriptText, talkGroup, transcripts.Count, totalDuration, callTimes, timeSpan, cancellationToken);
+            // Rate limiting - prevent too many concurrent AI requests and duplicate requests
+            var requestKey = $"{request.TalkGroupId}:{request.StartTime:yyyyMMddHHmm}:{request.EndTime:yyyyMMddHHmm}";
             
-            if (aiResponse == null)
+            // Check for recent duplicate request
+            if (_lastRequestTimes.TryGetValue(requestKey, out var lastRequest))
             {
-                _logger.LogError("Failed to generate AI summary for TalkGroup {TalkGroupId}", request.TalkGroupId);
-                return null;
+                var timeSinceLastRequest = DateTimeOffset.UtcNow - lastRequest;
+                var minInterval = _options.MinRequestIntervalMinutes > 0 ? _options.MinRequestIntervalMinutes : 2;
+                if (timeSinceLastRequest.TotalMinutes < minInterval) // Prevent duplicate requests within configured interval
+                {
+                    _logger.LogWarning("Ignoring duplicate AI summary request for TalkGroup {TalkGroupId} (last request: {TimeSince} minutes ago)", 
+                        request.TalkGroupId, timeSinceLastRequest.TotalMinutes);
+                    return null;
+                }
             }
-
-            // Save to database
-            var summaryEntity = new TranscriptSummaryResponse
+            
+            // Acquire semaphore to limit concurrent requests
+            await _semaphore.WaitAsync(cancellationToken);
+            
+            try
             {
-                TalkGroupId = request.TalkGroupId,
-                StartTime = request.StartTime,
-                EndTime = request.EndTime,
-                TranscriptCount = transcripts.Count,
-                TotalDurationSeconds = totalDuration,
-                Summary = aiResponse.Summary,
-                KeyTopics = aiResponse.KeyTopics,
-                NotableIncidentsWithCallIds = aiResponse.NotableIncidentsWithCallIds,
-                GeneratedAt = DateTimeOffset.UtcNow,
-                FromCache = false
-            }.ToEntity();
+                // Record this request timestamp
+                _lastRequestTimes[requestKey] = DateTimeOffset.UtcNow;
+                
+                // Clean up old request timestamps (older than 10 minutes)
+                var cutoff = DateTimeOffset.UtcNow.AddMinutes(-10);
+                var keysToRemove = _lastRequestTimes.Where(kvp => kvp.Value < cutoff).Select(kvp => kvp.Key).ToList();
+                foreach (var key in keysToRemove)
+                {
+                    _lastRequestTimes.Remove(key);
+                }
+                
+                var maxConcurrent = _options.MaxConcurrentRequests > 0 ? _options.MaxConcurrentRequests : 3;
+                _logger.LogInformation("Starting AI summary generation for TalkGroup {TalkGroupId} (concurrent requests: {Active}/{Max})", 
+                    request.TalkGroupId, maxConcurrent - _semaphore.CurrentCount, maxConcurrent);
 
-            var savedSummary = await _summariesService.CreateAsync(summaryEntity);
+                // Generate AI summary with enhanced timing context
+                var aiResponse = await GenerateAISummary(transcriptText, talkGroup, transcripts.Count, totalDuration, callTimes, timeSpan, cancellationToken);
+                
+                if (aiResponse == null)
+                {
+                    _logger.LogError("Failed to generate AI summary for TalkGroup {TalkGroupId}", request.TalkGroupId);
+                    return null;
+                }
 
-            var response = savedSummary.ToResponse();
-            response.FromCache = false;
+                // Save to database
+                var summaryEntity = new TranscriptSummaryResponse
+                {
+                    TalkGroupId = request.TalkGroupId,
+                    StartTime = request.StartTime,
+                    EndTime = request.EndTime,
+                    TranscriptCount = transcripts.Count,
+                    TotalDurationSeconds = totalDuration,
+                    Summary = aiResponse.Summary,
+                    KeyTopics = aiResponse.KeyTopics,
+                    NotableIncidentsWithCallIds = aiResponse.NotableIncidentsWithCallIds,
+                    GeneratedAt = DateTimeOffset.UtcNow,
+                    FromCache = false
+                }.ToEntity();
 
-            _logger.LogInformation("Generated and saved summary to database for TalkGroup {TalkGroupId} with {TranscriptCount} transcripts", 
-                request.TalkGroupId, transcripts.Count);
+                var savedSummary = await _summariesService.CreateAsync(summaryEntity);
 
-            return response;
+                var response = savedSummary.ToResponse();
+                response.FromCache = false;
+
+                _logger.LogInformation("Generated and saved summary to database for TalkGroup {TalkGroupId} with {TranscriptCount} transcripts", 
+                    request.TalkGroupId, transcripts.Count);
+
+                return response;
+            }
+            finally
+            {
+                _semaphore.Release();
+            }
         }
         catch (Exception ex)
         {
@@ -301,7 +395,9 @@ public class SemanticKernelTranscriptSummaryService : ITranscriptSummaryService
     {
         var sb = new StringBuilder();
         
-        foreach (var transcript in transcripts.OrderBy(t => t.Recording?.Call?.RecordingTime ?? t.CreatedAt))
+        // Transcripts are already ordered by duration (descending) then creation time from the database query
+        // Keep this ordering to prioritize longer calls in the transcript processing
+        foreach (var transcript in transcripts)
         {
             var call = transcript.Recording?.Call;
             var callId = call?.Id ?? 0;
@@ -498,5 +594,10 @@ public class SemanticKernelTranscriptSummaryService : ITranscriptSummaryService
         public List<string> KeyTopics { get; set; } = new();
         public List<string> NotableIncidents { get; set; } = new();
         public List<SignalRadio.Core.Models.NotableIncident> NotableIncidentsWithCallIds { get; set; } = new();
+    }
+
+    public void Dispose()
+    {
+        _semaphore?.Dispose();
     }
 }

@@ -152,7 +152,8 @@ public class TranscriptionsService : ITranscriptionsService
                        t.CreatedAt >= startTime && 
                        t.CreatedAt <= endTime &&
                        !string.IsNullOrWhiteSpace(t.FullText))
-            .OrderBy(t => t.CreatedAt)
+            .OrderByDescending(t => t.Recording!.Call!.DurationSeconds)
+            .ThenBy(t => t.CreatedAt)
             .ToListAsync();
     }
 }

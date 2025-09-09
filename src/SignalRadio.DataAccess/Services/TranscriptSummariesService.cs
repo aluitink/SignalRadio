@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using SignalRadio.Core.Models;
+using SignalRadio.DataAccess.Extensions;
 
 namespace SignalRadio.DataAccess.Services;
 
@@ -239,5 +240,212 @@ public class TranscriptSummariesService : ITranscriptSummariesService
             .AsNoTracking()
             .OrderByDescending(nic => nic.NotableIncident!.ImportanceScore ?? 0)
             .ToListAsync();
+    }
+
+    public async Task<SearchResultPage> SearchAsync(string searchTerm, IEnumerable<string>? contentTypes = null, int page = 1, int pageSize = 50)
+    {
+        if (string.IsNullOrWhiteSpace(searchTerm))
+        {
+            return new SearchResultPage { Results = Enumerable.Empty<SearchResult>(), TotalCount = 0, Page = page, PageSize = pageSize };
+        }
+
+        var typesToSearch = contentTypes?.ToHashSet(StringComparer.OrdinalIgnoreCase) 
+                           ?? new HashSet<string> { "Summary", "Incident", "Topic" };
+
+        var results = new List<SearchResult>();
+
+        // Search summaries if requested
+        if (typesToSearch.Contains("Summary"))
+        {
+            var summaryResults = await _db.TranscriptSummaries
+                .AsQueryable()
+                .WhereFreeTextContains(searchTerm)
+                .Include(ts => ts.TalkGroup)
+                .Select(ts => new SearchResult
+                {
+                    Type = "Summary",
+                    Id = ts.Id,
+                    Title = $"Summary for {ts.TalkGroup!.AlphaTag ?? ts.TalkGroup.Tag} ({ts.StartTime:yyyy-MM-dd HH:mm} - {ts.EndTime:HH:mm})",
+                    Content = ts.Summary.Length > 200 ? ts.Summary.Substring(0, 200) + "..." : ts.Summary,
+                    CreatedAt = ts.CreatedAt,
+                    Relevance = 1.0
+                })
+                .ToListAsync();
+
+            results.AddRange(summaryResults);
+        }
+
+        // Search incidents if requested
+        if (typesToSearch.Contains("Incident"))
+        {
+            var incidentResults = await _db.NotableIncidents
+                .AsQueryable()
+                .WhereFreeTextContains(searchTerm)
+                .Select(ni => new SearchResult
+                {
+                    Type = "Incident",
+                    Id = ni.Id,
+                    Title = $"Notable Incident (Score: {ni.ImportanceScore:F1})",
+                    Content = ni.Description.Length > 200 ? ni.Description.Substring(0, 200) + "..." : ni.Description,
+                    CreatedAt = ni.CreatedAt,
+                    Relevance = ni.ImportanceScore ?? 0.5
+                })
+                .ToListAsync();
+
+            results.AddRange(incidentResults);
+        }
+
+        // Search topics if requested
+        if (typesToSearch.Contains("Topic"))
+        {
+            var topicResults = await _db.Topics
+                .AsQueryable()
+                .WhereFreeTextContains(searchTerm)
+                .Select(t => new SearchResult
+                {
+                    Type = "Topic",
+                    Id = t.Id,
+                    Title = t.Name,
+                    Content = t.Category ?? "No category",
+                    CreatedAt = t.CreatedAt,
+                    Relevance = 0.8
+                })
+                .ToListAsync();
+
+            results.AddRange(topicResults);
+        }
+
+        // Sort and paginate
+        var sortedResults = results
+            .OrderByDescending(r => r.Relevance)
+            .ThenByDescending(r => r.CreatedAt)
+            .ToList();
+
+        var totalCount = sortedResults.Count;
+        var pagedResults = sortedResults
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
+
+        return new SearchResultPage
+        {
+            Results = pagedResults,
+            TotalCount = totalCount,
+            Page = page,
+            PageSize = pageSize
+        };
+    }
+
+    public async Task<IEnumerable<TranscriptSummary>> SearchSummariesAsync(string searchTerm, int? talkGroupId = null, 
+        DateTimeOffset? startDate = null, DateTimeOffset? endDate = null, int maxResults = 50)
+    {
+        if (string.IsNullOrWhiteSpace(searchTerm))
+        {
+            return Enumerable.Empty<TranscriptSummary>();
+        }
+
+        IQueryable<TranscriptSummary> query = _db.TranscriptSummaries
+            .AsQueryable()
+            .WhereFreeTextContains(searchTerm);
+
+        // Apply filters before includes to optimize query
+        if (talkGroupId.HasValue)
+        {
+            query = query.Where(ts => ts.TalkGroupId == talkGroupId.Value);
+        }
+
+        if (startDate.HasValue)
+        {
+            query = query.Where(ts => ts.StartTime >= startDate.Value);
+        }
+
+        if (endDate.HasValue)
+        {
+            query = query.Where(ts => ts.EndTime <= endDate.Value);
+        }
+
+        // Add includes after filtering
+        query = query
+            .Include(ts => ts.TalkGroup)
+            .Include(ts => ts.TranscriptSummaryTopics)
+                .ThenInclude(st => st.Topic)
+            .Include(ts => ts.TranscriptSummaryNotableIncidents)
+                .ThenInclude(sni => sni.NotableIncident);
+
+        return await query
+            .OrderByDescending(ts => ts.CreatedAt)
+            .Take(maxResults)
+            .AsNoTracking()
+            .ToListAsync();
+    }
+
+    public async Task<IEnumerable<NotableIncident>> SearchIncidentsAsync(string searchTerm, double? minImportanceScore = null, int maxResults = 50)
+    {
+        if (string.IsNullOrWhiteSpace(searchTerm))
+        {
+            return Enumerable.Empty<NotableIncident>();
+        }
+
+        var query = _db.NotableIncidents
+            .AsQueryable()
+            .WhereFreeTextContains(searchTerm);
+
+        if (minImportanceScore.HasValue)
+        {
+            query = query.Where(ni => ni.ImportanceScore >= minImportanceScore.Value);
+        }
+
+        return await query
+            .OrderByDescending(ni => ni.ImportanceScore ?? 0)
+            .ThenByDescending(ni => ni.CreatedAt)
+            .Take(maxResults)
+            .AsNoTracking()
+            .ToListAsync();
+    }
+
+    public async Task<IEnumerable<Topic>> SearchTopicsAsync(string searchTerm, string? category = null, int maxResults = 50)
+    {
+        if (string.IsNullOrWhiteSpace(searchTerm))
+        {
+            return Enumerable.Empty<Topic>();
+        }
+
+        var query = _db.Topics
+            .AsQueryable()
+            .WhereFreeTextContains(searchTerm);
+
+        if (!string.IsNullOrWhiteSpace(category))
+        {
+            query = query.Where(t => t.Category == category);
+        }
+
+        return await query
+            .OrderBy(t => t.Name)
+            .Take(maxResults)
+            .AsNoTracking()
+            .ToListAsync();
+    }
+
+    public async Task<TranscriptSummary?> FindSimilarSummaryAsync(int talkGroupId, DateTimeOffset startTime, DateTimeOffset endTime, int toleranceMinutes = 10)
+    {
+        // Look for summaries that cover similar time ranges within tolerance
+        var toleranceSpan = TimeSpan.FromMinutes(toleranceMinutes);
+        var startTolerance = startTime.Add(-toleranceSpan);
+        var endTolerance = endTime.Add(toleranceSpan);
+        
+        return await _db.TranscriptSummaries
+            .Include(s => s.TalkGroup)
+            .Include(s => s.TranscriptSummaryTopics)
+                .ThenInclude(st => st.Topic)
+            .Include(s => s.TranscriptSummaryNotableIncidents)
+                .ThenInclude(sni => sni.NotableIncident!)
+                    .ThenInclude(ni => ni.NotableIncidentCalls)
+                        .ThenInclude(nic => nic.Call)
+            .Where(s => s.TalkGroupId == talkGroupId &&
+                       s.StartTime >= startTolerance && s.StartTime <= endTolerance &&
+                       s.EndTime >= startTolerance && s.EndTime <= endTolerance)
+            .OrderByDescending(s => s.GeneratedAt)
+            .AsNoTracking()
+            .FirstOrDefaultAsync();
     }
 }
