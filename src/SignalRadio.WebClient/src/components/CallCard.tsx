@@ -849,32 +849,32 @@ export default function CallCard({ call, onPlayCall }: CallCardProps) {
           100% { background-position: 0% 50%; }
         }
 
-        /* Night Mode - Reduced contrast animations */
+        /* Night Mode - Police cruiser theme with dark red variations */
         .night-mode .new-call-card.playing-law {
           animation: nightLawPulse 3s ease-in-out infinite;
-          background: linear-gradient(135deg, var(--bg-card) 0%, rgba(59, 130, 246, 0.08) 100%);
-          border-color: rgba(59, 130, 246, 0.3);
-          box-shadow: 0 0 8px rgba(59, 130, 246, 0.15);
+          background: linear-gradient(135deg, var(--bg-card) 0%, rgba(127, 29, 29, 0.08) 100%);
+          border-color: rgba(127, 29, 29, 0.3);
+          box-shadow: 0 0 8px rgba(127, 29, 29, 0.15);
         }
 
         .night-mode .new-call-card.playing-law::before {
           background: linear-gradient(45deg, 
-            rgba(59, 130, 246, 0.4), 
-            rgba(99, 102, 241, 0.4), 
-            rgba(59, 130, 246, 0.4), 
-            rgba(99, 102, 241, 0.4)
+            rgba(127, 29, 29, 0.4), 
+            rgba(153, 27, 27, 0.4), 
+            rgba(127, 29, 29, 0.4), 
+            rgba(153, 27, 27, 0.4)
           );
           animation: nightLawBorder 4s ease infinite;
         }
 
         @keyframes nightLawPulse {
           0%, 100% {
-            box-shadow: 0 0 8px rgba(59, 130, 246, 0.15);
-            border-color: rgba(59, 130, 246, 0.3);
+            box-shadow: 0 0 8px rgba(127, 29, 29, 0.15);
+            border-color: rgba(127, 29, 29, 0.3);
           }
           50% {
-            box-shadow: 0 0 12px rgba(99, 102, 241, 0.2);
-            border-color: rgba(99, 102, 241, 0.4);
+            box-shadow: 0 0 12px rgba(153, 27, 27, 0.2);
+            border-color: rgba(153, 27, 27, 0.4);
           }
         }
 
@@ -886,27 +886,27 @@ export default function CallCard({ call, onPlayCall }: CallCardProps) {
 
         .night-mode .new-call-card.playing-fire {
           animation: nightFirePulse 2.5s ease-in-out infinite;
-          background: linear-gradient(135deg, var(--bg-card) 0%, rgba(245, 158, 11, 0.08) 100%);
-          border-color: rgba(245, 158, 11, 0.3);
-          box-shadow: 0 0 8px rgba(245, 158, 11, 0.15);
+          background: linear-gradient(135deg, var(--bg-card) 0%, rgba(180, 25, 25, 0.08) 100%);
+          border-color: rgba(180, 25, 25, 0.3);
+          box-shadow: 0 0 8px rgba(180, 25, 25, 0.15);
         }
 
         .night-mode .new-call-card.playing-fire::before {
           background: linear-gradient(45deg, 
-            rgba(245, 158, 11, 0.4), 
-            rgba(217, 119, 6, 0.4), 
-            rgba(245, 158, 11, 0.4), 
-            rgba(217, 119, 6, 0.4)
+            rgba(180, 25, 25, 0.4), 
+            rgba(200, 30, 30, 0.4), 
+            rgba(180, 25, 25, 0.4), 
+            rgba(200, 30, 30, 0.4)
           );
           animation: nightFireBorder 3s ease infinite;
         }
 
         @keyframes nightFirePulse {
           0%, 100% {
-            box-shadow: 0 0 8px rgba(245, 158, 11, 0.15);
+            box-shadow: 0 0 8px rgba(180, 25, 25, 0.15);
           }
           50% {
-            box-shadow: 0 0 12px rgba(217, 119, 6, 0.2);
+            box-shadow: 0 0 12px rgba(200, 30, 30, 0.2);
           }
         }
 
@@ -918,27 +918,27 @@ export default function CallCard({ call, onPlayCall }: CallCardProps) {
 
         .night-mode .new-call-card.playing-medical {
           animation: nightMedicalPulse 3.5s ease-in-out infinite;
-          background: linear-gradient(135deg, var(--bg-card) 0%, rgba(220, 38, 38, 0.06) 100%);
-          border-color: rgba(220, 38, 38, 0.25);
-          box-shadow: 0 0 6px rgba(220, 38, 38, 0.12);
+          background: linear-gradient(135deg, var(--bg-card) 0%, rgba(100, 20, 20, 0.06) 100%);
+          border-color: rgba(100, 20, 20, 0.25);
+          box-shadow: 0 0 6px rgba(100, 20, 20, 0.12);
         }
 
         .night-mode .new-call-card.playing-medical::before {
           background: linear-gradient(90deg, 
-            rgba(220, 38, 38, 0.3), 
-            rgba(255, 255, 255, 0.2), 
-            rgba(220, 38, 38, 0.3), 
-            rgba(255, 255, 255, 0.2)
+            rgba(100, 20, 20, 0.3), 
+            rgba(80, 80, 80, 0.2), 
+            rgba(100, 20, 20, 0.3), 
+            rgba(80, 80, 80, 0.2)
           );
           animation: nightMedicalBorder 4s linear infinite;
         }
 
         @keyframes nightMedicalPulse {
           0%, 100% {
-            box-shadow: 0 0 6px rgba(220, 38, 38, 0.12);
+            box-shadow: 0 0 6px rgba(100, 20, 20, 0.12);
           }
           50% {
-            box-shadow: 0 0 10px rgba(220, 38, 38, 0.18);
+            box-shadow: 0 0 10px rgba(100, 20, 20, 0.18);
           }
         }
 
@@ -949,34 +949,34 @@ export default function CallCard({ call, onPlayCall }: CallCardProps) {
 
         .night-mode .new-call-card.playing-emergency {
           animation: nightEmergencyFlash 1.5s ease-in-out infinite;
-          background: linear-gradient(135deg, var(--bg-card) 0%, rgba(220, 38, 38, 0.1) 100%);
-          border-color: rgba(220, 38, 38, 0.4);
-          box-shadow: 0 0 10px rgba(220, 38, 38, 0.2);
+          background: linear-gradient(135deg, var(--bg-card) 0%, rgba(127, 29, 29, 0.1) 100%);
+          border-color: rgba(127, 29, 29, 0.4);
+          box-shadow: 0 0 10px rgba(127, 29, 29, 0.2);
         }
 
         @keyframes nightEmergencyFlash {
           0%, 100% {
-            background: linear-gradient(135deg, var(--bg-card) 0%, rgba(220, 38, 38, 0.1) 100%);
-            box-shadow: 0 0 10px rgba(220, 38, 38, 0.2);
+            background: linear-gradient(135deg, var(--bg-card) 0%, rgba(127, 29, 29, 0.1) 100%);
+            box-shadow: 0 0 10px rgba(127, 29, 29, 0.2);
           }
           50% {
-            background: linear-gradient(135deg, var(--bg-card) 0%, rgba(220, 38, 38, 0.03) 100%);
-            box-shadow: 0 0 4px rgba(220, 38, 38, 0.1);
+            background: linear-gradient(135deg, var(--bg-card) 0%, rgba(127, 29, 29, 0.03) 100%);
+            box-shadow: 0 0 4px rgba(127, 29, 29, 0.1);
           }
         }
 
         .night-mode .new-call-card.playing-public-works {
           animation: nightPublicWorksPulse 3s ease-in-out infinite;
-          background: linear-gradient(135deg, var(--bg-card) 0%, rgba(245, 158, 11, 0.08) 100%);
-          border-color: rgba(245, 158, 11, 0.3);
-          box-shadow: 0 0 8px rgba(245, 158, 11, 0.15);
+          background: linear-gradient(135deg, var(--bg-card) 0%, rgba(90, 20, 20, 0.08) 100%);
+          border-color: rgba(90, 20, 20, 0.3);
+          box-shadow: 0 0 8px rgba(90, 20, 20, 0.15);
         }
 
         .night-mode .new-call-card.playing-public-works::before {
           background: repeating-linear-gradient(
             45deg,
-            rgba(245, 158, 11, 0.3) 0px,
-            rgba(245, 158, 11, 0.3) 6px,
+            rgba(90, 20, 20, 0.3) 0px,
+            rgba(90, 20, 20, 0.3) 6px,
             rgba(0, 0, 0, 0.3) 6px,
             rgba(0, 0, 0, 0.3) 12px
           );
@@ -985,10 +985,10 @@ export default function CallCard({ call, onPlayCall }: CallCardProps) {
 
         @keyframes nightPublicWorksPulse {
           0%, 100% {
-            box-shadow: 0 0 8px rgba(245, 158, 11, 0.15);
+            box-shadow: 0 0 8px rgba(90, 20, 20, 0.15);
           }
           50% {
-            box-shadow: 0 0 12px rgba(245, 158, 11, 0.2);
+            box-shadow: 0 0 12px rgba(90, 20, 20, 0.2);
           }
         }
 
@@ -999,27 +999,27 @@ export default function CallCard({ call, onPlayCall }: CallCardProps) {
 
         .night-mode .new-call-card.playing-schools {
           animation: nightSchoolsPulse 4s ease-in-out infinite;
-          background: linear-gradient(135deg, var(--bg-card) 0%, rgba(34, 197, 94, 0.06) 100%);
-          border-color: rgba(34, 197, 94, 0.25);
-          box-shadow: 0 0 6px rgba(34, 197, 94, 0.12);
+          background: linear-gradient(135deg, var(--bg-card) 0%, rgba(70, 15, 15, 0.06) 100%);
+          border-color: rgba(70, 15, 15, 0.25);
+          box-shadow: 0 0 6px rgba(70, 15, 15, 0.12);
         }
 
         .night-mode .new-call-card.playing-schools::before {
           background: linear-gradient(45deg, 
-            rgba(34, 197, 94, 0.3), 
-            rgba(59, 130, 246, 0.3), 
-            rgba(34, 197, 94, 0.3), 
-            rgba(59, 130, 246, 0.3)
+            rgba(70, 15, 15, 0.3), 
+            rgba(90, 20, 20, 0.3), 
+            rgba(70, 15, 15, 0.3), 
+            rgba(90, 20, 20, 0.3)
           );
           animation: nightSchoolsBorder 5s ease infinite;
         }
 
         @keyframes nightSchoolsPulse {
           0%, 100% {
-            box-shadow: 0 0 6px rgba(34, 197, 94, 0.12);
+            box-shadow: 0 0 6px rgba(70, 15, 15, 0.12);
           }
           50% {
-            box-shadow: 0 0 8px rgba(59, 130, 246, 0.15);
+            box-shadow: 0 0 8px rgba(90, 20, 20, 0.15);
           }
         }
 
@@ -1031,27 +1031,27 @@ export default function CallCard({ call, onPlayCall }: CallCardProps) {
 
         .night-mode .new-call-card.playing-interop {
           animation: nightInteropPulse 3.5s ease-in-out infinite;
-          background: linear-gradient(135deg, var(--bg-card) 0%, rgba(147, 51, 234, 0.08) 100%);
-          border-color: rgba(147, 51, 234, 0.3);
-          box-shadow: 0 0 8px rgba(147, 51, 234, 0.15);
+          background: linear-gradient(135deg, var(--bg-card) 0%, rgba(110, 25, 25, 0.08) 100%);
+          border-color: rgba(110, 25, 25, 0.3);
+          box-shadow: 0 0 8px rgba(110, 25, 25, 0.15);
         }
 
         .night-mode .new-call-card.playing-interop::before {
           background: linear-gradient(45deg, 
-            rgba(147, 51, 234, 0.4), 
-            rgba(6, 182, 212, 0.4), 
-            rgba(147, 51, 234, 0.4), 
-            rgba(6, 182, 212, 0.4)
+            rgba(110, 25, 25, 0.4), 
+            rgba(127, 29, 29, 0.4), 
+            rgba(110, 25, 25, 0.4), 
+            rgba(127, 29, 29, 0.4)
           );
           animation: nightInteropBorder 4s ease infinite;
         }
 
         @keyframes nightInteropPulse {
           0%, 100% {
-            box-shadow: 0 0 8px rgba(147, 51, 234, 0.15);
+            box-shadow: 0 0 8px rgba(110, 25, 25, 0.15);
           }
           50% {
-            box-shadow: 0 0 10px rgba(6, 182, 212, 0.18);
+            box-shadow: 0 0 10px rgba(127, 29, 29, 0.18);
           }
         }
 
@@ -1063,40 +1063,70 @@ export default function CallCard({ call, onPlayCall }: CallCardProps) {
 
         .night-mode .new-call-card.playing-multi-dispatch {
           animation: nightMultiDispatchPulse 2.5s ease-in-out infinite;
-          background: linear-gradient(135deg, var(--bg-card) 0%, rgba(168, 85, 247, 0.08) 100%);
-          border-color: rgba(168, 85, 247, 0.3);
-          box-shadow: 0 0 8px rgba(168, 85, 247, 0.15);
+          background: linear-gradient(135deg, var(--bg-card) 0%, rgba(120, 22, 22, 0.08) 100%);
+          border-color: rgba(120, 22, 22, 0.3);
+          box-shadow: 0 0 8px rgba(120, 22, 22, 0.15);
         }
 
         .night-mode .new-call-card.playing-multi-dispatch::before {
           background: linear-gradient(45deg, 
-            rgba(168, 85, 247, 0.3), 
-            rgba(59, 130, 246, 0.3), 
-            rgba(34, 197, 94, 0.3), 
-            rgba(245, 158, 11, 0.3),
-            rgba(168, 85, 247, 0.3)
+            rgba(120, 22, 22, 0.3), 
+            rgba(100, 20, 20, 0.3), 
+            rgba(90, 20, 20, 0.3), 
+            rgba(80, 18, 18, 0.3),
+            rgba(120, 22, 22, 0.3)
           );
           animation: nightMultiDispatchBorder 4s ease infinite;
         }
 
         @keyframes nightMultiDispatchPulse {
           0%, 100% {
-            box-shadow: 0 0 8px rgba(168, 85, 247, 0.15);
+            box-shadow: 0 0 8px rgba(120, 22, 22, 0.15);
           }
           25% {
-            box-shadow: 0 0 10px rgba(59, 130, 246, 0.18);
+            box-shadow: 0 0 10px rgba(100, 20, 20, 0.18);
           }
           50% {
-            box-shadow: 0 0 10px rgba(34, 197, 94, 0.18);
+            box-shadow: 0 0 10px rgba(90, 20, 20, 0.18);
           }
           75% {
-            box-shadow: 0 0 10px rgba(245, 158, 11, 0.18);
+            box-shadow: 0 0 10px rgba(80, 18, 18, 0.18);
           }
         }
 
         @keyframes nightMultiDispatchBorder {
           0% { background-position: 0% 50%; }
           100% { background-position: 100% 50%; }
+        }
+
+        /* Night mode text contrast for playing cards */
+        .night-mode .new-call-card[class*="playing-"] {
+          color: #ffffff;
+        }
+
+        .night-mode .new-call-card[class*="playing-"] .talkgroup-link {
+          color: #ffffff !important;
+          text-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .night-mode .new-call-card[class*="playing-"] .call-time {
+          color: #f3f4f6 !important;
+          text-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .night-mode .new-call-card[class*="playing-"] .call-meta-item {
+          color: #e5e7eb;
+        }
+
+        .night-mode .new-call-card[class*="playing-"] .transcript-text {
+          color: #f9fafb;
+          text-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .night-mode .new-call-card[class*="playing-"] .badge {
+          background: rgba(0, 0, 0, 0.3);
+          color: #ffffff;
+          text-shadow: none;
         }
 
         .night-mode .new-call-card.playing-default {

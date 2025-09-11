@@ -403,7 +403,7 @@ export default function TranscriptionTicker() {
           top: 100%;
           left: 0;
           right: 0;
-          background: rgba(20, 24, 35, 0.95);
+          background: var(--bg-secondary);
           backdrop-filter: blur(8px);
           border: 1px solid var(--border);
           border-top: none;
@@ -415,13 +415,13 @@ export default function TranscriptionTicker() {
         }
 
         .dropdown-item {
-          border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+          border-bottom: 1px solid var(--border);
           cursor: pointer;
-          transition: background-color 0.2s ease;
+          transition: var(--transition);
         }
 
         .dropdown-item:hover {
-          background: rgba(255, 255, 255, 0.08);
+          background: var(--bg-card-hover);
         }
 
         .dropdown-item:last-child {
@@ -444,12 +444,12 @@ export default function TranscriptionTicker() {
 
         .dropdown-talkgroup {
           font-weight: 600;
-          color: #60a5fa;
+          color: var(--accent-primary);
           font-size: 14px;
         }
 
         .dropdown-time {
-          color: #94a3b8;
+          color: var(--text-secondary);
           font-size: 12px;
         }
 
@@ -461,19 +461,19 @@ export default function TranscriptionTicker() {
         }
 
         .dropdown-text {
-          color: #e6f0ff;
+          color: var(--text-primary);
           flex: 1;
           line-height: 1.4;
           word-wrap: break-word;
         }
 
         .dropdown-calls {
-          color: #60a5fa;
+          color: var(--accent-primary);
           font-size: 12px;
           font-weight: 500;
           flex-shrink: 0;
           padding: 2px 6px;
-          background: rgba(96, 165, 250, 0.15);
+          background: var(--bg-accent-muted);
           border-radius: 4px;
         }
 
@@ -507,7 +507,7 @@ export default function TranscriptionTicker() {
           }
 
           .ticker-dropdown {
-            background: rgba(20, 24, 35, 0.98);
+            background: var(--bg-secondary);
             backdrop-filter: blur(12px);
           }
 

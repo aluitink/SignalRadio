@@ -47,17 +47,17 @@
 
 /* Night Mode - Reduced contrast and intensity for nighttime use */
 .night-mode {
-  /* Darker, softer colors */
-  --bg-primary: #0a0e1a;
-  --bg-secondary: #141824;
-  --bg-card: rgba(255,255,255,0.01);
-  --bg-card-hover: rgba(255,255,255,0.02);
-  --text-primary: #b8c5d6;
-  --text-secondary: #6b7280;
-  --text-muted: #4b5563;
-  --accent-primary: #4f46e5;
-  --accent-primary-hover: #4338ca;
-  --border: rgba(255,255,255,0.05);
+  /* Darker, softer colors with neutral dark tones */
+  --bg-primary: #0f0f0f;
+  --bg-secondary: #1a1a1a;
+  --bg-card: rgba(255,255,255,0.02);
+  --bg-card-hover: rgba(255,255,255,0.03);
+  --text-primary: #d1d5db;
+  --text-secondary: #9ca3af;
+  --text-muted: #6b7280;
+  --accent-primary: #7f1d1d;
+  --accent-primary-hover: #991b1b;
+  --border: rgba(255,255,255,0.08);
   
   /* Reduced intensity for warnings/errors */
   --bg-danger: #7f1d1d;
@@ -68,7 +68,7 @@
 
 /* Override body background for night mode */
 .night-mode body {
-  background: linear-gradient(180deg, #071034 0%, #071a34 100%);
+  background: linear-gradient(180deg, #0a0a0a 0%, #1a1a1a 100%);
 }
 
 * {
