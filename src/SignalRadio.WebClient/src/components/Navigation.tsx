@@ -33,6 +33,10 @@ export default function Navigation() {
         </Link>
 
         <div className="nav-actions">
+          <div className="nav-desktop-controls">
+            <NightModeToggle className="nav-desktop-control" showLabel={false} />
+            <WakeLockIndicator className="nav-desktop-control" showLabel={false} />
+          </div>
           <button 
             className="nav-toggle"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -144,6 +148,24 @@ export default function Navigation() {
           gap: var(--space-2);
           position: relative;
           z-index: 101; /* Ensure it stays above other elements in fullscreen */
+        }
+
+        .nav-desktop-controls {
+          display: none;
+          align-items: center;
+          gap: var(--space-1);
+        }
+
+        /* Show desktop controls on larger screens */
+        @media (min-width: 768px) {
+          .nav-desktop-controls {
+            display: flex;
+          }
+        }
+
+        .nav-desktop-control {
+          padding: var(--space-1) !important;
+          border-radius: var(--radius-sm) !important;
         }
 
         .nav-toggle {

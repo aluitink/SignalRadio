@@ -124,14 +124,7 @@ export default function WakeLockIndicator({
           white-space: nowrap;
         }
 
-        /* Hide on desktop by default */
-        @media (min-width: 768px) {
-          .wake-lock-indicator {
-            display: none;
-          }
-        }
-
-        /* Mobile adjustments - only show on mobile */
+        /* Mobile adjustments */
         @media (max-width: 767px) {
           .wake-lock-indicator {
             padding: var(--space-1);
