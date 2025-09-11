@@ -115,13 +115,6 @@ export default function Navigation() {
         .nav-center {
           flex: 1;
           min-width: 0; /* Allow shrinking */
-          padding: 0 var(--space-2);
-        }
-
-        @media (max-width: 767px) {
-          .nav-center {
-            padding: 0 var(--space-1);
-          }
         }
 
         .nav-connection-status {
@@ -330,6 +323,13 @@ export default function Navigation() {
 
         .nav-link-icon {
           font-size: var(--font-size-lg);
+        }
+
+        /* Hide site title on mobile */
+        @media (max-width: 767px) {
+          .nav-brand-text {
+            display: none;
+          }
         }
       `}</style>
     </nav>

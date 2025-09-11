@@ -37,6 +37,7 @@ export default function TranscriptionTicker() {
   const [isPaused, setIsPaused] = useState(false)
   const [serviceAvailable, setServiceAvailable] = useState<boolean | null>(null)
   const [isExpanded, setIsExpanded] = useState(false)
+  const [dropdownTop, setDropdownTop] = useState(0)
   const tickerRef = useRef<HTMLDivElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
@@ -161,6 +162,12 @@ export default function TranscriptionTicker() {
   }
 
   const handleTickerClick = () => {
+    // Calculate dropdown position before toggling
+    if (!isExpanded && dropdownRef.current) {
+      const rect = dropdownRef.current.getBoundingClientRect()
+      setDropdownTop(rect.bottom)
+    }
+    
     setIsExpanded(!isExpanded)
     // Resume scrolling when closing dropdown, pause when opening
     setIsPaused(!isExpanded)
@@ -271,7 +278,10 @@ export default function TranscriptionTicker() {
 
       {/* Dropdown with all items */}
       {isExpanded && (
-        <div className="ticker-dropdown">
+        <div 
+          className="ticker-dropdown"
+          style={{ top: `${dropdownTop}px` }}
+        >
           {tickerItems.map((item, index) => (
             <div
               key={`dropdown-${item.id}-${index}`}
@@ -399,10 +409,10 @@ export default function TranscriptionTicker() {
 
         /* Dropdown styles */
         .ticker-dropdown {
-          position: absolute;
-          top: 100%;
+          position: fixed;
           left: 0;
           right: 0;
+          width: 100vw;
           background: var(--bg-secondary);
           backdrop-filter: blur(8px);
           border: 1px solid var(--border);
@@ -507,6 +517,10 @@ export default function TranscriptionTicker() {
           }
 
           .ticker-dropdown {
+            position: fixed;
+            left: 0;
+            right: 0;
+            width: 100vw;
             background: var(--bg-secondary);
             backdrop-filter: blur(12px);
           }
