@@ -67,13 +67,13 @@ export default function App() {
       <style>{`
         .main-content {
           flex: 1;
-          padding: var(--space-4) 0;
+          padding: var(--space-2) 0;
           padding-bottom: calc(var(--space-4) + 80px); /* Account for fixed audio player */
         }
 
         @media (max-width: 767px) {
           .main-content {
-            padding: 64px 0 70px 0; /* Top padding for fixed nav, bottom for audio player */
+            padding: 80px 0 70px 0; /* Reduced top padding since ticker is now inline with header */
           }
         }
       `}</style>

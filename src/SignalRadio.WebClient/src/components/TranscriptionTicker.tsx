@@ -306,10 +306,10 @@ export default function TranscriptionTicker() {
           background: var(--bg-card);
           border: 1px solid var(--border);
           border-radius: var(--radius);
-          margin-bottom: var(--space-3);
           overflow: visible;
           min-height: 56px;
           position: relative;
+          margin-bottom: 0; /* Remove margin since it's in header */
         }
 
         .ticker-content {
@@ -480,7 +480,7 @@ export default function TranscriptionTicker() {
         @media (max-width: 767px) {
           .transcription-ticker {
             min-height: 48px;
-            margin-bottom: var(--space-2);
+            margin-bottom: 0; /* Remove margin for mobile too */
           }
 
           .ticker-content {

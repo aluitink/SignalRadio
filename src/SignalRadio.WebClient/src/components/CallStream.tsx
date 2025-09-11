@@ -6,7 +6,6 @@ import { audioPlayerService } from '../services/AudioPlayerService'
 import type { CallDto } from '../types/dtos'
 import CallCard from './CallCard'
 import LoadingSpinner from './LoadingSpinner'
-import TranscriptionTicker from './TranscriptionTicker'
 
 export default function CallStream() {
   const { connection } = useSignalR('/hubs/talkgroup')
@@ -128,8 +127,6 @@ export default function CallStream() {
 
   return (
     <section className="call-stream">
-      <TranscriptionTicker />
-
       <div className="call-list">
         {calls.length === 0 ? (
           <div className="empty-state">

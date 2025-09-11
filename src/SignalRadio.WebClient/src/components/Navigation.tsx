@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { useSignalR } from '../hooks/useSignalR'
 import WakeLockIndicator from './WakeLockIndicator'
 import NightModeToggle from './NightModeToggle'
+import TranscriptionTicker from './TranscriptionTicker'
 
 export default function Navigation() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -25,18 +26,17 @@ export default function Navigation() {
     <nav className="navigation">
       <div className="nav-container">
         <Link to="/" className="nav-brand">
-          <span className="nav-brand-icon">📻</span>
-          <span className="nav-brand-text">SignalRadio</span>
           <span className={`nav-connection-status ${connected ? 'connected' : 'disconnected'}`}>
             <span className="connection-indicator" />
           </span>
+          <span className="nav-brand-text">SignalRadio</span>
         </Link>
 
+        <div className="nav-center">
+          <TranscriptionTicker />
+        </div>
+
         <div className="nav-actions">
-          <div className="nav-desktop-controls">
-            <NightModeToggle className="nav-desktop-control" showLabel={false} />
-            <WakeLockIndicator className="nav-desktop-control" showLabel={false} />
-          </div>
           <button 
             className="nav-toggle"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -70,7 +70,6 @@ export default function Navigation() {
           </div>
         </div>
       </div>
-
       <style>{`
         .navigation {
           background: var(--bg-secondary);
@@ -99,6 +98,7 @@ export default function Navigation() {
           align-items: center;
           justify-content: space-between;
           height: 64px;
+          gap: var(--space-2);
         }
 
         .nav-brand {
@@ -109,16 +109,24 @@ export default function Navigation() {
           color: var(--text-primary);
           font-weight: 600;
           font-size: var(--font-size-lg);
+          flex-shrink: 0;
         }
 
-        .nav-brand-icon {
-          font-size: var(--font-size-xl);
+        .nav-center {
+          flex: 1;
+          min-width: 0; /* Allow shrinking */
+          padding: 0 var(--space-2);
+        }
+
+        @media (max-width: 767px) {
+          .nav-center {
+            padding: 0 var(--space-1);
+          }
         }
 
         .nav-connection-status {
           display: flex;
           align-items: center;
-          margin-left: var(--space-1);
         }
 
         .connection-indicator {
@@ -145,27 +153,9 @@ export default function Navigation() {
         .nav-actions {
           display: flex;
           align-items: center;
-          gap: var(--space-2);
           position: relative;
           z-index: 101; /* Ensure it stays above other elements in fullscreen */
-        }
-
-        .nav-desktop-controls {
-          display: none;
-          align-items: center;
-          gap: var(--space-1);
-        }
-
-        /* Show desktop controls on larger screens */
-        @media (min-width: 768px) {
-          .nav-desktop-controls {
-            display: flex;
-          }
-        }
-
-        .nav-desktop-control {
-          padding: var(--space-1) !important;
-          border-radius: var(--radius-sm) !important;
+          flex-shrink: 0;
         }
 
         .nav-toggle {
