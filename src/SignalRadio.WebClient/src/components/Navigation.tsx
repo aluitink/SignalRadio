@@ -12,7 +12,7 @@ export default function Navigation() {
   const navItems = [
     { path: '/', label: 'Live Stream', icon: '📡' },
     { path: '/search', label: 'Search', icon: '🔍' },
-    { path: '/talkgroups', label: 'TalkGroups', icon: '📻' },
+    { path: '/talkgroups', label: 'Talk Groups', icon: '📻' },
     { path: '/radio-codes', label: 'Radio Codes', icon: '�' },
   ]
 
@@ -33,9 +33,6 @@ export default function Navigation() {
         </Link>
 
         <div className="nav-actions">
-          <NightModeToggle className="nav-night-mode" />
-          <WakeLockIndicator className="nav-wake-lock" />
-          
           <button 
             className="nav-toggle"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -50,17 +47,23 @@ export default function Navigation() {
         </div>
 
         <div className={`nav-menu ${isMenuOpen ? 'open' : ''}`}>
-          {navItems.map(item => (
-            <Link
-              key={item.path}
-              to={item.path}
-              className={`nav-link ${isActive(item.path) ? 'active' : ''}`}
-              onClick={() => setIsMenuOpen(false)}
-            >
-              <span className="nav-link-icon">{item.icon}</span>
-              <span className="nav-link-text">{item.label}</span>
-            </Link>
-          ))}
+          <div className="nav-menu-items">
+            {navItems.map(item => (
+              <Link
+                key={item.path}
+                to={item.path}
+                className={`nav-link ${isActive(item.path) ? 'active' : ''}`}
+                onClick={() => setIsMenuOpen(false)}
+              >
+                <span className="nav-link-icon">{item.icon}</span>
+                <span className="nav-link-text">{item.label}</span>
+              </Link>
+            ))}
+          </div>
+          <div className="nav-menu-footer">
+            <NightModeToggle className="nav-footer-control" showLabel={true} />
+            <WakeLockIndicator className="nav-footer-control" showLabel={true} />
+          </div>
         </div>
       </div>
 
@@ -211,21 +214,84 @@ export default function Navigation() {
         .nav-menu {
           position: fixed;
           top: 64px;
-          left: 0;
           right: 0;
+          bottom: 0;
+          width: 280px;
           background: var(--bg-secondary);
-          border-bottom: 1px solid var(--border);
-          padding: var(--space-2);
-          transform: translateY(-100%);
+          border-left: 1px solid var(--border);
+          padding: 0;
+          padding-bottom: 120px; /* Space for audio player */
+          overflow-y: auto;
+          transform: translateX(100%);
           opacity: 0;
           visibility: hidden;
           transition: var(--transition);
+          z-index: 50; /* Behind audio player */
+          display: flex;
+          flex-direction: column;
         }
 
         .nav-menu.open {
-          transform: translateY(0);
+          transform: translateX(0);
           opacity: 1;
           visibility: visible;
+        }
+
+        .nav-menu-items {
+          flex: 1;
+          padding: var(--space-2);
+        }
+
+        .nav-menu-footer {
+          display: flex;
+          flex-direction: column;
+          gap: 0;
+          padding: var(--space-2);
+          border-top: 1px solid var(--border);
+          margin-top: auto;
+        }
+
+        .nav-footer-control {
+          width: 100%;
+          justify-content: flex-start !important;
+          margin: 0 !important;
+          border: none !important;
+          background: transparent !important;
+          padding: var(--space-2) !important;
+          border-radius: var(--radius) !important;
+          font-size: var(--font-size-base) !important;
+          font-weight: 500 !important;
+          color: var(--text-secondary) !important;
+          transition: var(--transition) !important;
+          gap: var(--space-2) !important;
+        }
+
+        .nav-footer-control:hover {
+          background: var(--bg-card-hover) !important;
+          color: var(--text-primary) !important;
+        }
+
+        /* Style the icons to match nav link icons */
+        .nav-footer-control .toggle-icon,
+        .nav-footer-control .wake-lock-toggle {
+          font-size: var(--font-size-lg) !important;
+        }
+
+        /* Ensure labels are visible and styled properly */
+        .nav-footer-control .toggle-label,
+        .nav-footer-control .wake-lock-label {
+          display: block !important;
+          color: inherit !important;
+          font-size: var(--font-size-base) !important;
+          font-weight: 500 !important;
+          white-space: nowrap !important;
+        }
+
+        /* Override mobile hidden labels */
+        @media (max-width: 767px) {
+          .nav-footer-control .toggle-label {
+            display: block !important;
+          }
         }
 
         .nav-link {
@@ -252,33 +318,6 @@ export default function Navigation() {
 
         .nav-link-icon {
           font-size: var(--font-size-lg);
-        }
-
-        @media (min-width: 768px) {
-          .nav-container {
-            padding: 0 var(--space-4);
-          }
-
-          .nav-toggle {
-            display: none;
-          }
-
-          .nav-menu {
-            position: static;
-            transform: none;
-            opacity: 1;
-            visibility: visible;
-            background: none;
-            border: none;
-            padding: 0;
-            display: flex;
-            align-items: center;
-            gap: var(--space-1);
-          }
-
-          .nav-link {
-            padding: var(--space-1) var(--space-2);
-          }
         }
       `}</style>
     </nav>
