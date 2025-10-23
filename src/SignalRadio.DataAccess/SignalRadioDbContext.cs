@@ -111,18 +111,18 @@ public class SignalRadioDbContext : DbContext
             b.Property(e => e.CreatedAt).HasColumnName("CreatedAtUtc");
             
             b.HasOne(e => e.TranscriptSummary)
-                .WithMany(s => s.TranscriptSummaryTopics)
-                .HasForeignKey(e => e.TranscriptSummaryId)
-                .OnDelete(DeleteBehavior.Cascade);
-                
+            .WithMany(s => s.TranscriptSummaryTopics)
+            .HasForeignKey(e => e.TranscriptSummaryId)
+            .OnDelete(DeleteBehavior.Cascade);
+
             b.HasOne(e => e.Topic)
-                .WithMany(t => t.TranscriptSummaryTopics)
-                .HasForeignKey(e => e.TopicId)
-                .OnDelete(DeleteBehavior.Cascade);
-                
+            .WithMany(t => t.TranscriptSummaryTopics)
+            .HasForeignKey(e => e.TopicId)
+            .OnDelete(DeleteBehavior.Cascade);
+
             b.HasIndex(e => e.TranscriptSummaryId);
             b.HasIndex(e => e.TopicId);
-            
+
             // Unique constraint to prevent duplicate associations
             b.HasIndex(e => new { e.TranscriptSummaryId, e.TopicId }).IsUnique();
         });
@@ -144,18 +144,18 @@ public class SignalRadioDbContext : DbContext
             b.Property(e => e.CallNote).HasMaxLength(500);
             
             b.HasOne(e => e.NotableIncident)
-                .WithMany(ni => ni.NotableIncidentCalls)
-                .HasForeignKey(e => e.NotableIncidentId)
-                .OnDelete(DeleteBehavior.Cascade);
-                
+            .WithMany(ni => ni.NotableIncidentCalls)
+            .HasForeignKey(e => e.NotableIncidentId)
+            .OnDelete(DeleteBehavior.Cascade);
+
             b.HasOne(e => e.Call)
-                .WithMany()
-                .HasForeignKey(e => e.CallId)
-                .OnDelete(DeleteBehavior.Restrict); // Don't delete calls when incident is deleted
-                
+            .WithMany()
+            .HasForeignKey(e => e.CallId)
+            .OnDelete(DeleteBehavior.Restrict); // Don't delete calls when incident is deleted
+
             b.HasIndex(e => e.NotableIncidentId);
             b.HasIndex(e => e.CallId);
-            
+
             // Unique constraint to prevent duplicate associations
             b.HasIndex(e => new { e.NotableIncidentId, e.CallId }).IsUnique();
         });
@@ -166,18 +166,18 @@ public class SignalRadioDbContext : DbContext
             b.Property(e => e.CreatedAt).HasColumnName("CreatedAtUtc");
             
             b.HasOne(e => e.TranscriptSummary)
-                .WithMany(s => s.TranscriptSummaryNotableIncidents)
-                .HasForeignKey(e => e.TranscriptSummaryId)
-                .OnDelete(DeleteBehavior.Cascade);
-                
+            .WithMany(s => s.TranscriptSummaryNotableIncidents)
+            .HasForeignKey(e => e.TranscriptSummaryId)
+            .OnDelete(DeleteBehavior.Cascade);
+
             b.HasOne(e => e.NotableIncident)
-                .WithMany(ni => ni.TranscriptSummaryNotableIncidents)
-                .HasForeignKey(e => e.NotableIncidentId)
-                .OnDelete(DeleteBehavior.Cascade);
-                
+            .WithMany(ni => ni.TranscriptSummaryNotableIncidents)
+            .HasForeignKey(e => e.NotableIncidentId)
+            .OnDelete(DeleteBehavior.Cascade);
+
             b.HasIndex(e => e.TranscriptSummaryId);
             b.HasIndex(e => e.NotableIncidentId);
-            
+
             // Unique constraint to prevent duplicate associations
             b.HasIndex(e => new { e.TranscriptSummaryId, e.NotableIncidentId }).IsUnique();
         });

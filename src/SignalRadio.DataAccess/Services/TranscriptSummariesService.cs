@@ -20,9 +20,9 @@ public class TranscriptSummariesService : ITranscriptSummariesService
             .Include(s => s.TranscriptSummaryTopics)
                 .ThenInclude(st => st.Topic)
             .Include(s => s.TranscriptSummaryNotableIncidents)
-                .ThenInclude(sni => sni.NotableIncident!)
-                    .ThenInclude(ni => ni.NotableIncidentCalls)
-                        .ThenInclude(nic => nic.Call)
+            .ThenInclude(sni => sni.NotableIncident!)
+            .ThenInclude(ni => ni.NotableIncidentCalls)
+            .ThenInclude(nic => nic.Call)
             .Where(s => s.TalkGroupId == talkGroupId &&
                        s.StartTime <= endTime &&
                        s.EndTime >= startTime)
@@ -38,9 +38,9 @@ public class TranscriptSummariesService : ITranscriptSummariesService
             .Include(s => s.TranscriptSummaryTopics)
                 .ThenInclude(st => st.Topic)
             .Include(s => s.TranscriptSummaryNotableIncidents)
-                .ThenInclude(sni => sni.NotableIncident!)
-                    .ThenInclude(ni => ni.NotableIncidentCalls)
-                        .ThenInclude(nic => nic.Call)
+            .ThenInclude(sni => sni.NotableIncident!)
+            .ThenInclude(ni => ni.NotableIncidentCalls)
+            .ThenInclude(nic => nic.Call)
             .AsNoTracking()
             .FirstOrDefaultAsync(s => s.Id == id);
     }
@@ -155,9 +155,9 @@ public class TranscriptSummariesService : ITranscriptSummariesService
             .Include(s => s.TranscriptSummaryTopics)
                 .ThenInclude(st => st.Topic)
             .Include(s => s.TranscriptSummaryNotableIncidents)
-                .ThenInclude(sni => sni.NotableIncident!)
-                    .ThenInclude(ni => ni.NotableIncidentCalls)
-                        .ThenInclude(nic => nic.Call)
+            .ThenInclude(sni => sni.NotableIncident!)
+            .ThenInclude(ni => ni.NotableIncidentCalls)
+            .ThenInclude(nic => nic.Call)
             .AsNoTracking()
             .FirstOrDefaultAsync(s => s.TalkGroupId == talkGroupId &&
                                     s.StartTime == startTime &&
