@@ -192,8 +192,8 @@ export default function CallCard({ call, onPlayCall }: CallCardProps) {
       // Use custom play behavior if provided (for sequential playback)
       onPlayCall(call)
     } else {
-      // Default behavior: add call to front of queue so it plays next
-      audioPlayerService.addToFront(call)
+      // Default behavior: add call to end of queue
+      audioPlayerService.addToQueue(call)
       
       // If player is stopped, start it
       if (audioPlayerService.getState() === 'stopped') {

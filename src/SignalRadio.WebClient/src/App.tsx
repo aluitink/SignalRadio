@@ -12,6 +12,7 @@ import TalkGroupPage from './pages/TalkGroupPage'
 import CallDetailPage from './pages/CallDetailPage'
 import TalkGroupsPage from './pages/TalkGroupsPage'
 import RadioCodesPage from './pages/RadioCodesPage'
+import IncidentDetailPage from './pages/IncidentDetailPage'
 import NotFoundPage from './pages/NotFoundPage'
 import { createApiTester } from './utils/ApiTester'
 import { SubscriptionProvider } from './contexts/SubscriptionContext'
@@ -48,6 +49,7 @@ export default function App() {
                         <Route path="/radio-codes" element={<RadioCodesPage />} />
                         <Route path="/talkgroup/:id" element={<TalkGroupPage />} />
                         <Route path="/call/:id" element={<CallDetailPage />} />
+                        <Route path="/incident/:talkGroupId/:callIds" element={<IncidentDetailPage />} />
                         <Route path="/admin" element={<Admin />} />
                         <Route path="*" element={<NotFoundPage />} />
                       </Routes>

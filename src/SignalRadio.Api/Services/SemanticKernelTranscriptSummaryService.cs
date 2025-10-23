@@ -8,6 +8,7 @@ using SignalRadio.Core.Models;
 using SignalRadio.DataAccess.Services;
 using SignalRadio.DataAccess;
 using SignalRadio.DataAccess.Extensions;
+using System.Collections.Concurrent;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
@@ -25,8 +26,7 @@ public class SemanticKernelTranscriptSummaryService : ITranscriptSummaryService,
     private readonly Kernel _kernel;
     private readonly KernelFunction _summaryFunction;
     private readonly SemaphoreSlim _semaphore;
-    private static readonly Dictionary<string, DateTimeOffset> _lastRequestTimes = new();
-
+    private static readonly ConcurrentDictionary<string, DateTimeOffset> _lastRequestTimes = new();
 
     private const string SUMMARY_PROMPT = """
         You are an expert radio communications analyst. You will be provided with transcripts from radio communications over a specific time period for a particular talk group.
@@ -268,7 +268,7 @@ public class SemanticKernelTranscriptSummaryService : ITranscriptSummaryService,
             
             try
             {
-                // Record this request timestamp
+                // Record this request timestamp and clean up old ones
                 _lastRequestTimes[requestKey] = DateTimeOffset.UtcNow;
                 
                 // Clean up old request timestamps (older than 10 minutes)
@@ -276,7 +276,7 @@ public class SemanticKernelTranscriptSummaryService : ITranscriptSummaryService,
                 var keysToRemove = _lastRequestTimes.Where(kvp => kvp.Value < cutoff).Select(kvp => kvp.Key).ToList();
                 foreach (var key in keysToRemove)
                 {
-                    _lastRequestTimes.Remove(key);
+                    _lastRequestTimes.TryRemove(key, out _);
                 }
                 
                 var maxConcurrent = _options.MaxConcurrentRequests > 0 ? _options.MaxConcurrentRequests : 3;
