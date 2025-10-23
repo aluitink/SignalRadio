@@ -30,11 +30,11 @@ public class RecordingsController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetAll([FromQuery] int page = 1, [FromQuery] int pageSize = 50)
     {
-            page = Math.Max(1, page);
-            pageSize = Math.Clamp(pageSize, 1, 1000);
+    page = Math.Max(1, page);
+    pageSize = Math.Clamp(pageSize, 1, 1000);
 
-            var result = await _svc.GetAllAsync(page, pageSize);
-            return Ok(result);
+    var result = await _svc.GetAllAsync(page, pageSize);
+    return Ok(result);
     }
 
     [HttpGet("{id:int}")]

@@ -9,7 +9,7 @@ using SignalRadio.Core.Models;
 using System;
 using System.Linq;
 
-namespace SignalRadio.Api.Controllers2;
+namespace SignalRadio.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
@@ -34,9 +34,8 @@ public class TalkGroupsController : ControllerBase
     {
         page = Math.Max(1, page);
         pageSize = Math.Clamp(pageSize, 1, 1000);
-
-    var result = await _svc.GetAllAsync(page, pageSize);
-    return Ok(result);
+        var result = await _svc.GetAllAsync(page, pageSize);
+        return Ok(result);
     }
 
     [HttpGet("stats")]
@@ -49,8 +48,8 @@ public class TalkGroupsController : ControllerBase
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetById(int id)
     {
-    var item = await _svc.GetByIdAsync(id);
-    return item == null ? NotFound() : Ok(item);
+        var item = await _svc.GetByIdAsync(id);
+        return item == null ? NotFound() : Ok(item);
     }
 
     [HttpGet("{id:int}/calls")]
@@ -148,24 +147,24 @@ public class TalkGroupsController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create(TalkGroup model)
     {
-    var created = await _svc.CreateAsync(model);
-    return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
+        var created = await _svc.CreateAsync(model);
+        return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
     }
 
     [HttpPut("{id:int}")]
     public async Task<IActionResult> Update(int id, TalkGroup model)
     {
-    if (id != model.Id) return BadRequest("Id mismatch");
+        if (id != model.Id) return BadRequest("Id mismatch");
 
-    var ok = await _svc.UpdateAsync(id, model);
-    return ok ? NoContent() : NotFound();
+        var ok = await _svc.UpdateAsync(id, model);
+        return ok ? NoContent() : NotFound();
     }
 
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id)
     {
-    var ok = await _svc.DeleteAsync(id);
-    return ok ? NoContent() : NotFound();
+        var ok = await _svc.DeleteAsync(id);
+        return ok ? NoContent() : NotFound();
     }
 
     [HttpPost("import")]
@@ -186,7 +185,7 @@ public class TalkGroupsController : ControllerBase
             lines.Add(line);
         }
 
-    // Assume CSV header present or rows matching: Decimal,Hex,Mode,Alpha Tag,Description,Tag,Category,Priority
+        // Assume CSV header present or rows matching: Decimal,Hex,Mode,Alpha Tag,Description,Tag,Category,Priority
         var imported = 0;
         foreach (var raw in lines)
         {
@@ -204,10 +203,9 @@ public class TalkGroupsController : ControllerBase
                 Category = cols.Length > 6 ? cols[6].Trim() : null,
             };
 
-        if (cols.Length > 7 && int.TryParse(cols[7], out var p)) model.Priority = p;
+            if (cols.Length > 7 && int.TryParse(cols[7], out var p)) model.Priority = p;
 
             // Upsert: if a TalkGroup with same Number exists, update it; otherwise create
-            var existing = await _svc.GetAllAsync(1, 1);
             // Simple lookup via DB context would be more efficient; use service create/update for now.
             var found = (await _svc.GetAllAsync(1, int.MaxValue)).Items.FirstOrDefault(t => t.Number == number);
             if (found != null)
@@ -219,6 +217,7 @@ public class TalkGroupsController : ControllerBase
             {
                 await _svc.CreateAsync(model);
             }
+
             imported++;
         }
 

@@ -57,8 +57,7 @@ public class SearchController : ControllerBase
             ? types.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(t => t.Trim())
             : null;
 
-        _logger.LogInformation("Searching for term: {SearchTerm}, types: {ContentTypes}, page: {Page}", 
-            q, string.Join(",", contentTypes ?? new[] { "All" }), page);
+        _logger.LogInformation("Searching for term: {SearchTerm}, types: {ContentTypes}, page: {Page}", q, string.Join(",", contentTypes ?? new[] { "All" }), page);
 
         try
         {
