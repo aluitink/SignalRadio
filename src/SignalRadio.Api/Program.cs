@@ -56,7 +56,7 @@ builder.Services.AddDataAccess(connectionString!);
 // Override the DbContext registration to include migrations assembly
 builder.Services.AddDbContext<SignalRadioDbContext>(options =>
 {
-    options.UseSqlServer(connectionString, b => 
+    options.UseSqlServer(connectionString, b =>
     {
         b.MigrationsAssembly("SignalRadio.Api");
         b.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);

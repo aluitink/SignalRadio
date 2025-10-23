@@ -20,7 +20,7 @@ public class TalkGroupsController : ControllerBase
     private readonly ITranscriptSummaryService _summaryService;
     private readonly ILogger<TalkGroupsController> _logger;
 
-    public TalkGroupsController(ITalkGroupsService svc, ICallsService callsService, 
+    public TalkGroupsController(ITalkGroupsService svc, ICallsService callsService,
         ITranscriptSummaryService summaryService, ILogger<TalkGroupsController> logger)
     {
         _svc = svc;
@@ -64,10 +64,10 @@ public class TalkGroupsController : ControllerBase
         pageSize = Math.Clamp(pageSize, 1, 1000);
 
         var result = await _callsService.GetAllCallsByTalkGroupAsync(id, page, pageSize, sortBy, sortDir);
-        
+
         // Convert to DTOs with TalkGroup information included
         var apiBaseUrl = $"{Request.Scheme}://{Request.Host}";
-        var dtoResult = new 
+        var dtoResult = new
         {
             Items = result.Items.Select(call => call.ToDto(apiBaseUrl)).ToList(),
             result.TotalCount,
@@ -75,7 +75,7 @@ public class TalkGroupsController : ControllerBase
             result.PageSize,
             result.TotalPages
         };
-        
+
         return Ok(dtoResult);
     }
 
@@ -87,16 +87,16 @@ public class TalkGroupsController : ControllerBase
         if (talkGroup == null) return NotFound($"TalkGroup with ID {id} not found");
 
         limit = Math.Clamp(limit, 1, 1000);
-        
+
         var result = await _callsService.GetCallsByFrequencyForTalkGroupAsync(id, limit);
-        
+
         // Convert to DTOs with TalkGroup information included
         var apiBaseUrl = $"{Request.Scheme}://{Request.Host}";
         var dtoResult = result.ToDictionary(
             kvp => kvp.Key,
             kvp => kvp.Value.Select(call => call.ToDto(apiBaseUrl)).ToList()
         );
-        
+
         return Ok(dtoResult);
     }
 
@@ -129,7 +129,7 @@ public class TalkGroupsController : ControllerBase
             };
 
             var summary = await _summaryService.GenerateSummaryAsync(request);
-            
+
             if (summary == null)
             {
                 return StatusCode(500, "Failed to generate summary");

@@ -8,7 +8,7 @@ public static class EntityExtensions
     public static CallDto ToDto(this Call call, string? apiBaseUrl = null)
     {
         apiBaseUrl ??= "/api"; // Default fallback
-        
+
         return new CallDto
         {
             Id = call.Id,

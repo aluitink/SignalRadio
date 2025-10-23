@@ -66,7 +66,7 @@ public class TranscriptSummaryController : ControllerBase
             };
 
             var summary = await _summaryService.GenerateSummaryAsync(request);
-            
+
             if (summary == null)
             {
                 return StatusCode(500, "Failed to generate summary");
@@ -117,7 +117,7 @@ public class TranscriptSummaryController : ControllerBase
             }
 
             var summary = await _summaryService.GenerateSummaryAsync(request);
-            
+
             if (summary == null)
             {
                 return StatusCode(500, "Failed to generate summary");
@@ -162,11 +162,11 @@ public class TranscriptSummaryController : ControllerBase
         try
         {
             await _summaryService.ClearCacheAsync(talkGroupId);
-            
-            var message = talkGroupId.HasValue 
+
+            var message = talkGroupId.HasValue
                 ? $"Cache cleared for TalkGroup {talkGroupId}"
                 : "All cached summaries cleared";
-                
+
             return Ok(new { message });
         }
         catch (Exception ex)

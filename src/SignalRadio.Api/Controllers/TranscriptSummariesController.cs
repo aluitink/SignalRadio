@@ -27,7 +27,7 @@ public class TranscriptSummariesController : ControllerBase
     {
         var summaries = await _summariesService.GetByTalkGroupAndTimeRangeAsync(talkGroupId, startTime, endTime);
         var responses = summaries.Select(s => s.ToResponse()).ToList();
-        
+
         return Ok(responses);
     }
 
@@ -55,7 +55,7 @@ public class TranscriptSummariesController : ControllerBase
         [FromQuery] int pageSize = 20)
     {
         var pagedResult = await _summariesService.GetAllAsync(page, pageSize);
-        
+
         var responseResult = new PagedResult<TranscriptSummaryResponse>
         {
             Items = pagedResult.Items.Select(s => s.ToResponse()).ToList(),
@@ -81,7 +81,7 @@ public class TranscriptSummariesController : ControllerBase
         maxAgeMinutes = Math.Clamp(maxAgeMinutes, 1, 1440); // 1 minute to 24 hours
 
         var cutoffTime = DateTimeOffset.UtcNow.AddMinutes(-maxAgeMinutes);
-        
+
         // Get all recent summaries and filter by age
         var allSummaries = await _summariesService.GetAllAsync(1, 1000);
         var recentSummaries = allSummaries.Items
@@ -104,7 +104,7 @@ public class TranscriptSummariesController : ControllerBase
         [FromQuery] int pageSize = 20)
     {
         var pagedResult = await _summariesService.GetByTalkGroupAsync(talkGroupId, page, pageSize);
-        
+
         var responseResult = new PagedResult<TranscriptSummaryResponse>
         {
             Items = pagedResult.Items.Select(s => s.ToResponse()).ToList(),
@@ -129,7 +129,7 @@ public class TranscriptSummariesController : ControllerBase
         }
 
         var topics = await _summariesService.SearchTopicsAsync(searchTerm);
-        var results = topics.Select(t => new 
+        var results = topics.Select(t => new
         {
             Topic = t.Topic,
             Relevance = t.Relevance,
@@ -148,7 +148,7 @@ public class TranscriptSummariesController : ControllerBase
     public async Task<ActionResult<IEnumerable<object>>> GetNotableCallsByCallId(int callId)
     {
         var notableCalls = await _summariesService.GetNotableCallsByCallIdAsync(callId);
-        var results = notableCalls.Select(nic => new 
+        var results = notableCalls.Select(nic => new
         {
             Description = nic.NotableIncident?.Description ?? "",
             ImportanceScore = nic.NotableIncident?.ImportanceScore,

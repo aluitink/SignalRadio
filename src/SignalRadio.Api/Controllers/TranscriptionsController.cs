@@ -6,7 +6,7 @@ using SignalRadio.DataAccess.Services;
 using SignalRadio.Api.Extensions;
 using SignalRadio.Api.Dtos;
 
-namespace SignalRadio.Api.Controllers2;
+namespace SignalRadio.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
@@ -27,58 +27,58 @@ public class TranscriptionsController : ControllerBase
         page = Math.Max(1, page);
         pageSize = Math.Clamp(pageSize, 1, 1000);
 
-    var result = await _svc.GetAllAsync(page, pageSize);
-    return Ok(result);
+        var result = await _svc.GetAllAsync(page, pageSize);
+        return Ok(result);
     }
 
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetById(int id)
     {
-    var item = await _svc.GetByIdAsync(id);
-    return item == null ? NotFound() : Ok(item);
+        var item = await _svc.GetByIdAsync(id);
+        return item == null ? NotFound() : Ok(item);
     }
 
     [HttpPost]
     public async Task<IActionResult> Create(Transcription model)
     {
-    var created = await _svc.CreateAsync(model);
-    return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
+        var created = await _svc.CreateAsync(model);
+        return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
     }
 
     [HttpPut("{id:int}")]
     public async Task<IActionResult> Update(int id, Transcription model)
     {
-    if (id != model.Id) return BadRequest("Id mismatch");
-    var ok = await _svc.UpdateAsync(id, model);
-    return ok ? NoContent() : NotFound();
+        if (id != model.Id) return BadRequest("Id mismatch");
+        var ok = await _svc.UpdateAsync(id, model);
+        return ok ? NoContent() : NotFound();
     }
 
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id)
     {
-    var ok = await _svc.DeleteAsync(id);
-    return ok ? NoContent() : NotFound();
+        var ok = await _svc.DeleteAsync(id);
+        return ok ? NoContent() : NotFound();
     }
 
     [HttpGet("search")]
     public async Task<IActionResult> Search([FromQuery] string q, [FromQuery] int page = 1, [FromQuery] int pageSize = 50)
     {
-    if (string.IsNullOrWhiteSpace(q)) return BadRequest("q is required");
+        if (string.IsNullOrWhiteSpace(q)) return BadRequest("q is required");
 
-    var callResult = await _svc.SearchCallsAsync(q, page, pageSize);
-    
-    // Convert to DTOs
-    var callDtos = callResult.Items.Select(c => c.ToDto()).ToList();
+        var callResult = await _svc.SearchCallsAsync(q, page, pageSize);
 
-    var result = new PagedResult<CallDto>
-    {
-        Items = callDtos,
-        TotalCount = callResult.TotalCount,
-        Page = callResult.Page,
-        PageSize = callResult.PageSize,
-        TotalPages = callResult.TotalPages
-    };
+        // Convert to DTOs
+        var callDtos = callResult.Items.Select(c => c.ToDto()).ToList();
 
-    return Ok(result);
+        var result = new PagedResult<CallDto>
+        {
+            Items = callDtos,
+            TotalCount = callResult.TotalCount,
+            Page = callResult.Page,
+            PageSize = callResult.PageSize,
+            TotalPages = callResult.TotalPages
+        };
+
+        return Ok(result);
     }
 }
