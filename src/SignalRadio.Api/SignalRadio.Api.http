@@ -1,125 +1,287 @@
 @SignalRadio.Api_HostAddress = http://localhost:5210
 
-###
-# Health Check
+### ============================================
+### HEALTH & STATUS
+### ============================================
+
+### Health Check
 GET {{SignalRadio.Api_HostAddress}}/health
 Accept: application/json
 
-###
-# Upload Recording (WAV only)
-POST {{SignalRadio.Api_HostAddress}}/api/recording/upload
-Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+### ============================================
+### RECORDINGS
+### ============================================
 
-------WebKitFormBoundary7MA4YWxkTrZu0gW
-Content-Disposition: form-data; name="TalkgroupId"
+### Get All Recordings (paginated)
+GET {{SignalRadio.Api_HostAddress}}/api/recordings?page=1&pageSize=50
+Accept: application/json
 
-12345
-------WebKitFormBoundary7MA4YWxkTrZu0gW
-Content-Disposition: form-data; name="Frequency"
+### Get Recording by ID
+GET {{SignalRadio.Api_HostAddress}}/api/recordings/1
+Accept: application/json
 
-851.0125
-------WebKitFormBoundary7MA4YWxkTrZu0gW
-Content-Disposition: form-data; name="Timestamp"
+### Create Recording (direct, without file upload)
+POST {{SignalRadio.Api_HostAddress}}/api/recordings
+Content-Type: application/json
 
-2025-08-16T21:00:00Z
-------WebKitFormBoundary7MA4YWxkTrZu0gW
-Content-Disposition: form-data; name="SystemName"
+{
+  "talkGroupId": 12345,
+  "frequency": 851.0125,
+  "fileName": "test-recording.wav"
+}
 
-TestSystem
-------WebKitFormBoundary7MA4YWxkTrZu0gW
-Content-Disposition: form-data; name="audioFile"; filename="sample.wav"
+### Upload Recording (with file and metadata)
+POST {{SignalRadio.Api_HostAddress}}/api/recordings/upload
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary
+
+------WebKitFormBoundary
+Content-Disposition: form-data; name="file"; filename="sample.wav"
 Content-Type: audio/wav
 
 < ../../test-files/sample.wav
-------WebKitFormBoundary7MA4YWxkTrZu0gW--
+------WebKitFormBoundary
+Content-Disposition: form-data; name="metadata"
 
-###
-# Upload Recording (M4A only)
-POST {{SignalRadio.Api_HostAddress}}/api/recording/upload
-Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+{"talkGroupId": 12345, "frequency": 851.0125, "fileName": "sample.wav"}
+------WebKitFormBoundary--
 
-------WebKitFormBoundary7MA4YWxkTrZu0gW
-Content-Disposition: form-data; name="TalkgroupId"
+### Update Recording
+PUT {{SignalRadio.Api_HostAddress}}/api/recordings/1
+Content-Type: application/json
 
-67890
-------WebKitFormBoundary7MA4YWxkTrZu0gW
-Content-Disposition: form-data; name="Frequency"
+{
+  "id": 1,
+  "talkGroupId": 12345,
+  "frequency": 851.0125,
+  "fileName": "test-recording.wav"
+}
 
-852.2375
-------WebKitFormBoundary7MA4YWxkTrZu0gW
-Content-Disposition: form-data; name="Timestamp"
-
-2025-08-16T21:05:00Z
-------WebKitFormBoundary7MA4YWxkTrZu0gW
-Content-Disposition: form-data; name="SystemName"
-
-TestSystem
-------WebKitFormBoundary7MA4YWxkTrZu0gW
-Content-Disposition: form-data; name="m4aFile"; filename="sample.m4a"
-Content-Type: audio/mp4
-
-< ../../test-files/sample.m4a
-------WebKitFormBoundary7MA4YWxkTrZu0gW--
-
-###
-# Upload Recording (Both WAV and M4A)
-POST {{SignalRadio.Api_HostAddress}}/api/recording/upload
-Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
-
-------WebKitFormBoundary7MA4YWxkTrZu0gW
-Content-Disposition: form-data; name="TalkgroupId"
-
-11111
-------WebKitFormBoundary7MA4YWxkTrZu0gW
-Content-Disposition: form-data; name="Frequency"
-
-853.4625
-------WebKitFormBoundary7MA4YWxkTrZu0gW
-Content-Disposition: form-data; name="Timestamp"
-
-2025-08-16T21:10:00Z
-------WebKitFormBoundary7MA4YWxkTrZu0gW
-Content-Disposition: form-data; name="SystemName"
-
-TestSystem
-------WebKitFormBoundary7MA4YWxkTrZu0gW
-Content-Disposition: form-data; name="audioFile"; filename="sample.wav"
-Content-Type: audio/wav
-
-< ../../test-files/sample.wav
-------WebKitFormBoundary7MA4YWxkTrZu0gW
-Content-Disposition: form-data; name="m4aFile"; filename="sample.m4a"
-Content-Type: audio/mp4
-
-< ../../test-files/sample.m4a
-------WebKitFormBoundary7MA4YWxkTrZu0gW--
-
-###
-# List All Recordings
-GET {{SignalRadio.Api_HostAddress}}/api/recording/list
+### Delete Recording by ID
+DELETE {{SignalRadio.Api_HostAddress}}/api/recordings/1
 Accept: application/json
 
-###
-# List Recordings with System Filter
-GET {{SignalRadio.Api_HostAddress}}/api/recording/list?systemName=TestSystem
-Accept: application/json
-
-###
-# List Recordings with Talkgroup Filter
-GET {{SignalRadio.Api_HostAddress}}/api/recording/list?systemName=TestSystem&talkgroupId=12345
-Accept: application/json
-
-###
-# List Recordings with Date Range
-GET {{SignalRadio.Api_HostAddress}}/api/recording/list?fromDate=2025-08-16T00:00:00Z&toDate=2025-08-16T23:59:59Z
-Accept: application/json
-
-###
-# Download Recording (replace with actual blob name from list response)
-GET {{SignalRadio.Api_HostAddress}}/api/recording/download/TestSystem/12345/2025/08/16/20250816-210000-851.0125Hz.wav
+### Download Recording File by ID
+GET {{SignalRadio.Api_HostAddress}}/api/recordings/1/file
 Accept: audio/wav
 
-###
-# Delete Recording (replace with actual blob name from list response)
-DELETE {{SignalRadio.Api_HostAddress}}/api/recording/delete/TestSystem/12345/2025/08/16/20250816-210000-851.0125Hz.wav
+### ============================================
+### CALLS
+### ============================================
+
+### Get All Calls (paginated)
+GET {{SignalRadio.Api_HostAddress}}/api/calls?page=1&pageSize=50&sortBy=recordingTime&sortDir=desc
 Accept: application/json
+
+### Get Call by ID
+GET {{SignalRadio.Api_HostAddress}}/api/calls/1
+Accept: application/json
+
+### Get TalkGroups with Transcripts Available (within 15 minute window)
+GET {{SignalRadio.Api_HostAddress}}/api/calls/transcripts-available?windowMinutes=15
+Accept: application/json
+
+### Create Call
+POST {{SignalRadio.Api_HostAddress}}/api/calls
+Content-Type: application/json
+
+{
+  "talkGroupId": 12345,
+  "recordingTime": "2025-10-23T10:30:00Z",
+  "duration": 120
+}
+
+### Update Call
+PUT {{SignalRadio.Api_HostAddress}}/api/calls/1
+Content-Type: application/json
+
+{
+  "id": 1,
+  "talkGroupId": 12345,
+  "recordingTime": "2025-10-23T10:30:00Z",
+  "duration": 120
+}
+
+### Delete Call
+DELETE {{SignalRadio.Api_HostAddress}}/api/calls/1
+Accept: application/json
+
+### ============================================
+### TALKGROUPS
+### ============================================
+
+### Get All TalkGroups (paginated)
+GET {{SignalRadio.Api_HostAddress}}/api/talkgroups?page=1&pageSize=50
+Accept: application/json
+
+### Get TalkGroup by ID
+GET {{SignalRadio.Api_HostAddress}}/api/talkgroups/1
+Accept: application/json
+
+### Get TalkGroup Statistics
+GET {{SignalRadio.Api_HostAddress}}/api/talkgroups/stats
+Accept: application/json
+
+### Get Calls for a TalkGroup (paginated)
+GET {{SignalRadio.Api_HostAddress}}/api/talkgroups/1/calls?page=1&pageSize=50&sortBy=recordingTime&sortDir=desc
+Accept: application/json
+
+### Get Calls for a TalkGroup grouped by Frequency
+GET {{SignalRadio.Api_HostAddress}}/api/talkgroups/1/calls-by-frequency?limit=50
+Accept: application/json
+
+### Get TalkGroup Summary (with time window)
+GET {{SignalRadio.Api_HostAddress}}/api/talkgroups/1/summary?windowMinutes=60
+Accept: application/json
+
+### Create TalkGroup
+POST {{SignalRadio.Api_HostAddress}}/api/talkgroups
+Content-Type: application/json
+
+{
+  "number": 12345,
+  "name": "Police Dispatch",
+  "alphaTag": "PD",
+  "description": "Main police dispatch frequency",
+  "tag": "Police",
+  "category": "Law Enforcement",
+  "priority": 1
+}
+
+### Update TalkGroup
+PUT {{SignalRadio.Api_HostAddress}}/api/talkgroups/1
+Content-Type: application/json
+
+{
+  "id": 1,
+  "number": 12345,
+  "name": "Police Dispatch",
+  "alphaTag": "PD",
+  "description": "Main police dispatch frequency",
+  "tag": "Police",
+  "category": "Law Enforcement",
+  "priority": 1
+}
+
+### Delete TalkGroup
+DELETE {{SignalRadio.Api_HostAddress}}/api/talkgroups/1
+Accept: application/json
+
+### Import TalkGroups from CSV
+POST {{SignalRadio.Api_HostAddress}}/api/talkgroups/import
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary
+
+------WebKitFormBoundary
+Content-Disposition: form-data; name="file"; filename="talkgroups.csv"
+Content-Type: text/csv
+
+< ../../config/danecom-talkgroups.csv
+------WebKitFormBoundary--
+
+### ============================================
+### TRANSCRIPTIONS
+### ============================================
+
+### Get All Transcriptions (paginated)
+GET {{SignalRadio.Api_HostAddress}}/api/transcriptions?page=1&pageSize=50
+Accept: application/json
+
+### Get Transcription by ID
+GET {{SignalRadio.Api_HostAddress}}/api/transcriptions/1
+Accept: application/json
+
+### Search Transcriptions
+GET {{SignalRadio.Api_HostAddress}}/api/transcriptions/search?q=emergency&page=1&pageSize=50
+Accept: application/json
+
+### Create Transcription
+POST {{SignalRadio.Api_HostAddress}}/api/transcriptions
+Content-Type: application/json
+
+{
+  "callId": 1,
+  "text": "This is a test transcription"
+}
+
+### Update Transcription
+PUT {{SignalRadio.Api_HostAddress}}/api/transcriptions/1
+Content-Type: application/json
+
+{
+  "id": 1,
+  "callId": 1,
+  "text": "Updated transcription text"
+}
+
+### Delete Transcription
+DELETE {{SignalRadio.Api_HostAddress}}/api/transcriptions/1
+Accept: application/json
+
+### ============================================
+### TRANSCRIPT SUMMARIES & ANALYSIS
+### ============================================
+
+### Get All Transcript Summaries (paginated)
+GET {{SignalRadio.Api_HostAddress}}/api/transcriptsummaries?page=1&pageSize=20
+Accept: application/json
+
+### Get Transcript Summary by ID
+GET {{SignalRadio.Api_HostAddress}}/api/transcriptsummaries/1
+Accept: application/json
+
+### Get Summaries for a TalkGroup (time range)
+GET {{SignalRadio.Api_HostAddress}}/api/transcriptsummaries/talkgroup/1?startTime=2025-10-23T00:00:00Z&endTime=2025-10-23T23:59:59Z
+Accept: application/json
+
+### Get Summaries for a TalkGroup (paginated)
+GET {{SignalRadio.Api_HostAddress}}/api/transcriptsummaries/talkgroup/1/paged?page=1&pageSize=20
+Accept: application/json
+
+### Get Recent Transcript Summaries (for ticker/dashboard)
+GET {{SignalRadio.Api_HostAddress}}/api/transcriptsummaries/recent?maxAgeMinutes=15&limit=10
+Accept: application/json
+
+### Search Topics in Summaries
+GET {{SignalRadio.Api_HostAddress}}/api/transcriptsummaries/topics/search?searchTerm=fire
+Accept: application/json
+
+### Get Notable Calls for a Call ID
+GET {{SignalRadio.Api_HostAddress}}/api/transcriptsummaries/notable-calls/1
+Accept: application/json
+
+### Delete Transcript Summary
+DELETE {{SignalRadio.Api_HostAddress}}/api/transcriptsummaries/1
+Accept: application/json
+
+### ============================================
+### SEARCH
+### ============================================
+
+### Search All Content (summaries, incidents, topics)
+GET {{SignalRadio.Api_HostAddress}}/api/search?q=accident&types=Summary,Incident,Topic&page=1&pageSize=20
+Accept: application/json
+
+### Search Only Summaries
+GET {{SignalRadio.Api_HostAddress}}/api/search/summaries?q=fire&talkGroupId=1&maxResults=50
+Accept: application/json
+
+### Search Only Incidents
+GET {{SignalRadio.Api_HostAddress}}/api/search/incidents?q=injury&minImportanceScore=0.7&maxResults=50
+Accept: application/json
+
+### Search Only Topics
+GET {{SignalRadio.Api_HostAddress}}/api/search/topics?q=traffic&category=Transportation&maxResults=50
+Accept: application/json
+
+### ============================================
+### SIGNALR HUB
+### ============================================
+
+### Connect to TalkGroup Hub
+# Use WebSocket connection to: ws://localhost:5210/hubs/talkgroup
+# Methods available:
+#   - JoinTalkGroup(talkGroupId)
+#   - LeaveTalkGroup(talkGroupId)
+# Receives:
+#   - ReceiveCallUpdate(call)
+#   - ReceiveRecordingUpdate(recording)
+#   - ReceiveTranscriptionUpdate(transcription)
