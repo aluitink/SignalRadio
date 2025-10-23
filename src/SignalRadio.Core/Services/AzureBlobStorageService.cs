@@ -20,7 +20,7 @@ public class AzureBlobStorageService : IStorageService
     {
         _options = options.Value;
         _logger = logger;
-        
+
         if (string.IsNullOrEmpty(_options.ConnectionString))
         {
             throw new InvalidOperationException("Azure Storage connection string is not configured");
@@ -73,7 +73,7 @@ public class AzureBlobStorageService : IStorageService
                     Conditions = null // Allow overwrite
                 });
 
-            _logger.LogInformation("Successfully uploaded blob: {BlobName} ({Size:N0} bytes)", 
+            _logger.LogInformation("Successfully uploaded blob: {BlobName} ({Size:N0} bytes)",
                 blobName, fileStream.Length);
 
             return new StorageResult
@@ -100,7 +100,7 @@ public class AzureBlobStorageService : IStorageService
         try
         {
             var blobClient = _containerClient.GetBlobClient(blobName);
-            
+
             if (!await blobClient.ExistsAsync())
             {
                 _logger.LogWarning("Blob not found: {BlobName}", blobName);
@@ -122,7 +122,7 @@ public class AzureBlobStorageService : IStorageService
         try
         {
             var blobClient = _containerClient.GetBlobClient(blobName);
-            
+
             if (!await blobClient.ExistsAsync(cancellationToken))
             {
                 _logger.LogWarning("Blob not found: {BlobName}", blobName);
@@ -145,7 +145,7 @@ public class AzureBlobStorageService : IStorageService
         {
             var blobClient = _containerClient.GetBlobClient(blobName);
             var response = await blobClient.DeleteIfExistsAsync();
-            
+
             if (response.Value)
             {
                 _logger.LogInformation("Successfully deleted blob: {BlobName}", blobName);
@@ -210,9 +210,9 @@ public class AzureBlobStorageService : IStorageService
         var fileName = $"{timestamp}-{sanitizedFrequency}Hz{fileExtension}";
 
         var blobName = $"{pathPattern}/{fileName}";
-        
+
         _logger.LogDebug("Generated blob name: {BlobName} for file: {OriginalFileName}", blobName, originalFileName);
-        
+
         return blobName;
     }
 
@@ -225,7 +225,7 @@ public class AzureBlobStorageService : IStorageService
         // Azure blob names cannot contain: \ / : * ? " < > | and some others
         var invalidChars = new char[] { '\\', ':', '*', '?', '"', '<', '>', '|', '\t', '\r', '\n' };
         var sanitized = input;
-        
+
         foreach (var invalidChar in invalidChars)
         {
             sanitized = sanitized.Replace(invalidChar, '-');
@@ -233,10 +233,10 @@ public class AzureBlobStorageService : IStorageService
 
         // Remove any control characters and non-printable characters
         sanitized = System.Text.RegularExpressions.Regex.Replace(sanitized, @"[\x00-\x1F\x7F]", "");
-        
+
         // Replace multiple consecutive dashes with single dash
         sanitized = System.Text.RegularExpressions.Regex.Replace(sanitized, @"-+", "-");
-        
+
         // Remove leading/trailing dashes and whitespace
         sanitized = sanitized.Trim('-', ' ');
 
@@ -255,7 +255,7 @@ public class AzureBlobStorageService : IStorageService
         // Azure Blob Storage metadata values must be ASCII and cannot contain certain characters
         // Remove or replace non-ASCII characters and control characters
         var sanitized = System.Text.RegularExpressions.Regex.Replace(input, @"[^\x20-\x7E]", "");
-        
+
         // Replace problematic characters that might cause header issues
         var invalidChars = new char[] { '\r', '\n', '\t', '"', '\'' };
         foreach (var invalidChar in invalidChars)

@@ -21,9 +21,9 @@ public class AzureAsrService : IAsrService
         _options = options?.Value ?? new AsrOptions();
         _logger = logger;
 
-    // Read credentials from AsrOptions (AsrSettings) only.
-    var key = _options.AzureSpeechKey;
-    var region = _options.AzureSpeechRegion;
+        // Read credentials from AsrOptions (AsrSettings) only.
+        var key = _options.AzureSpeechKey;
+        var region = _options.AzureSpeechRegion;
 
         if (!string.IsNullOrWhiteSpace(key) && !string.IsNullOrWhiteSpace(region))
         {

@@ -81,9 +81,9 @@ public class SignalRadioDbContext : DbContext
             b.Property(e => e.StartTime).HasColumnName("StartTimeUtc");
             b.Property(e => e.EndTime).HasColumnName("EndTimeUtc");
             b.Property(e => e.Summary).HasColumnType("nvarchar(max)");
-            
+
             b.HasOne(e => e.TalkGroup).WithMany().HasForeignKey(e => e.TalkGroupId);
-            
+
             // Index for time range queries - most common query pattern
             b.HasIndex(e => new { e.TalkGroupId, e.StartTime, e.EndTime });
             // Index for finding existing summaries for cache lookup
@@ -96,11 +96,11 @@ public class SignalRadioDbContext : DbContext
             b.Property(e => e.CreatedAt).HasColumnName("CreatedAtUtc");
             b.Property(e => e.Name).HasMaxLength(200).IsRequired();
             b.Property(e => e.Category).HasMaxLength(100);
-            
+
             // Index for topic searches
             b.HasIndex(e => e.Name);
             b.HasIndex(e => e.Category);
-            
+
             // Ensure topic names are unique
             b.HasIndex(e => e.Name).IsUnique();
         });
@@ -109,7 +109,7 @@ public class SignalRadioDbContext : DbContext
         modelBuilder.Entity<TranscriptSummaryTopic>(b =>
         {
             b.Property(e => e.CreatedAt).HasColumnName("CreatedAtUtc");
-            
+
             b.HasOne(e => e.TranscriptSummary)
             .WithMany(s => s.TranscriptSummaryTopics)
             .HasForeignKey(e => e.TranscriptSummaryId)
@@ -132,7 +132,7 @@ public class SignalRadioDbContext : DbContext
         {
             b.Property(e => e.CreatedAt).HasColumnName("CreatedAtUtc");
             b.Property(e => e.Description).HasColumnType("nvarchar(max)").IsRequired();
-            
+
             // Index for importance-based queries
             b.HasIndex(e => e.ImportanceScore);
         });
@@ -142,7 +142,7 @@ public class SignalRadioDbContext : DbContext
         {
             b.Property(e => e.CreatedAt).HasColumnName("CreatedAtUtc");
             b.Property(e => e.CallNote).HasMaxLength(500);
-            
+
             b.HasOne(e => e.NotableIncident)
             .WithMany(ni => ni.NotableIncidentCalls)
             .HasForeignKey(e => e.NotableIncidentId)
@@ -164,7 +164,7 @@ public class SignalRadioDbContext : DbContext
         modelBuilder.Entity<TranscriptSummaryNotableIncident>(b =>
         {
             b.Property(e => e.CreatedAt).HasColumnName("CreatedAtUtc");
-            
+
             b.HasOne(e => e.TranscriptSummary)
             .WithMany(s => s.TranscriptSummaryNotableIncidents)
             .HasForeignKey(e => e.TranscriptSummaryId)

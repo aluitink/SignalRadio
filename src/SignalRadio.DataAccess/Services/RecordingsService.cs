@@ -233,7 +233,7 @@ public class RecordingsService : IRecordingsService
 
         // Delegate DB persistence (and deduplication) to existing CreateAsync
         var created = await CreateAsync(recording);
-        
+
         // Log information about the recording creation with call details
         if (created.Call != null)
         {
@@ -243,7 +243,7 @@ public class RecordingsService : IRecordingsService
         {
             Console.WriteLine($"[RecordingsService] Created recording {created.Id} without associated call");
         }
-        
+
         return created;
     }
 

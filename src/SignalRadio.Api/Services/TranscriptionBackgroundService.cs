@@ -32,11 +32,11 @@ public class TranscriptionBackgroundService : BackgroundService
     {
         _serviceProvider = serviceProvider;
         _logger = logger;
-    _asrOptions = asrOptions.Value;
-    _fileCacheService = fileCacheService;
-    _httpClientFactory = httpClientFactory;
-    _configuration = configuration;
-    _processingIntervalSeconds = configuration.GetValue<int>("Transcription:ProcessingIntervalSeconds", 2);
+        _asrOptions = asrOptions.Value;
+        _fileCacheService = fileCacheService;
+        _httpClientFactory = httpClientFactory;
+        _configuration = configuration;
+        _processingIntervalSeconds = configuration.GetValue<int>("Transcription:ProcessingIntervalSeconds", 2);
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -76,8 +76,8 @@ public class TranscriptionBackgroundService : BackgroundService
 
     private async Task<bool> ProcessNextPendingTranscription(CancellationToken cancellationToken)
     {
-    using var scope = _serviceProvider.CreateScope();
-    var recordingService = scope.ServiceProvider.GetRequiredService<IRecordingsService>();
+        using var scope = _serviceProvider.CreateScope();
+        var recordingService = scope.ServiceProvider.GetRequiredService<IRecordingsService>();
         var asrService = scope.ServiceProvider.GetRequiredService<IAsrService>();
 
         if (!await asrService.IsAvailableAsync())
@@ -87,7 +87,7 @@ public class TranscriptionBackgroundService : BackgroundService
         }
 
         // fetch the top recording to process (limit 1)
-    var pending = (await recordingService.GetRecordingsNeedingTranscriptionAsync(limit: 1)).FirstOrDefault();
+        var pending = (await recordingService.GetRecordingsNeedingTranscriptionAsync(limit: 1)).FirstOrDefault();
         if (pending == null)
             return false;
 

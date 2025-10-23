@@ -53,7 +53,7 @@ public class SearchController : ControllerBase
             page = 1;
         }
 
-        var contentTypes = !string.IsNullOrWhiteSpace(types) 
+        var contentTypes = !string.IsNullOrWhiteSpace(types)
             ? types.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(t => t.Trim())
             : null;
 

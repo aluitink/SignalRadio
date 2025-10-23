@@ -21,7 +21,7 @@ public class WhisperAsrService : IAsrService
         _httpClient = httpClient;
         _options = options.Value;
         _logger = logger;
-        
+
         // Configure HttpClient timeout
         _httpClient.Timeout = TimeSpan.FromSeconds(_options.TimeoutSeconds);
     }
@@ -63,7 +63,7 @@ public class WhisperAsrService : IAsrService
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase
             });
 
-                if (whisperResponse == null)
+            if (whisperResponse == null)
             {
                 throw new InvalidOperationException("Failed to parse ASR response");
             }
@@ -95,7 +95,7 @@ public class WhisperAsrService : IAsrService
                 }).ToList();
             }
 
-            _logger.LogInformation("Transcription completed for {FileName}. Length: {Length} chars, Language: {Language}", 
+            _logger.LogInformation("Transcription completed for {FileName}. Length: {Length} chars, Language: {Language}",
                 fileName, result.Text.Length, result.Language);
 
             return result;
@@ -152,7 +152,7 @@ public class WhisperAsrService : IAsrService
         try
         {
             var response = await _httpClient.GetAsync(_options.WhisperServiceUrl, HttpCompletionOption.ResponseHeadersRead);
-            
+
             if (response.IsSuccessStatusCode)
             {
                 return AsrHealthStatus.Healthy;

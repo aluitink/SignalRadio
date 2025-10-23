@@ -11,7 +11,7 @@ public static class FullTextSearchExtensions
     /// Performs a free-text search on TranscriptSummary.Summary field
     /// </summary>
     public static IQueryable<TranscriptSummary> WhereFreeTextContains(
-        this IQueryable<TranscriptSummary> query, 
+        this IQueryable<TranscriptSummary> query,
         string searchTerm)
     {
         if (string.IsNullOrWhiteSpace(searchTerm))
@@ -24,7 +24,7 @@ public static class FullTextSearchExtensions
     /// Performs a free-text search on NotableIncident.Description field
     /// </summary>
     public static IQueryable<NotableIncident> WhereFreeTextContains(
-        this IQueryable<NotableIncident> query, 
+        this IQueryable<NotableIncident> query,
         string searchTerm)
     {
         if (string.IsNullOrWhiteSpace(searchTerm))
@@ -37,7 +37,7 @@ public static class FullTextSearchExtensions
     /// Performs a free-text search on Topic.Name field
     /// </summary>
     public static IQueryable<Topic> WhereFreeTextContains(
-        this IQueryable<Topic> query, 
+        this IQueryable<Topic> query,
         string searchTerm)
     {
         if (string.IsNullOrWhiteSpace(searchTerm))
@@ -50,7 +50,7 @@ public static class FullTextSearchExtensions
     /// Performs a full-text search using CONTAINS on TranscriptSummary.Summary field
     /// </summary>
     public static IQueryable<TranscriptSummary> WhereFullTextContains(
-        this IQueryable<TranscriptSummary> query, 
+        this IQueryable<TranscriptSummary> query,
         string searchTerm)
     {
         if (string.IsNullOrWhiteSpace(searchTerm))
@@ -63,7 +63,7 @@ public static class FullTextSearchExtensions
     /// Performs a full-text search using CONTAINS on NotableIncident.Description field
     /// </summary>
     public static IQueryable<NotableIncident> WhereFullTextContains(
-        this IQueryable<NotableIncident> query, 
+        this IQueryable<NotableIncident> query,
         string searchTerm)
     {
         if (string.IsNullOrWhiteSpace(searchTerm))
@@ -76,7 +76,7 @@ public static class FullTextSearchExtensions
     /// Performs a full-text search using CONTAINS on Topic.Name field
     /// </summary>
     public static IQueryable<Topic> WhereFullTextContains(
-        this IQueryable<Topic> query, 
+        this IQueryable<Topic> query,
         string searchTerm)
     {
         if (string.IsNullOrWhiteSpace(searchTerm))

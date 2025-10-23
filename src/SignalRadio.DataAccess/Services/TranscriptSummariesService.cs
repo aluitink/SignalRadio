@@ -48,18 +48,18 @@ public class TranscriptSummariesService : ITranscriptSummariesService
     public async Task<TranscriptSummary> CreateAsync(TranscriptSummary summary)
     {
         summary.CreatedAt = DateTimeOffset.UtcNow;
-        
+
         // Handle topics - ensure they exist or create them
         foreach (var topicLink in summary.TranscriptSummaryTopics)
         {
             topicLink.CreatedAt = DateTimeOffset.UtcNow;
-            
+
             // If topic doesn't have an ID, we need to find or create it
             if (topicLink.TopicId == 0 && topicLink.Topic != null)
             {
                 var existingTopic = await _db.Topics
                     .FirstOrDefaultAsync(t => t.Name == topicLink.Topic.Name);
-                
+
                 if (existingTopic != null)
                 {
                     topicLink.TopicId = existingTopic.Id;
@@ -71,16 +71,16 @@ public class TranscriptSummariesService : ITranscriptSummariesService
                 }
             }
         }
-        
+
         // Handle notable incidents
         foreach (var incidentLink in summary.TranscriptSummaryNotableIncidents)
         {
             incidentLink.CreatedAt = DateTimeOffset.UtcNow;
-            
+
             if (incidentLink.NotableIncident != null)
             {
                 incidentLink.NotableIncident.CreatedAt = DateTimeOffset.UtcNow;
-                
+
                 // Handle calls within incidents
                 foreach (var callLink in incidentLink.NotableIncident.NotableIncidentCalls)
                 {
@@ -91,7 +91,7 @@ public class TranscriptSummariesService : ITranscriptSummariesService
 
         _db.TranscriptSummaries.Add(summary);
         await _db.SaveChangesAsync();
-        
+
         // Return the entity with generated IDs
         return await GetByIdAsync(summary.Id) ?? summary;
     }
@@ -249,7 +249,7 @@ public class TranscriptSummariesService : ITranscriptSummariesService
             return new SearchResultPage { Results = Enumerable.Empty<SearchResult>(), TotalCount = 0, Page = page, PageSize = pageSize };
         }
 
-        var typesToSearch = contentTypes?.ToHashSet(StringComparer.OrdinalIgnoreCase) 
+        var typesToSearch = contentTypes?.ToHashSet(StringComparer.OrdinalIgnoreCase)
                            ?? new HashSet<string> { "Summary", "Incident", "Topic" };
 
         var results = new List<SearchResult>();
@@ -336,7 +336,7 @@ public class TranscriptSummariesService : ITranscriptSummariesService
         };
     }
 
-    public async Task<IEnumerable<TranscriptSummary>> SearchSummariesAsync(string searchTerm, int? talkGroupId = null, 
+    public async Task<IEnumerable<TranscriptSummary>> SearchSummariesAsync(string searchTerm, int? talkGroupId = null,
         DateTimeOffset? startDate = null, DateTimeOffset? endDate = null, int maxResults = 50)
     {
         if (string.IsNullOrWhiteSpace(searchTerm))
@@ -432,7 +432,7 @@ public class TranscriptSummariesService : ITranscriptSummariesService
         var toleranceSpan = TimeSpan.FromMinutes(toleranceMinutes);
         var startTolerance = startTime.Add(-toleranceSpan);
         var endTolerance = endTime.Add(toleranceSpan);
-        
+
         return await _db.TranscriptSummaries
             .Include(s => s.TalkGroup)
             .Include(s => s.TranscriptSummaryTopics)

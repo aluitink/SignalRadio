@@ -146,10 +146,10 @@ public class TranscriptionsService : ITranscriptionsService
             .Include(t => t.Recording)
                 .ThenInclude(r => r!.Call)
             .AsNoTracking()
-            .Where(t => t.Recording != null && 
+            .Where(t => t.Recording != null &&
                        t.Recording.Call != null &&
                        t.Recording.Call.TalkGroupId == talkGroupId &&
-                       t.CreatedAt >= startTime && 
+                       t.CreatedAt >= startTime &&
                        t.CreatedAt <= endTime &&
                        !string.IsNullOrWhiteSpace(t.FullText))
             .OrderByDescending(t => t.Recording!.Call!.DurationSeconds)

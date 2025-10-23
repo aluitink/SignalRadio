@@ -48,7 +48,7 @@ public class CallsController : ControllerBase
     {
         var item = await _svc.GetByIdAsync(id);
         if (item == null) return NotFound();
-        
+
         var apiBaseUrl = $"{Request.Scheme}://{Request.Host}";
         return Ok(item.ToDto(apiBaseUrl));
     }

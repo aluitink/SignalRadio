@@ -94,14 +94,14 @@ public class SemanticKernelTranscriptSummaryService : ITranscriptSummaryService,
         _transcriptionsService = transcriptionsService;
         _talkGroupsService = talkGroupsService;
         _summariesService = summariesService;
-        
+
         // Initialize rate limiting - use configurable max concurrent requests
         var maxConcurrent = _options.MaxConcurrentRequests > 0 ? _options.MaxConcurrentRequests : 3;
         _semaphore = new SemaphoreSlim(maxConcurrent, maxConcurrent);
 
         // Initialize Semantic Kernel
         var kernelBuilder = Kernel.CreateBuilder();
-        
+
         if (!string.IsNullOrEmpty(_options.AzureOpenAIEndpoint) && !string.IsNullOrEmpty(_options.AzureOpenAIKey))
         {
             kernelBuilder.AddAzureOpenAIChatCompletion(
@@ -130,22 +130,22 @@ public class SemanticKernelTranscriptSummaryService : ITranscriptSummaryService,
                 // First try exact match
                 var existingSummary = await _summariesService.FindExistingSummaryAsync(
                     request.TalkGroupId, request.StartTime, request.EndTime);
-                
+
                 // If no exact match, try finding similar summaries within tolerance
                 if (existingSummary == null)
                 {
                     existingSummary = await _summariesService.FindSimilarSummaryAsync(
                         request.TalkGroupId, request.StartTime, request.EndTime, toleranceMinutes: 15);
                 }
-                
+
                 if (existingSummary != null)
                 {
                     var summaryAge = DateTimeOffset.UtcNow - existingSummary.GeneratedAt;
                     var maxCacheMinutes = _options.CacheDurationMinutes > 0 ? _options.CacheDurationMinutes : 60; // Default to 60 minutes
-                    
+
                     if (summaryAge.TotalMinutes < maxCacheMinutes)
                     {
-                        _logger.LogInformation("Retrieved cached database summary for TalkGroup {TalkGroupId} (age: {Age} minutes, max: {MaxAge})", 
+                        _logger.LogInformation("Retrieved cached database summary for TalkGroup {TalkGroupId} (age: {Age} minutes, max: {MaxAge})",
                             request.TalkGroupId, summaryAge.TotalMinutes, maxCacheMinutes);
                         var cachedResponse = existingSummary.ToResponse();
                         cachedResponse.FromCache = true;
@@ -153,7 +153,7 @@ public class SemanticKernelTranscriptSummaryService : ITranscriptSummaryService,
                     }
                     else if (summaryAge.TotalMinutes < maxCacheMinutes * 2) // Serve stale data if not too old
                     {
-                        _logger.LogInformation("Serving stale summary for TalkGroup {TalkGroupId} (age: {Age} minutes) - consider background refresh", 
+                        _logger.LogInformation("Serving stale summary for TalkGroup {TalkGroupId} (age: {Age} minutes) - consider background refresh",
                             request.TalkGroupId, summaryAge.TotalMinutes);
                         var staleResponse = existingSummary.ToResponse();
                         staleResponse.FromCache = true;
@@ -161,7 +161,7 @@ public class SemanticKernelTranscriptSummaryService : ITranscriptSummaryService,
                     }
                     else
                     {
-                        _logger.LogInformation("Existing summary for TalkGroup {TalkGroupId} is {Age} minutes old, regenerating", 
+                        _logger.LogInformation("Existing summary for TalkGroup {TalkGroupId} is {Age} minutes old, regenerating",
                             request.TalkGroupId, summaryAge.TotalMinutes);
                         // Keep the old summary until we generate a new one
                     }
@@ -178,12 +178,12 @@ public class SemanticKernelTranscriptSummaryService : ITranscriptSummaryService,
 
             // Get transcripts for the time window
             var transcripts = await GetTranscriptsForTimeWindow(request.TalkGroupId, request.StartTime, request.EndTime);
-            
+
             if (!transcripts.Any())
             {
-                _logger.LogInformation("No transcripts found for TalkGroup {TalkGroupId} in time window {StartTime} to {EndTime}", 
+                _logger.LogInformation("No transcripts found for TalkGroup {TalkGroupId} in time window {StartTime} to {EndTime}",
                     request.TalkGroupId, request.StartTime, request.EndTime);
-                
+
                 return new TranscriptSummaryResponse
                 {
                     TalkGroupId = request.TalkGroupId,
@@ -200,18 +200,18 @@ public class SemanticKernelTranscriptSummaryService : ITranscriptSummaryService,
                     FromCache = false
                 };
             }
-            
+
             // Check if we have meaningful content to summarize (avoid AI calls for trivial content)
             var preliminaryTranscriptText = PrepareTranscriptText(transcripts);
             var minLength = _options.MinTranscriptLength > 0 ? _options.MinTranscriptLength : 50;
             if (string.IsNullOrWhiteSpace(preliminaryTranscriptText) || preliminaryTranscriptText.Length < minLength)
             {
-                _logger.LogInformation("Insufficient transcript content for TalkGroup {TalkGroupId} (length: {Length})", 
+                _logger.LogInformation("Insufficient transcript content for TalkGroup {TalkGroupId} (length: {Length})",
                     request.TalkGroupId, preliminaryTranscriptText?.Length ?? 0);
-                
+
                 var totalDurationForMinimal = transcripts.Where(t => t.Recording?.Call?.DurationSeconds > 0)
                                                         .Sum(t => t.Recording!.Call!.DurationSeconds);
-                
+
                 return new TranscriptSummaryResponse
                 {
                     TalkGroupId = request.TalkGroupId,
@@ -220,7 +220,7 @@ public class SemanticKernelTranscriptSummaryService : ITranscriptSummaryService,
                     EndTime = request.EndTime,
                     TranscriptCount = transcripts.Count,
                     TotalDurationSeconds = totalDurationForMinimal,
-                    Summary = transcripts.Count == 1 ? 
+                    Summary = transcripts.Count == 1 ?
                         "Single brief communication with minimal or no transcribed content." :
                         $"{transcripts.Count} brief communications with minimal or no transcribed content.",
                     KeyTopics = new List<string>(),
@@ -243,13 +243,13 @@ public class SemanticKernelTranscriptSummaryService : ITranscriptSummaryService,
                 .OrderBy(c => c.RecordingTime)
                 .ToList();
 
-            var timeSpan = callTimes.Any() ? 
-                callTimes.Last().RecordingTime - callTimes.First().RecordingTime : 
+            var timeSpan = callTimes.Any() ?
+                callTimes.Last().RecordingTime - callTimes.First().RecordingTime :
                 TimeSpan.Zero;
 
             // Rate limiting - prevent too many concurrent AI requests and duplicate requests
             var requestKey = $"{request.TalkGroupId}:{request.StartTime:yyyyMMddHHmm}:{request.EndTime:yyyyMMddHHmm}";
-            
+
             // Check for recent duplicate request
             if (_lastRequestTimes.TryGetValue(requestKey, out var lastRequest))
             {
@@ -257,20 +257,20 @@ public class SemanticKernelTranscriptSummaryService : ITranscriptSummaryService,
                 var minInterval = _options.MinRequestIntervalMinutes > 0 ? _options.MinRequestIntervalMinutes : 2;
                 if (timeSinceLastRequest.TotalMinutes < minInterval) // Prevent duplicate requests within configured interval
                 {
-                    _logger.LogWarning("Ignoring duplicate AI summary request for TalkGroup {TalkGroupId} (last request: {TimeSince} minutes ago)", 
+                    _logger.LogWarning("Ignoring duplicate AI summary request for TalkGroup {TalkGroupId} (last request: {TimeSince} minutes ago)",
                         request.TalkGroupId, timeSinceLastRequest.TotalMinutes);
                     return null;
                 }
             }
-            
+
             // Acquire semaphore to limit concurrent requests
             await _semaphore.WaitAsync(cancellationToken);
-            
+
             try
             {
                 // Record this request timestamp and clean up old ones
                 _lastRequestTimes[requestKey] = DateTimeOffset.UtcNow;
-                
+
                 // Clean up old request timestamps (older than 10 minutes)
                 var cutoff = DateTimeOffset.UtcNow.AddMinutes(-10);
                 var keysToRemove = _lastRequestTimes.Where(kvp => kvp.Value < cutoff).Select(kvp => kvp.Key).ToList();
@@ -278,14 +278,14 @@ public class SemanticKernelTranscriptSummaryService : ITranscriptSummaryService,
                 {
                     _lastRequestTimes.TryRemove(key, out _);
                 }
-                
+
                 var maxConcurrent = _options.MaxConcurrentRequests > 0 ? _options.MaxConcurrentRequests : 3;
-                _logger.LogInformation("Starting AI summary generation for TalkGroup {TalkGroupId} (concurrent requests: {Active}/{Max})", 
+                _logger.LogInformation("Starting AI summary generation for TalkGroup {TalkGroupId} (concurrent requests: {Active}/{Max})",
                     request.TalkGroupId, maxConcurrent - _semaphore.CurrentCount, maxConcurrent);
 
                 // Generate AI summary with enhanced timing context
                 var aiResponse = await GenerateAISummary(transcriptText, talkGroup, transcripts.Count, totalDuration, callTimes, timeSpan, cancellationToken);
-                
+
                 if (aiResponse == null)
                 {
                     _logger.LogError("Failed to generate AI summary for TalkGroup {TalkGroupId}", request.TalkGroupId);
@@ -312,7 +312,7 @@ public class SemanticKernelTranscriptSummaryService : ITranscriptSummaryService,
                 var response = savedSummary.ToResponse();
                 response.FromCache = false;
 
-                _logger.LogInformation("Generated and saved summary to database for TalkGroup {TalkGroupId} with {TranscriptCount} transcripts", 
+                _logger.LogInformation("Generated and saved summary to database for TalkGroup {TalkGroupId} with {TranscriptCount} transcripts",
                     request.TalkGroupId, transcripts.Count);
 
                 return response;
@@ -333,8 +333,8 @@ public class SemanticKernelTranscriptSummaryService : ITranscriptSummaryService,
     {
         try
         {
-            var isAvailable = _options.Enabled && 
-                   !string.IsNullOrEmpty(_options.AzureOpenAIEndpoint) && 
+            var isAvailable = _options.Enabled &&
+                   !string.IsNullOrEmpty(_options.AzureOpenAIEndpoint) &&
                    !string.IsNullOrEmpty(_options.AzureOpenAIKey) &&
                    !string.IsNullOrEmpty(_options.ChatDeploymentName);
             return Task.FromResult(isAvailable);
@@ -358,7 +358,7 @@ public class SemanticKernelTranscriptSummaryService : ITranscriptSummaryService,
                 {
                     await _summariesService.DeleteAsync(summary.Id);
                 }
-                _logger.LogInformation("Cleared {Count} cached summaries for TalkGroup {TalkGroupId}", 
+                _logger.LogInformation("Cleared {Count} cached summaries for TalkGroup {TalkGroupId}",
                     summaries.Items.Count, talkGroupId);
             }
             else
@@ -394,7 +394,7 @@ public class SemanticKernelTranscriptSummaryService : ITranscriptSummaryService,
     private string PrepareTranscriptText(List<Transcription> transcripts)
     {
         var sb = new StringBuilder();
-        
+
         // Transcripts are already ordered by duration (descending) then creation time from the database query
         // Keep this ordering to prioritize longer calls in the transcript processing
         foreach (var transcript in transcripts)
@@ -405,7 +405,7 @@ public class SemanticKernelTranscriptSummaryService : ITranscriptSummaryService,
             var duration = call?.DurationSeconds > 0 ? $"{call.DurationSeconds}s" : "Unknown";
             var frequency = call?.FrequencyHz > 0 ? $"{call.FrequencyHz:F0} Hz" : "Unknown";
             var confidence = transcript.Confidence?.ToString("P1") ?? "N/A";
-            
+
             sb.AppendLine($"[{callTime}] Call ID: {callId}, Duration: {duration}, Frequency: {frequency}, Confidence: {confidence}");
             sb.AppendLine(transcript.FullText);
             sb.AppendLine();
@@ -414,7 +414,7 @@ public class SemanticKernelTranscriptSummaryService : ITranscriptSummaryService,
         return sb.ToString();
     }
 
-    private async Task<AISummaryResponse?> GenerateAISummary(string transcriptText, TalkGroup talkGroup, 
+    private async Task<AISummaryResponse?> GenerateAISummary(string transcriptText, TalkGroup talkGroup,
         int callCount, double totalDuration, List<Call> callTimes, TimeSpan timeSpan, CancellationToken cancellationToken)
     {
         try
@@ -422,10 +422,10 @@ public class SemanticKernelTranscriptSummaryService : ITranscriptSummaryService,
             var talkGroupName = GetTalkGroupDisplayName(talkGroup);
             var timePeriod = $"{callCount} calls with total duration {TimeSpan.FromSeconds(totalDuration):hh\\:mm\\:ss}";
             var averageDuration = callCount > 0 ? TimeSpan.FromSeconds(totalDuration / callCount).ToString(@"mm\:ss") : "N/A";
-            var timeSpanFormatted = timeSpan.TotalHours > 0 ? 
-                timeSpan.ToString(@"hh\:mm\:ss") : 
+            var timeSpanFormatted = timeSpan.TotalHours > 0 ?
+                timeSpan.ToString(@"hh\:mm\:ss") :
                 timeSpan.ToString(@"mm\:ss");
-            
+
             // Create a summary of call timing patterns
             var timingAnalysis = "";
             if (callTimes.Any())
@@ -434,7 +434,7 @@ public class SemanticKernelTranscriptSummaryService : ITranscriptSummaryService,
                 var lastCall = callTimes.Last().RecordingTime;
                 timingAnalysis = $"First call: {firstCall:yyyy-MM-dd HH:mm:ss}, Last call: {lastCall:yyyy-MM-dd HH:mm:ss}, Time span: {timeSpanFormatted}";
             }
-            
+
             var result = await _summaryFunction.InvokeAsync(_kernel, new()
             {
                 ["transcripts"] = transcriptText,
@@ -463,13 +463,13 @@ public class SemanticKernelTranscriptSummaryService : ITranscriptSummaryService,
                 {
                     PropertyNameCaseInsensitive = true
                 });
-                
+
                 return aiResponse;
             }
             catch (JsonException jsonEx)
             {
                 _logger.LogWarning(jsonEx, "Failed to parse AI response as JSON, using fallback parsing. Response: {Response}", responseText);
-                
+
                 // Fallback: clean the response and treat it as the summary
                 return new AISummaryResponse
                 {
@@ -490,12 +490,12 @@ public class SemanticKernelTranscriptSummaryService : ITranscriptSummaryService,
     private string GetTalkGroupDisplayName(TalkGroup talkGroup)
     {
         var parts = new List<string>();
-        
+
         if (!string.IsNullOrWhiteSpace(talkGroup.AlphaTag))
             parts.Add(talkGroup.AlphaTag);
         else if (!string.IsNullOrWhiteSpace(talkGroup.Name))
             parts.Add(talkGroup.Name);
-        
+
         if (parts.Count == 0)
             parts.Add($"TalkGroup {talkGroup.Number}");
         else
@@ -503,7 +503,7 @@ public class SemanticKernelTranscriptSummaryService : ITranscriptSummaryService,
 
         return string.Join(" ", parts);
     }
-    
+
     private void LogTokenUsage(FunctionResult result, int talkGroupId)
     {
         try
@@ -516,11 +516,11 @@ public class SemanticKernelTranscriptSummaryService : ITranscriptSummaryService,
                 if (usageType.Name.Contains("Usage") || usageType.Name.Contains("CompletionUsage"))
                 {
                     // Use reflection to extract token counts
-                    var promptTokens = GetPropertyValue(usageObj, "PromptTokens") ?? 
+                    var promptTokens = GetPropertyValue(usageObj, "PromptTokens") ??
                                      GetPropertyValue(usageObj, "InputTokens") ?? 0;
-                    var completionTokens = GetPropertyValue(usageObj, "CompletionTokens") ?? 
+                    var completionTokens = GetPropertyValue(usageObj, "CompletionTokens") ??
                                          GetPropertyValue(usageObj, "OutputTokens") ?? 0;
-                    var totalTokens = GetPropertyValue(usageObj, "TotalTokens") ?? 
+                    var totalTokens = GetPropertyValue(usageObj, "TotalTokens") ??
                                     (int)promptTokens + (int)completionTokens;
 
                     _logger.LogInformation("AI Summary Token Usage - TalkGroup: {TalkGroupId}, " +
@@ -553,7 +553,7 @@ public class SemanticKernelTranscriptSummaryService : ITranscriptSummaryService,
                 // Check for other possible usage-related keys
                 foreach (var kvp in result.Metadata)
                 {
-                    if (kvp.Key.Contains("token", StringComparison.OrdinalIgnoreCase) || 
+                    if (kvp.Key.Contains("token", StringComparison.OrdinalIgnoreCase) ||
                         kvp.Key.Contains("usage", StringComparison.OrdinalIgnoreCase))
                     {
                         _logger.LogInformation("AI Summary Usage Info - TalkGroup: {TalkGroupId}, {Key}: {Value}",

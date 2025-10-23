@@ -9,12 +9,12 @@ public class TranscriptionResult
     /// The full transcript text
     /// </summary>
     public string Text { get; set; } = string.Empty;
-    
+
     /// <summary>
     /// Detected or specified language code (e.g., "en")
     /// </summary>
     public string Language { get; set; } = string.Empty;
-    
+
     /// <summary>
     /// Individual segments with timestamps and confidence
     /// </summary>
@@ -30,37 +30,37 @@ public class TranscriptionSegment
     /// Segment ID
     /// </summary>
     public int Id { get; set; }
-    
+
     /// <summary>
     /// Start time in seconds
     /// </summary>
     public double Start { get; set; }
-    
+
     /// <summary>
     /// End time in seconds
     /// </summary>
     public double End { get; set; }
-    
+
     /// <summary>
     /// Transcribed text for this segment
     /// </summary>
     public string Text { get; set; } = string.Empty;
-    
+
     /// <summary>
     /// Confidence score (0.0 to 1.0)
     /// </summary>
     public double? Confidence { get; set; }
-    
+
     /// <summary>
     /// Average log probability
     /// </summary>
     public double? AvgLogprob { get; set; }
-    
+
     /// <summary>
     /// Compression ratio
     /// </summary>
     public double? CompressionRatio { get; set; }
-    
+
     /// <summary>
     /// No speech probability
     /// </summary>

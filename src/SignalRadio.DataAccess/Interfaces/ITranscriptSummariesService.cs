@@ -67,7 +67,7 @@ public interface ITranscriptSummariesService
     /// <summary>
     /// Searches specifically within transcript summaries using full-text search
     /// </summary>
-    Task<IEnumerable<TranscriptSummary>> SearchSummariesAsync(string searchTerm, int? talkGroupId = null, 
+    Task<IEnumerable<TranscriptSummary>> SearchSummariesAsync(string searchTerm, int? talkGroupId = null,
         DateTimeOffset? startDate = null, DateTimeOffset? endDate = null, int maxResults = 50);
 
     /// <summary>

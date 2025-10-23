@@ -9,16 +9,16 @@ public static class DependencyInjection
     public static IServiceCollection AddDataAccess(this IServiceCollection services, string connectionString)
     {
         services.AddDbContext<SignalRadioDbContext>(options =>
-            options.UseSqlServer(connectionString, sqlOptions => 
+            options.UseSqlServer(connectionString, sqlOptions =>
                 sqlOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)));
 
-    // Register data-access services (service layer extracted from Controller2)
-    services.AddScoped<IRecordingsService, RecordingsService>();
-    services.AddScoped<ICallsService, CallsService>();
-    services.AddScoped<IStorageLocationsService, StorageLocationsService>();
-    services.AddScoped<ITalkGroupsService, TalkGroupsService>();
-    services.AddScoped<ITranscriptionsService, TranscriptionsService>();
-    services.AddScoped<ITranscriptSummariesService, TranscriptSummariesService>();
+        // Register data-access services (service layer extracted from Controller2)
+        services.AddScoped<IRecordingsService, RecordingsService>();
+        services.AddScoped<ICallsService, CallsService>();
+        services.AddScoped<IStorageLocationsService, StorageLocationsService>();
+        services.AddScoped<ITalkGroupsService, TalkGroupsService>();
+        services.AddScoped<ITranscriptionsService, TranscriptionsService>();
+        services.AddScoped<ITranscriptSummariesService, TranscriptSummariesService>();
 
         return services;
     }

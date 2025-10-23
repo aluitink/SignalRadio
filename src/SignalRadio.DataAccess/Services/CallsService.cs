@@ -148,7 +148,7 @@ public class CallsService : ICallsService
     public async Task<List<int>> GetTalkGroupsWithTranscriptsAsync(int windowMinutes = 15)
     {
         var cutoffTime = DateTime.UtcNow.AddMinutes(-windowMinutes);
-        
+
         var talkGroupIds = await _db.Calls
             .Where(c => c.RecordingTime >= cutoffTime)
             .Where(c => c.Recordings.Any(r => r.Transcriptions.Any()))
