@@ -503,9 +503,7 @@ public class SemanticKernelTranscriptSummaryService : ITranscriptSummaryService,
 
         return string.Join(" ", parts);
     }
-
-
-
+    
     private void LogTokenUsage(FunctionResult result, int talkGroupId)
     {
         try

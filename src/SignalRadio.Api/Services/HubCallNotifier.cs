@@ -42,7 +42,7 @@ public class HubCallNotifier : ICallNotifier
 
             // Log that we're pushing this call to both the global all-calls monitor group and specific talkgroup subscribers
             _logger.LogInformation("Pushing call {CallId} to all_calls_monitor and talkgroup_{TalkGroupId} (RecordingCount={RecordingCount})",
-                updatedCall.Id, updatedCall.TalkGroupId, callDto.Recordings.Count);
+            updatedCall.Id, updatedCall.TalkGroupId, callDto.Recordings.Count);
 
             // Send to all calls monitor (for general stream)
             await hubContext.Clients.Group("all_calls_monitor").SendAsync("CallUpdated", callDto, cancellationToken);
