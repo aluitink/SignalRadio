@@ -4,7 +4,14 @@ A trunk-recorder integration system that receives, processes, and stores radio r
 
 ## Overview
 
-SignalRadio is a multi-service architecture that:
+SignalRadio is a complete radio recording and management system that integrates with trunk-recorder to:
+- Capture radio traffic from software-defined radio (SDR) hardware
+- Upload and process recordings with metadata
+- Store recordings in Azure Blob Storage
+- Provide a web interface to browse and search recordings
+- Generate AI-powered summaries of transcripts (optional)
+
+The system uses Docker for easy deployment and includes everything needed to get started.
 
 ## Quick Start
 
@@ -17,7 +24,7 @@ SignalRadio is a multi-service architecture that:
 git clone <repository-url>
 cd SignalRadio
 ```
- - WebClient: React-based web client built from `src/SignalRadio.WebClient` and served by nginx on port 3001 (docker-compose service name `webclient`).
+
 ### 2. Quick Setup (Recommended)
 
 Run the setup script for guided configuration:
@@ -55,12 +62,14 @@ nano config/trunk-recorder.json
 
 ### 4. Environment Configuration
 
-Create environment file for Azure storage (optional for testing):
+**Optional**: Configure Azure Blob Storage. If not configured, the system uses local storage:
 
 ```bash
-# Create .env file (optional - uses local storage if not set)
+# Create .env file for Azure storage (optional)
 echo "AZURE_STORAGE_CONNECTION_STRING=your_connection_string_here" > .env
 ```
+
+If the `.env` file is not created or the connection string is not set, recordings will be stored locally.
 
 ### 5. Docker Override Configuration (Optional)
 
@@ -122,14 +131,34 @@ docker-compose ps
 
 ### 7. Verify Operation
 
-- API Health Check: http://localhost:5210/health
+- API Health Check: http://localhost:5000/health
+- Web UI: http://localhost:3001
 - Check logs: `docker-compose logs signalradio-api`
 - Monitor uploads: `docker-compose logs trunk-recorder`
-- Test upload: Use the sample files in `test-files/` directory
+- Test upload: Use the sample files or `curl` commands in Development section
 
-## Azure Storage Integration
+## Storage Configuration
 
-### Configuration
+SignalRadio supports two storage backends: **local file storage** (for development and small deployments) and **Azure Blob Storage** (for production and scalable deployments).
+
+### Local Storage (Default)
+
+By default, recordings are stored locally on the container's filesystem. This is ideal for:
+- Development and testing
+- Small deployments
+- Quick testing without Azure credentials
+
+No configuration required - recordings are automatically stored in the container's volume mount.
+
+### Azure Blob Storage
+
+For production deployments, recordings can be stored in Azure Blob Storage. This provides:
+- Scalable cloud storage
+- Automatic backups
+- Easy access from anywhere
+- Integration with Azure services
+
+#### Configuration
 
 The API supports both development and production Azure Storage configurations:
 
@@ -161,13 +190,64 @@ Recordings are automatically organized using a configurable path pattern:
 - Default: `{SystemName}/{TalkgroupId}/{Year}/{Month}/{Day}`
 - Example: `DanecomSystem/12345/2025/08/16/20250816-210000-851.0125Hz.wav`
 
-### API Endpoints
+### API Reference
 
-- `POST /api/recording/upload` - Upload new recording (supports both WAV and M4A)
-- `GET /api/recording/list` - List recordings with optional filtering
-- `GET /api/recording/download/{blobName}` - Download a recording
-- `DELETE /api/recording/delete/{blobName}` - Delete a recording
-- `GET /health` - Service health check
+**Health & Status**
+- `GET /health` - Service health check (returns status and timestamp)
+
+**Calls Management**
+- `GET /api/calls` - List all calls (pagination: `page`, `pageSize`; sorting: `sortBy`, `sortDir`)
+- `GET /api/calls/{id}` - Get call details by ID
+- `GET /api/calls/transcripts-available` - Get talkgroups with transcripts in time window
+- `POST /api/calls` - Create new call record
+- `PUT /api/calls/{id}` - Update call metadata
+- `DELETE /api/calls/{id}` - Delete call record
+
+**Recordings Management**
+- `GET /api/recordings` - List all recordings (pagination: `page`, `pageSize`)
+- `GET /api/recordings/{id}` - Get recording details by ID
+- `GET /api/recordings/{id}/file` - Download audio file (streams WAV/MP3/M4A)
+- `POST /api/recordings` - Create recording record
+- `POST /api/recordings/upload` - Upload new recording with metadata (multipart/form-data)
+  - Form fields: `file` (audio), `metadata` (JSON: RecordingUploadRequest)
+  - Supports: WAV, MP3, M4A formats
+  - Max size: 500MB (configurable)
+- `PUT /api/recordings/{id}` - Update recording metadata
+- `DELETE /api/recordings/{id}` - Delete recording and associated file
+
+**TalkGroups Management**
+- `GET /api/talkgroups` - List all talkgroups (pagination: `page`, `pageSize`)
+- `GET /api/talkgroups/{id}` - Get talkgroup details by ID
+- `GET /api/talkgroups/{id}/calls` - Get calls for talkgroup (pagination, sorting)
+- `GET /api/talkgroups/{id}/calls-by-frequency` - Group calls by frequency within talkgroup
+- `GET /api/talkgroups/{id}/summary` - Generate AI summary (window: `windowMinutes` 5-1440)
+- `GET /api/talkgroups/stats` - Get stats across all talkgroups
+- `POST /api/talkgroups` - Create new talkgroup
+- `POST /api/talkgroups/import` - Bulk import from CSV file (form field: `file`)
+- `PUT /api/talkgroups/{id}` - Update talkgroup metadata
+- `DELETE /api/talkgroups/{id}` - Delete talkgroup
+
+**Transcriptions**
+- `GET /api/transcriptions` - List all transcriptions (pagination: `page`, `pageSize`)
+- `GET /api/transcriptions/{id}` - Get transcription by ID
+- `GET /api/transcriptions/search?q=term` - Search transcriptions by text
+- `POST /api/transcriptions` - Create transcription record
+- `PUT /api/transcriptions/{id}` - Update transcription
+- `DELETE /api/transcriptions/{id}` - Delete transcription
+
+**Full-Text Search**
+- `GET /api/search?q=term` - Search across all content (summaries, incidents, topics)
+  - Query params: `q` (required), `types` (Summary,Incident,Topic), `page`, `pageSize`
+- `GET /api/search/summaries?q=term` - Search transcript summaries with filters
+  - Filters: `talkGroupId`, `startDate`, `endDate`, `maxResults`
+- `GET /api/search/incidents?q=term` - Search notable incidents
+  - Filters: `minImportanceScore`, `maxResults`
+- `GET /api/search/topics?q=term` - Search topics by category
+  - Filters: `category`, `maxResults`
+
+**Real-time Communication (SignalR)**
+- Hub URL: `/hubs/talkgroup`
+- Connected clients receive live call notifications and can subscribe to talkgroups
 
 ### Storage Features
 
@@ -305,103 +385,569 @@ Use [Radio Reference](https://www.radioreference.com) to find:
 
 ## System Architecture
 
+### Multi-Layer Architecture Diagram
+
 ```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Trunk-        │    │   SignalRadio   │    │   Azure Blob    │
-│   Recorder      ├────┤   API           ├────┤   Storage       │
-│                 │    │                 │    │                 │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                           CLIENT LAYER                                           │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│  React Web UI (Vite)    │  Audio Playback    │  Real-time Updates (SignalR)   │
+│  - Call Browser         │  - HTML5 <audio>   │  - Live talkgroup feeds        │
+│  - Search Interface     │  - Stream loading  │  - Call notifications           │
+│  - TalkGroup Stats      │  - Transcript view │  - Subscription management      │
+└─────────────────────────────────────────────────────────────────────────────────┘
+                                        ↓ HTTP/REST/WebSocket
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                            API LAYER (.NET Core)                                 │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐        │
+│  │   Calls      │  │ Recordings   │  │  TalkGroups  │  │   Search     │        │
+│  │  Controller  │  │  Controller  │  │  Controller  │  │  Controller  │        │
+│  └──────────────┘  └──────────────┘  └──────────────┘  └──────────────┘        │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐                          │
+│  │Transcriptions│  │  Transcript  │  │ StorageLocations                        │
+│  │  Controller  │  │  Summary     │  │  Controller  │                          │
+│  └──────────────┘  └──────────────┘  └──────────────┘                          │
+│         ↓                ↓                  ↓                                     │
+│  ┌──────────────────────────────────────────────────────────────────┐           │
+│  │           SERVICE LAYER (Business Logic)                         │           │
+│  ├──────────────────────────────────────────────────────────────────┤           │
+│  │ • CallsService        • RecordingsService    • TalkGroupsService │           │
+│  │ • TranscriptService   • TranscriptSummaryService               │           │
+│  │ • StorageService (Azure/Local)    • AsrService (Whisper/Azure) │           │
+│  │ • CallNotifier (SignalR Hub)       • LocalFileCacheService    │           │
+│  └──────────────────────────────────────────────────────────────────┘           │
+│         ↓                ↓                  ↓                                     │
+│  ┌──────────────────────────────────────────────────────────────────┐           │
+│  │          DATA ACCESS LAYER (Entity Framework Core)               │           │
+│  └──────────────────────────────────────────────────────────────────┘           │
+└─────────────────────────────────────────────────────────────────────────────────┘
+             ↓ SQL Queries              ↓ File Upload/Download
+┌──────────────────────────┐  ┌──────────────────────────────────────┐
+│    SQL SERVER            │  │   STORAGE BACKEND                    │
+├──────────────────────────┤  ├──────────────────────────────────────┤
+│  • Calls Table           │  │  Azure Blob Storage (Production)     │
+│  • Recordings Table      │  │  - {SystemName}/                    │
+│  • TalkGroups Table      │  │    {TalkgroupId}/                   │
+│  • Transcriptions Table  │  │    {Year}/{Month}/{Day}/...         │
+│  • Transcripts Table     │  │                                       │
+│  • FullText Indexes      │  │  Local Disk Storage (Development)   │
+│                          │  │  - /data/recordings/...              │
+└──────────────────────────┘  └──────────────────────────────────────┘
+        ↑                              ↑
+        └──────────────────────────────┘
+             SQL Connection       File I/O
 ```
 
-### Data Flow
+### Data Flow Sequence
 
-1. **trunk-recorder** captures radio traffic from SDR hardware
-2. **Upload callback** triggered when recording completes
-3. **SignalRadio API** receives file and metadata via HTTP POST
-4. **Azure Storage** stores recordings with comprehensive metadata
-5. **REST API** provides full CRUD operations for managing recordings
+```
+trunk-recorder       SignalRadio API      SignalRadio DB     Storage
+      │                   │                     │               │
+      │  1. Record audio  │                     │               │
+      │  and metadata     │                     │               │
+      │◄──────────────────┤                     │               │
+      │                   │                     │               │
+      │  2. Upload via    │                     │               │
+      │  POST /upload    ─────────────────────►│               │
+      │  (multipart/form) │                     │               │
+      │                   │  3. Store metadata  │               │
+      │                   │  to database    ────────────────────│
+      │                   │                     │               │
+      │                   │  4. Stream file ───────────────────►│
+      │                   │  to storage backend │               │
+      │                   │                     │               │
+      │  5. 201 Created   │◄────────────────────────────────────│
+      │◄──────────────────│                     │               │
+      │                   │                     │               │
+      │  6. Optional: Transcribe (ASR)         │               │
+      │                   │  POST to Whisper   │               │
+      │                   │  or Azure Speech    │               │
+      │                   │                     │               │
+      │                   │  7. Store transcript               │
+      │                   │◄────────────────────────────────────│
+      │                   │                     │               │
+      │                   │  8. Optional: Generate Summary      │
+      │                   │  (Semantic Kernel)  │               │
+      │                   │                     │               │
+```
+
+### Technology Stack
+
+**Backend:**
+- **Framework**: ASP.NET Core 8.0 (C#)
+- **Database**: SQL Server Express with Full-Text Search indexes
+- **ORM**: Entity Framework Core with code-first migrations
+- **Real-time**: SignalR for live updates and subscriptions
+- **API**: RESTful endpoints with OpenAPI documentation
+- **Audio**: WAV and M4A format support
+
+**Frontend:**
+- **Framework**: React 18 with TypeScript
+- **Build Tool**: Vite (fast development server and production bundler)
+- **Styling**: CSS with responsive design
+- **Client Library**: @microsoft/signalr for real-time communication
+- **Routing**: React Router v7
+
+**Infrastructure:**
+- **Containerization**: Docker & Docker Compose
+- **Audio Processing**: Whisper ASR (OpenAI) for speech-to-text transcription
+- **AI Summarization**: Azure OpenAI with Semantic Kernel (optional)
+- **Storage**: Azure Blob Storage or Local Disk (configurable)
+- **Radio Capture**: trunk-recorder with RTL-SDR support
 
 ## Directory Structure
 
 ```
 SignalRadio/
-├── config/                     # Configuration files
-│   ├── trunk-recorder.json     # Main trunk-recorder config
-│   ├── trunk-recorder-template.json  # Template for new setups
-│   └── danecom-talkgroups.csv  # Example talkgroups
-├── scripts/                    # Upload callback scripts
-│   ├── upload_callback.sh      # Main callback script
-│   └── test_phase1.sh         # Testing script
-├── docker/                     # Docker configurations
-│   └── Dockerfile.api         # API container definition
-├── src/                       # Source code
-│   ├── SignalRadio.Api/       # ASP.NET Core API
-│   └── SignalRadio.Core/      # Core library
-├── docker-compose.yml         # Service orchestration
-├── setup.sh                   # Quick setup script
-└── README.md                  # This file
+├── config/                             # Configuration files
+│   ├── trunk-recorder.json             # Main trunk-recorder config (runtime)
+│   ├── trunk-recorder-template.json    # Template for new setups
+│   ├── trunk-recorder-danecom.json     # Example: Dane County system config
+│   └── danecom-talkgroups.csv          # Example: Talkgroup definitions
+│
+├── docker/                             # Docker build definitions
+│   ├── Dockerfile.api                  # ASP.NET Core API container
+│   ├── Dockerfile.mssql                # SQL Server container
+│   └── Dockerfile.webclient            # React/Nginx web UI container
+│
+├── scripts/                            # Callback and utility scripts
+│   ├── upload_callback.sh              # trunk-recorder completion hook
+│   └── test_phase1.sh                  # Testing utilities
+│
+├── src/                                # Application source code
+│   ├── SignalRadio.Api/                # ASP.NET Core API service
+│   │   ├── Controllers/                # REST API endpoints
+│   │   │   ├── CallsController.cs
+│   │   │   ├── RecordingsController.cs
+│   │   │   ├── TalkGroupsController.cs
+│   │   │   ├── TranscriptionsController.cs
+│   │   │   ├── SearchController.cs
+│   │   │   ├── StorageLocationsController.cs
+│   │   │   └── TranscriptSummariesController.cs
+│   │   ├── Services/                   # Business logic services
+│   │   ├── Hubs/                       # SignalR real-time hubs
+│   │   ├── Migrations/                 # EF Core database migrations
+│   │   ├── Dtos/                       # Data transfer objects
+│   │   ├── Program.cs                  # Startup configuration
+│   │   └── appsettings*.json           # Configuration files
+│   │
+│   ├── SignalRadio.Core/               # Shared models and interfaces
+│   │   ├── Models/                     # Domain models
+│   │   ├── Interfaces/                 # Service contracts
+│   │   └── Services/                   # Core business services
+│   │
+│   ├── SignalRadio.DataAccess/         # Data access layer (EF Core)
+│   │   ├── SignalRadioDbContext.cs     # EF DbContext
+│   │   ├── Services/                   # Data access services
+│   │   ├── Models/                     # Database entity models
+│   │   └── Interfaces/                 # Repository patterns
+│   │
+│   └── SignalRadio.WebClient/          # React TypeScript web UI
+│       ├── src/
+│       │   ├── components/             # Reusable UI components
+│       │   ├── pages/                  # Page-level components
+│       │   ├── services/               # API client and utilities
+│       │   ├── contexts/               # React context providers
+│       │   ├── hooks/                  # Custom React hooks
+│       │   ├── types/                  # TypeScript type definitions
+│       │   ├── App.tsx                 # Main app component
+│       │   └── main.tsx                # React entry point
+│       ├── public/                     # Static assets
+│       ├── package.json                # NPM dependencies
+│       ├── vite.config.ts              # Vite build configuration
+│       └── nginx.conf                  # Nginx web server config
+│
+├── docker-compose.yml                  # Multi-container orchestration
+├── docker-compose.override.yml.sample  # Override template for custom deployments
+├── SignalRadio.sln                     # Visual Studio solution file
+├── setup.sh                            # Quick setup script
+└── README.md                           # This file
 ```
+
+### Key Project Files
+
+**Configuration**
+- `appsettings.json` - Production API configuration
+- `appsettings.Development.json` - Development API configuration
+- `trunk-recorder.json` - Radio system and SDR configuration
+- `.env` - Environment variables (create from template)
+
+**Volumes (Docker)**
+- `api-recordings` - Local recording storage (production fallback)
+- `sqlserver-data` - SQL Server database files
+- `temp` - Temporary processing directory
+- `logs` - Application and trunk-recorder logs
+- `whisper-cache` - Cached ASR models
 
 ## Development Commands
 
+### Docker Operations
+
 ```bash
-# View real-time logs
-docker-compose logs -f signalradio-api
-docker-compose logs -f trunk-recorder
+# Start all services in background
+docker-compose up -d
 
-# Restart specific service
-docker-compose restart signalradio-api
+# Start with real-time log output
+docker-compose up
 
-# Rebuild after code changes
+# Rebuild specific service after code changes
 docker-compose up --build signalradio-api
+docker-compose up --build signalradio-webclient
 
-# Shell into containers
-docker-compose exec signalradio-api bash
-docker-compose exec trunk-recorder bash
+# View real-time logs for all services
+docker-compose logs -f
 
-# Stop all services
+# View logs for specific service
+docker-compose logs -f signalradio-api
+docker-compose logs -f sqlserver
+docker-compose logs -f trunk-recorder
+docker-compose logs -f whisper-asr
+
+# Check service status and resource usage
+docker-compose ps
+
+# Restart specific service (preserves volumes/data)
+docker-compose restart signalradio-api
+docker-compose restart sqlserver
+
+# Stop all services (preserves volumes/data)
+docker-compose stop
+
+# Remove all containers but keep volumes
 docker-compose down
 
-# Clean up volumes (WARNING: removes recordings)
+# Full cleanup (WARNING: removes all data including recordings!)
 docker-compose down -v
+
+# Execute command in running container
+docker-compose exec signalradio-api bash
+docker-compose exec sqlserver /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P "SignalRadio123!"
+
+# View container resource usage
+docker stats
+
+# Inspect network and volumes
+docker network ls
+docker volume ls
+```
+
+### Database Operations
+
+```bash
+# Run database migrations
+docker-compose exec signalradio-api dotnet ef migrations add MigrationName
+docker-compose exec signalradio-api dotnet ef database update
+
+# View SQL Server error logs
+docker-compose logs sqlserver | grep -i error
+
+# Connect to SQL Server directly (from container)
+docker-compose exec sqlserver sqlcmd -S localhost -U sa -P "SignalRadio123!"
+# Then run: SELECT * FROM [SignalRadio].[dbo].[Calls];
+
+# Backup database
+docker-compose exec sqlserver /opt/mssql-tools/bin/sqlcmd \
+  -S localhost -U sa -P "SignalRadio123!" \
+  -Q "BACKUP DATABASE SignalRadio TO DISK = '/var/opt/mssql/backup/SignalRadio.bak'"
+```
+
+### Local Development (without Docker)
+
+```bash
+# Build .NET solution
+dotnet build SignalRadio.sln
+
+# Run API service
+cd src/SignalRadio.Api
+dotnet run
+
+# Build React frontend
+cd src/SignalRadio.WebClient
+npm install
+npm run dev
+
+# Build for production
+npm run build
+npm run preview
+```
+
+### Testing
+
+```bash
+# Run unit tests (if configured)
+dotnet test SignalRadio.sln
+
+# Test API endpoints
+curl http://localhost:5000/health
+curl http://localhost:5000/api/calls
+curl http://localhost:5000/api/talkgroups
+
+# Test upload endpoint
+curl -X POST http://localhost:5000/api/recordings/upload \
+  -F "file=@test-files/sample.wav" \
+  -F 'metadata={"TalkgroupId":12345,"Frequency":"851.0125","SystemName":"TestSystem","Timestamp":"2025-08-16T21:00:00Z"}'
+```
+
+## Docker Container Architecture
+
+### Service Topology
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    Docker Network: signalradio-network          │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                   │
+│  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────┐  │
+│  │  trunk-recorder  │  │  signalradio-api │  │ sqlserver    │  │
+│  │  (robotastic/    │  │  (ASP.NET Core)  │  │ (MSSQL)      │  │
+│  │   trunk-         │  │  Port: 5000→8080 │  │ Port: 1433   │  │
+│  │   recorder)      │  │  Memory: ∞       │  │ Memory: 3GB  │  │
+│  │                  │  │                  │  │              │  │
+│  │  RTL-SDR: /dev   │  │  Env: Dev/Prod   │  │  EULA: Y     │  │
+│  │  Privileged: true│  │                  │  │              │  │
+│  └──────────────────┘  └──────────────────┘  └──────────────┘  │
+│         ↓ Upload              ↓ HTTP                ↓ SQL Query  │
+│         └──────────────────────┴────────────────────┴──────────┘ │
+│                                                                   │
+│  ┌──────────────────┐  ┌──────────────────────────────────────┐  │
+│  │  whisper-asr     │  │  signalradio-webclient              │  │
+│  │  (onerahmet/     │  │  (React + Nginx)                    │  │
+│  │   openai-        │  │  Port: 3001→80                      │  │
+│  │   whisper-asr)   │  │  Memory: ∞                          │  │
+│  │  Port: 9000      │  │                                      │  │
+│  │  Memory: 2GB     │  │  Dependencies:                      │  │
+│  │                  │  │  - api (network)                    │  │
+│  │  Model: small.en │  │  - sqlserver (transitively)         │  │
+│  └──────────────────┘  └──────────────────────────────────────┘  │
+│                                                                   │
+└─────────────────────────────────────────────────────────────────┘
+
+External Interfaces:
+  • HTTP:    localhost:5000 (API), localhost:3001 (Web UI)
+  • WebSocket: /hubs/talkgroup (SignalR real-time)
+  • ASR:     http://whisper-asr:9000 (internal)
+  • USB:     /dev/bus/usb (trunk-recorder hardware)
+```
+
+### Volume Mounts
+
+**Named Volumes** (persist across container restarts)
+- `api-recordings:/data/recordings` - Local fallback recording storage
+- `trunk-recordings:/app/audio` - trunk-recorder audio staging area
+- `temp:/app/temp` - Temporary processing files
+- `logs:/app/logs` - Application and service logs
+- `sqlserver-data:/var/opt/mssql` - SQL Server database files
+- `whisper-cache:/root/.cache` - Cached ASR models (faster startup)
+
+**Bind Mounts** (host filesystem)
+- `./config:/app/config:ro` - Configuration files (read-only)
+- `./scripts:/app/scripts:ro` - Callback scripts (read-only)
+- `/var/run/dbus` - D-Bus for audio system (trunk-recorder)
+
+### Service Dependencies
+
+```
+trunk-recorder ──────┐
+                     ├─► api ──► sqlserver
+whisper-asr ─────────┤
+                     └─► webclient
+```
+
+- **API** depends on **sqlserver** (database migrations run on startup)
+- **webclient** depends on **api** (frontend proxies to backend)
+- **trunk-recorder** depends on **api** (sends uploads)
+- **whisper-asr** has no dependencies (optional standalone service)
+
+### Environment Configuration
+
+See `docker-compose.yml` for full environment variable reference. Key variables:
+
+**API Service**
+```
+ASPNETCORE_ENVIRONMENT=Development
+StorageType=Local
+ASR_PROVIDER=whisper
+SEMANTIC_KERNEL_ENABLED=false
+```
+
+**Whisper ASR**
+```
+ASR_MODEL=small.en
+ASR_ENGINE=openai_whisper
+ASR_DEVICE=cpu
+```
+
+**Database**
+```
+ACCEPT_EULA=Y
+SA_PASSWORD=SignalRadio123!
+MSSQL_PID=Express
 ```
 
 ## Troubleshooting
 
+### Connection Issues
+
+**API not reachable from webclient**
+```bash
+# Test API connectivity from webclient container
+docker-compose exec signalradio-webclient curl http://signalradio-api:8080/health
+
+# Check container network
+docker-compose exec signalradio-api ping signalradio-sqlserver
+
+# Verify service is listening
+docker-compose exec signalradio-api netstat -an | grep 8080
+```
+
+**Database connection timeout**
+```bash
+# Check if SQL Server is ready
+docker-compose logs sqlserver | grep -i "ready"
+
+# SQL Server startup can take 30-60 seconds
+docker-compose logs --tail=50 sqlserver
+
+# Manually test connection
+docker-compose exec signalradio-api dotnet \
+  /app/SignalRadio.Api.dll --help
+```
+
 ### SDR Issues
 
 ```bash
-# Check if SDR is detected
+# Check if RTL-SDR is detected by trunk-recorder
 docker-compose exec trunk-recorder rtl_test -t
 
-# View trunk-recorder logs for frequency/gain issues
-docker-compose logs trunk-recorder | grep -i "error\|control\|signal"
+# View trunk-recorder logs for frequency errors
+docker-compose logs trunk-recorder | grep -i "error\|control\|signal\|frequency"
+
+# Check for USB device permissions
+docker-compose logs trunk-recorder | grep -i "usb\|device\|permission"
+
+# Verify device is available on host
+lsusb | grep -i RTL
 ```
 
 ### Upload Issues
 
 ```bash
 # Check upload callback logs
-docker-compose exec trunk-recorder cat /app/logs/upload.log
+docker-compose logs trunk-recorder | grep -i "upload\|callback"
 
-# Test API connectivity
-curl http://localhost:5210/health
+# Test API upload manually
+curl -v -X POST http://localhost:5000/api/recordings/upload \
+  -F "file=@test.wav" \
+  -F 'metadata={"TalkgroupId":1,"Frequency":"851.0125","SystemName":"Test","Timestamp":"2025-08-16T21:00:00Z"}'
 
-# Test upload with sample files
-curl -X POST http://localhost:5210/api/recording/upload \
-  -F "TalkgroupId=12345" \
-  -F "Frequency=851.0125" \
-  -F "Timestamp=2025-08-16T21:00:00Z" \
-  -F "SystemName=TestSystem" \
-  -F "audioFile=@test-files/sample.wav"
+# Check file permissions in trunk-recorder
+docker-compose exec trunk-recorder ls -la /app/scripts/
+docker-compose exec trunk-recorder cat /app/scripts/upload_callback.sh
 ```
 
-### Common Problems
+### Transcription Issues
 
-1. **No recordings**: Check control channel frequency and gain settings
-2. **Upload failures**: Verify API endpoint is accessible between containers
-3. **Permission errors**: Ensure script permissions are correct
-4. **SDR not found**: Check USB device permissions and container privileged mode
+```bash
+# Check if Whisper service is running
+curl http://localhost:9000/status
+
+# Check Whisper logs for model errors
+docker-compose logs whisper-asr | grep -i "model\|error\|cuda"
+
+# Verify ASR configuration in API
+docker-compose logs signalradio-api | grep -i "asr\|whisper"
+
+# Test Whisper endpoint directly
+curl -X POST http://localhost:9000/asr \
+  -F "audio_file=@test.wav"
+```
+
+### Storage Issues
+
+**Local storage not persisting**
+```bash
+# Check volume mounts
+docker-compose exec signalradio-api df -h
+
+# Check disk space
+docker-compose exec signalradio-api du -sh /data/recordings
+
+# Verify volume exists
+docker volume ls | grep signalradio
+docker volume inspect signalradio_api-recordings
+```
+
+**Azure Storage connection failure**
+```bash
+# Check connection string in environment
+docker-compose exec signalradio-api env | grep AZURE
+
+# Verify credentials are loaded
+docker-compose logs signalradio-api | grep -i "azure\|storage"
+
+# Test connection manually (in API container)
+# Use Azure Storage Explorer or run: az storage account list
+```
+
+### Performance Issues
+
+**API slow responses**
+```bash
+# Check database query performance
+docker-compose exec signalradio-api dotnet ef dbcontext info
+
+# Monitor API resource usage
+docker stats signalradio-api
+
+# Check for long-running operations
+docker-compose logs signalradio-api | grep -i "timeout\|slow\|elapsed"
+
+# Monitor SQL Server performance
+docker-compose exec sqlserver /opt/mssql-tools/bin/sqlcmd \
+  -S localhost -U sa -P "SignalRadio123!" \
+  -Q "SELECT * FROM sys.dm_exec_requests WHERE status = 'running'"
+```
+
+**High memory usage**
+```bash
+# Check Whisper memory (ASR models can use 1-2GB)
+docker stats whisper-asr
+
+# Check API memory
+docker stats signalradio-api
+
+# Restart service to free memory
+docker-compose restart whisper-asr
+```
+
+### Common Problems & Solutions
+
+| Issue | Cause | Solution |
+|-------|-------|----------|
+| No recordings captured | Wrong control channel frequency | Update `trunk-recorder.json` control_channels with your system's frequency |
+| Recordings captured but not uploaded | Upload callback failing | Check script permissions: `chmod +x scripts/upload_callback.sh` |
+| Permission denied errors | Container running as wrong user | Ensure /app/scripts/ is readable by container user |
+| Database already exists error | Race condition on startup | Safe to ignore; migrations will complete on next restart |
+| Transcriptions not running | ASR service not configured | Set `ASR_ENABLED=true` and verify Whisper service is running |
+| Summaries not generating | OpenAI not configured | Set `SEMANTIC_KERNEL_ENABLED=true` and add Azure OpenAI credentials |
+| Web UI blank/loading forever | API CORS issues | Check browser console for 403/CORS errors; API endpoint must match request origin |
+
+### Debug Mode
+
+Enable detailed logging:
+
+```bash
+# Set API to Development mode
+docker-compose down
+docker-compose -f docker-compose.yml -e ASPNETCORE_ENVIRONMENT=Development up
+
+# Enable verbose trunk-recorder logs
+# Edit config/trunk-recorder.json and set "logLevel": "debug"
+
+# View all API errors
+docker-compose logs signalradio-api | grep -i "error\|exception\|warn"
+```
 
 ## Configuration Examples
 
@@ -442,36 +988,7 @@ curl -X POST http://localhost:5210/api/recording/upload \
 }
 ```
 
-## Phase Development Status
 
-✅ **Phase 1: Foundation Setup** - COMPLETE
-- Basic API structure with RecordingController
-- Docker-compose configuration
-- Upload callback script for trunk-recorder
-- Project structure and build system
-- Health check and basic upload endpoints
-
-✅ **Phase 2: Dual File Handling** - COMPLETE
-- Support for both WAV and M4A file uploads
-- Enhanced logging for tracking both file types
-- No audio processing needed (trunk-recorder provides both formats)
-
-✅ **Phase 3: Azure Storage** - COMPLETE
-- Azure Blob Storage integration
-- Metadata storage and retrieval
-- File organization strategies
-- Full CRUD API for recordings
-- Development and production storage configurations
-
-⏳ **Phase 4: Advanced Features** - NEXT
-- Background processing queues
-- Monitoring and alerting
-- Advanced audio analysis
-- Performance optimization
-
-## Contributing
-
-This project follows a phased development approach. Focus on completing one phase before moving to the next to ensure stability and maintainability.
 
 ## Documentation
 
