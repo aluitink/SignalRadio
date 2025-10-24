@@ -116,6 +116,45 @@ services:
       - "8081:8080"
 ```
 
+## HTTPS with nginx-proxy & Let's Encrypt (Optional)
+
+SignalRadio includes a pre-configured `docker-compose.nginx.yml` for setting up HTTPS with nginx-proxy and Let's Encrypt certificates.
+
+### How to use
+
+1. **Edit your domain and email**
+   - Open `docker-compose.nginx.yml` and set your domain and email in the `DEFAULT_EMAIL` environment variable for the `acme-companion` service.
+
+2. **Start nginx-proxy and companion**
+   - Run:
+     ```bash
+     docker-compose -f docker-compose.nginx.yml up -d
+     ```
+   - This will start the proxy and certificate manager containers.
+
+3. **Configure SignalRadio UI for HTTPS**
+   - In your `docker-compose.override.yml`, set the following environment variables for the UI service:
+     ```yaml
+     VIRTUAL_HOST: radio.yourdomain.com
+     VIRTUAL_PORT: 80
+     LETSENCRYPT_HOST: radio.yourdomain.com
+     LETSENCRYPT_EMAIL: your@email.com
+     ```
+   - Make sure the UI service is on the same Docker network as nginx-proxy (see example above).
+
+4. **Point your DNS A record to your server's public IP.**
+
+5. **Start SignalRadio services**
+   - Run:
+     ```bash
+     docker-compose up -d
+     ```
+
+6. **Access your site securely**
+   - Visit `https://radio.yourdomain.com` to verify HTTPS is working.
+
+For more details, see the comments in `docker-compose.nginx.yml` and the [nginx-proxy documentation](https://github.com/nginx-proxy/nginx-proxy).
+
 ### 6. Start the System
 
 ```bash
@@ -989,13 +1028,6 @@ docker-compose logs signalradio-api | grep -i "error\|exception\|warn"
 ```
 
 
-
-## Documentation
-
-- [Quick Start Guide](docs/QUICK-START.md) - Get up and running quickly
-- [API Documentation](docs/API.md) - Complete API reference
-- [Phase 3: Azure Storage](docs/PHASE3-AZURE-STORAGE.md) - Azure Storage implementation details
-- [Volume Management](docs/VOLUMES.md) - Docker volume configuration
 
 ## License
 

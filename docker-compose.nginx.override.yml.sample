@@ -1,0 +1,6 @@
+version: '3.8'
+
+services:
+  acme-companion:
+    environment:
+      - DEFAULT_EMAIL=your@email.com
