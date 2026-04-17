@@ -268,24 +268,30 @@ public class RecordingsService : IRecordingsService
 
     public async Task<IEnumerable<Recording>> GetRecordingsNeedingTranscriptionAsync(int limit = 10)
     {
-        // DataAccess models: Call.TalkGroupId (int) and TalkGroup.Id (int)
-        // Priority: lower numeric value is higher priority. Null means lowest priority.
-        // Use AsNoTracking to avoid leaving tracked Recording instances in the DbContext
-        // which can cause identity conflicts when callers later pass detached instances
-        // back into UpdateAsync.
-        // NOTE: do not filter by StorageLocationId here — use whatever storage location is defined
-        var query = from r in _db.Recordings.Include(r => r.Call).AsNoTracking()
-                    join tg in _db.TalkGroups on r.Call!.TalkGroupId equals tg.Id into tgJoin
-                    from tg in tgJoin.DefaultIfEmpty()
-                    where !r.Transcriptions.Any(t => t.IsFinal)
-                    select new { Recording = r, TalkGroupPriority = (int?)tg.Priority };
+        var limitParam = new Microsoft.Data.SqlClient.SqlParameter("@Limit", limit);
 
-        var ordered = query
-            .OrderBy(x => x.TalkGroupPriority.HasValue ? x.TalkGroupPriority.Value : int.MaxValue)
-            .ThenByDescending(x => x.Recording.ReceivedAt)
-            .Take(limit)
-            .Select(x => x.Recording);
+        // EXEC-based FromSqlRaw is non-composable; .Include() cannot be chained over it.
+        // Materialize the SP results first, then load Call navigation properties separately.
+        var recordings = await _db.Recordings
+            .FromSqlRaw("EXEC [dbo].[sp_GetRecordingsNeedingTranscription] @Limit", limitParam)
+            .AsNoTracking()
+            .ToListAsync();
 
-        return await ordered.ToListAsync();
+        if (recordings.Count > 0)
+        {
+            var callIds = recordings.Select(r => r.CallId).Distinct().ToList();
+            var calls = await _db.Calls
+                .AsNoTracking()
+                .Where(c => callIds.Contains(c.Id))
+                .ToDictionaryAsync(c => c.Id);
+
+            foreach (var r in recordings)
+            {
+                if (calls.TryGetValue(r.CallId, out var call))
+                    r.Call = call;
+            }
+        }
+
+        return recordings;
     }
 }
