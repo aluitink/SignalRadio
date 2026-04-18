@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import React, { useEffect, useRef, useState } from 'react'
+import { useParams, Link, useLocation } from 'react-router-dom'
 import CallCard from '../components/CallCard'
 import FrequencyTabs from '../components/FrequencyTabs'
 import TranscriptSummary from '../components/TranscriptSummary'
@@ -14,6 +14,8 @@ import { apiGet, apiPut } from '../api'
 export default function TalkGroupPage() {
   const { id } = useParams<{ id: string }>()
   const talkGroupId = parseInt(id || '0', 10)
+  const location = useLocation()
+  const autoPlayHandledRef = useRef(false)
   
   const [calls, setCalls] = useState<CallDto[]>([])
   const [talkGroup, setTalkGroup] = useState<TalkGroupDto | null>(null)
@@ -39,6 +41,29 @@ export default function TalkGroupPage() {
 
     loadTalkGroupData()
   }, [talkGroupId, currentPage])
+
+  // Auto-play from a specific call when navigated here from the ticker
+  useEffect(() => {
+    if (autoPlayHandledRef.current) return
+    if (!calls.length) return
+
+    const autoPlayFromCallId = (location.state as { autoPlayFromCallId?: number } | null)?.autoPlayFromCallId
+    if (!autoPlayFromCallId) return
+
+    const callIndex = calls.findIndex(c => c.id === autoPlayFromCallId)
+    if (callIndex === -1) return
+
+    autoPlayHandledRef.current = true
+
+    const callsToQueue = calls.slice(0, callIndex + 1).reverse()
+    audioPlayerService.clearQueue()
+    callsToQueue.forEach(c => audioPlayerService.addToQueue(c))
+    if (audioPlayerService.getState() === 'stopped') {
+      audioPlayerService.play().catch(error => {
+        console.error('Failed to start audio player:', error)
+      })
+    }
+  }, [calls, location.state])
 
   const updateTalkGroupPriority = async (newPriority: number | undefined) => {
     if (!talkGroup) return

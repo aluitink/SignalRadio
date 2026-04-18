@@ -1,8 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { apiGet } from '../api'
-import { audioPlayerService } from '../services/AudioPlayerService'
-import type { TranscriptSummaryDto, TalkGroupDto, CallDto, TalkGroupStats, NotableIncidentDto } from '../types/dtos'
+import type { TranscriptSummaryDto, TalkGroupDto, TalkGroupStats, NotableIncidentDto } from '../types/dtos'
 
 interface TickerItem {
   id: string
@@ -33,6 +32,7 @@ const getTimeAgo = (timestamp: number): string => {
 }
 
 export default function TranscriptionTicker() {
+  const navigate = useNavigate()
   const [tickerItems, setTickerItems] = useState<TickerItem[]>([])
   const [isPaused, setIsPaused] = useState(false)
   const [serviceAvailable, setServiceAvailable] = useState<boolean | null>(null)
@@ -128,34 +128,11 @@ export default function TranscriptionTicker() {
     try {
       // Close dropdown when item is clicked
       setIsExpanded(false)
-      
-      // If there are call IDs for this incident, play those calls
-      if (item.callIds && item.callIds.length > 0) {
-        // Fetch and add calls to the front of the queue (in reverse order so first call plays first)
-        const callsToAdd = []
-        for (const callId of item.callIds.slice(0, 5)) { // Limit to first 5 calls
-          try {
-            const call = await apiGet<CallDto>(`/calls/${callId}`)
-            if (call) {
-              callsToAdd.push(call)
-            }
-          } catch (err) {
-            console.warn(`Failed to fetch call ${callId}:`, err)
-          }
-        }
-        
-        // Add calls to front of queue in reverse order so they play in correct order
-        for (let i = callsToAdd.length - 1; i >= 0; i--) {
-          audioPlayerService.addToFront(callsToAdd[i])
-        }
-        
-        // Start playing if not already playing
-        if (audioPlayerService.getState() === 'stopped') {
-          audioPlayerService.play().catch(error => {
-            console.error('Failed to start audio player:', error)
-          })
-        }
-      }
+
+      // Navigate to the talkgroup stream page with the first incident call as the auto-play starting point
+      navigate(`/talkgroup/${item.talkGroupId}`, {
+        state: { autoPlayFromCallId: item.callIds[0] }
+      })
     } catch (error) {
       console.error('Failed to handle ticker item click:', error)
     }
