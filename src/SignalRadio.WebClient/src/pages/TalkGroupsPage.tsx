@@ -176,9 +176,9 @@ export default function TalkGroupsPage() {
   const totalFilteredItems = filteredAndSortedTalkGroups.length
   const totalPages = Math.ceil(totalFilteredItems / pageSize)
 
-  const handleSubscriptionToggle = async (talkGroupNumber: number) => {
+  const handleSubscriptionToggle = async (talkGroupId: number) => {
     try {
-      await toggleSubscription(talkGroupNumber)
+      await toggleSubscription(talkGroupId)
     } catch (error) {
       console.error('Failed to toggle subscription:', error)
     }
@@ -367,7 +367,7 @@ export default function TalkGroupsPage() {
                 key={talkGroup.id}
                 talkGroup={talkGroup}
                 isSubscribed={isSubscribed(talkGroup.id)}
-                onSubscriptionToggle={() => handleSubscriptionToggle(talkGroup.number || 0)}
+                onSubscriptionToggle={() => handleSubscriptionToggle(talkGroup.id)}
               />
             ))}
           </div>
