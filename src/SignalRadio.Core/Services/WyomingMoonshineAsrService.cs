@@ -443,7 +443,7 @@ public class WyomingMoonshineAsrService : IAsrService
         {
             var srcPos = i * ratio;
             var srcIdx = (int)srcPos;
-            var frac   = srcPos - srcIdx;
+            var frac = srcPos - srcIdx;
             var a = srcIdx < input.Length ? input[srcIdx] : 0.0;
             var b = srcIdx + 1 < input.Length ? input[srcIdx + 1] : 0.0;
             output[i] = a + frac * (b - a);
