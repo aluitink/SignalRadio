@@ -11,6 +11,7 @@ interface TickerItem {
   incidentDescription: string
   timestamp: number
   callIds: number[]
+  importanceScore?: number
 }
 
 const getTimeAgo = (timestamp: number): string => {
@@ -29,6 +30,15 @@ const getTimeAgo = (timestamp: number): string => {
     const days = Math.floor(diffInSeconds / 86400)
     return `${days}d ago`
   }
+}
+
+const getImportanceColor = (score?: number): string => {
+  if (score === undefined || score === null) return 'var(--text-muted)'
+  if (score >= 5) return '#ef4444'
+  if (score >= 4) return '#f97316'
+  if (score >= 3) return '#eab308'
+  if (score >= 2) return '#3b82f6'
+  return 'var(--text-muted)'
 }
 
 export default function TranscriptionTicker() {
@@ -105,7 +115,8 @@ export default function TranscriptionTicker() {
                 talkGroupDescription: talkGroupDetails?.description,
                 incidentDescription: incident.description,
                 timestamp: new Date(summary.generatedAt).getTime(),
-                callIds: incident.callIds
+                callIds: incident.callIds,
+                importanceScore: incident.importanceScore
               } as TickerItem)
             })
           }
@@ -223,6 +234,11 @@ export default function TranscriptionTicker() {
             >
               <div className="ticker-link">
                 <span className="ticker-talkgroup">{item.talkGroupDescription || item.talkGroupName}:</span>
+                {item.importanceScore !== undefined && (
+                  <span className="ticker-score" style={{ color: getImportanceColor(item.importanceScore) }} title={`Importance: ${item.importanceScore}/5`}>
+                    {'●'.repeat(item.importanceScore)}{'○'.repeat(5 - item.importanceScore)}
+                  </span>
+                )}
                 <span className="ticker-text">{item.incidentDescription}</span>
                 <span className="ticker-calls">
                   ({item.callIds.length} call{item.callIds.length !== 1 ? 's' : ''})
@@ -239,6 +255,11 @@ export default function TranscriptionTicker() {
             >
               <div className="ticker-link">
                 <span className="ticker-talkgroup">{item.talkGroupDescription || item.talkGroupName}:</span>
+                {item.importanceScore !== undefined && (
+                  <span className="ticker-score" style={{ color: getImportanceColor(item.importanceScore) }} title={`Importance: ${item.importanceScore}/5`}>
+                    {'●'.repeat(item.importanceScore)}{'○'.repeat(5 - item.importanceScore)}
+                  </span>
+                )}
                 <span className="ticker-text">{item.incidentDescription}</span>
                 <span className="ticker-calls">
                   ({item.callIds.length} call{item.callIds.length !== 1 ? 's' : ''})
@@ -274,7 +295,14 @@ export default function TranscriptionTicker() {
               >
                 <div className="dropdown-item-header">
                   <span className="dropdown-talkgroup">{item.talkGroupDescription || item.talkGroupName}</span>
-                  <span className="dropdown-time">{getTimeAgo(item.timestamp)}</span>
+                  <div className="dropdown-header-right">
+                    {item.importanceScore !== undefined && (
+                      <span className="dropdown-score" style={{ color: getImportanceColor(item.importanceScore), borderColor: getImportanceColor(item.importanceScore) }}>
+                        {item.importanceScore}/5
+                      </span>
+                    )}
+                    <span className="dropdown-time">{getTimeAgo(item.timestamp)}</span>
+                  </div>
                 </div>
                 <div className="dropdown-item-content">
                   <span className="dropdown-text">{item.incidentDescription}</span>
@@ -377,6 +405,13 @@ export default function TranscriptionTicker() {
           border-radius: 4px;
         }
 
+        .ticker-score {
+          font-size: 10px;
+          letter-spacing: 1px;
+          flex-shrink: 0;
+          margin-right: var(--space-1);
+        }
+
         .ticker-time {
           color: var(--text-muted);
           font-size: 12px;
@@ -433,6 +468,21 @@ export default function TranscriptionTicker() {
           font-weight: 600;
           color: var(--accent-primary);
           font-size: 14px;
+        }
+
+        .dropdown-header-right {
+          display: flex;
+          align-items: center;
+          gap: var(--space-2);
+          flex-shrink: 0;
+        }
+
+        .dropdown-score {
+          font-size: 11px;
+          font-weight: 600;
+          padding: 1px 5px;
+          border: 1px solid;
+          border-radius: 4px;
         }
 
         .dropdown-time {
