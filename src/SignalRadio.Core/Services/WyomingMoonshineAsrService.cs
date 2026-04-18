@@ -86,8 +86,22 @@ public class WyomingMoonshineAsrService : IAsrService
 
         var result = await TranscribePcmAsync(pcm, fileName, cancellationToken);
 
-        _logger.LogInformation("Moonshine transcription completed for {FileName}: {Length} chars",
-            fileName, result.Text.Length);
+        if (string.IsNullOrWhiteSpace(result.Text))
+        {
+            var durationSec = pcm.Length / (double)(TargetSampleRate * BytesPerSample);
+            var rms = ComputePcmRms(pcm);
+            var dbFs = rms > 0 ? 20.0 * Math.Log10(rms) : double.NegativeInfinity;
+            _logger.LogWarning(
+                "Moonshine returned empty transcript for {FileName} — duration: {Duration:F2}s, RMS: {Rms:F6} ({DbFs:F1} dBFS). " +
+                "Likely cause: {Cause}",
+                fileName, durationSec, rms, dbFs,
+                dbFs < -50 ? "silence / squelch tail" : dbFs < -30 ? "low-level noise / tone" : "speech not recognised by model");
+        }
+        else
+        {
+            _logger.LogInformation("Moonshine transcription completed for {FileName}: {Length} chars",
+                fileName, result.Text.Length);
+        }
 
         return result;
     }
@@ -448,6 +462,22 @@ public class WyomingMoonshineAsrService : IAsrService
             bytes[i * 2 + 1] = (byte)((s >> 8) & 0xFF);
         }
         return bytes;
+    }
+
+    /// <summary>
+    /// Computes the root-mean-square amplitude of a 16-bit LE PCM buffer, normalised to [0, 1].
+    /// </summary>
+    private static double ComputePcmRms(byte[] pcm)
+    {
+        if (pcm.Length < 2) return 0.0;
+        double sum = 0.0;
+        var sampleCount = pcm.Length / 2;
+        for (int i = 0; i < sampleCount; i++)
+        {
+            var s = BitConverter.ToInt16(pcm, i * 2) / 32768.0;
+            sum += s * s;
+        }
+        return Math.Sqrt(sum / sampleCount);
     }
 
     private static (string host, int port) ParseTcpUri(string rawUri)

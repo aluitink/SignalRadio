@@ -86,7 +86,7 @@ public class TranscriptionBackgroundService : BackgroundService
             return false;
         }
 
-        var pendingList = await recordingService.GetRecordingsNeedingTranscriptionAsync(limit: 3);
+        var pendingList = await recordingService.GetRecordingsNeedingTranscriptionAsync(limit: 1, minDurationSeconds: 2, lookbackHours: 1);
         if (!pendingList.Any())
             return false;
 
