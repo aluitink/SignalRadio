@@ -35,4 +35,21 @@ public class AsrOptions
     /// The full URL for the language detection endpoint
     /// </summary>
     public string LanguageDetectionEndpoint => $"{WhisperServiceUrl.TrimEnd('/')}/detect-language";
+
+    // ── Wyoming / Moonshine settings ──────────────────────────────────────
+
+    /// <summary>
+    /// Wyoming TCP URI for the Moonshine ASR service (e.g. tcp://wyoming-moonshine:10300)
+    /// </summary>
+    public string MoonshineServiceUrl { get; set; } = "tcp://wyoming-moonshine:10300";
+
+    /// <summary>
+    /// Moonshine model name passed in the Wyoming transcribe event (e.g. moonshine/tiny, moonshine/base)
+    /// </summary>
+    public string MoonshineModel { get; set; } = "moonshine/tiny";
+
+    /// <summary>
+    /// Language hint sent to Moonshine (BCP-47, e.g. "en")
+    /// </summary>
+    public string MoonshineLanguage { get; set; } = "en";
 }

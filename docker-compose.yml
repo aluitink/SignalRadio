@@ -34,6 +34,9 @@ services:
       - ConnectionStrings__DefaultConnection=Server=sqlserver,1433;Database=SignalRadio;User Id=sa;Password=SignalRadio123!;TrustServerCertificate=true;
       - AsrSettings__Enabled=${ASR_ENABLED:-true}
       - AsrSettings__WhisperServiceUrl=http://whisper-asr:9000
+      - AsrSettings__MoonshineServiceUrl=tcp://wyoming-moonshine:10300
+      - AsrSettings__MoonshineModel=${MOONSHINE_MODEL:-moonshine/base}
+      - AsrSettings__MoonshineLanguage=${MOONSHINE_LANGUAGE:-en}
       - AsrSettings__AutoTranscribe=${ASR_AUTO_TRANSCRIBE:-true}
       - AsrSettings__AzureSpeechKey=${AZURE_SPEECH_KEY:-}
       - AsrSettings__AzureSpeechRegion=${AZURE_SPEECH_REGION:-}
@@ -115,9 +118,9 @@ services:
     image: onerahmet/openai-whisper-asr-webservice:latest
     container_name: signalradio-whisper
     environment:
-      - ASR_MODEL=small.en
-      - ASR_ENGINE=openai_whisper
-      - ASR_DEVICE=cpu
+      - ASR_MODEL=${WHISPER_MODEL:-small.en}
+      - ASR_ENGINE=${WHISPER_ENGINE:-openai_whisper}
+      - ASR_DEVICE=${WHISPER_DEVICE:-cpu}
     ports:
       - "9000:9000"
     volumes:
@@ -129,6 +132,28 @@ services:
       - sqlserver
     restart: unless-stopped
     # Memory limit for Whisper models
+    mem_limit: 2g
+
+  # Wyoming Moonshine ASR Service (alternative to Whisper)
+  # Enable by setting ASR_PROVIDER=moonshine
+  wyoming-moonshine:
+    image: ghcr.io/cronus42/wyoming-moonshine:latest
+    container_name: signalradio-moonshine
+    environment:
+      - WYOMING_URI=tcp://0.0.0.0:10300
+      - MOONSHINE_MODEL=${MOONSHINE_MODEL:-moonshine/base}
+      - MOONSHINE_LANGUAGE=${MOONSHINE_LANGUAGE:-en}
+      - HF_HOME=/data/hf
+      - OFFLINE_AFTER_STARTUP=true
+      - HF_TOKEN=${HF_TOKEN:-}
+    ports:
+      - "10300:10300"
+    volumes:
+      - moonshine-cache:/data
+    networks:
+      - signalradio-network
+    restart: unless-stopped
+    # Memory limit for Moonshine models
     mem_limit: 2g
 
 networks:
@@ -148,4 +173,6 @@ volumes:
   sqlserver-data:
     driver: local
   whisper-cache:
+    driver: local
+  moonshine-cache:
     driver: local

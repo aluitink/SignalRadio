@@ -90,15 +90,22 @@ else
 // Notification service to broadcast call/recording updates to SignalR subscribers
 builder.Services.AddScoped<SignalRadio.Core.Services.ICallNotifier, SignalRadio.Api.Services.HubCallNotifier>();
 
-// Register ASR services - provider can be toggled via ASR_PROVIDER (azure|whisper)
+// Ensure IHttpClientFactory is always available (required by TranscriptionBackgroundService)
+builder.Services.AddHttpClient();
+
+// Register ASR services - provider can be toggled via ASR_PROVIDER (azure|whisper|moonshine)
 var asrProvider = builder.Configuration["ASR_PROVIDER"] ?? builder.Configuration["AsrSettings:Provider"] ?? "whisper";
 if (asrProvider.Equals("azure", StringComparison.OrdinalIgnoreCase))
 {
     builder.Services.AddScoped<IAsrService, AzureAsrService>();
 }
+else if (asrProvider.Equals("moonshine", StringComparison.OrdinalIgnoreCase))
+{
+    builder.Services.AddScoped<IAsrService, WyomingMoonshineAsrService>();
+}
 else
 {
-    // default to whisper service
+    // default to whisper HTTP service
     builder.Services.AddHttpClient<WhisperAsrService>();
     builder.Services.AddScoped<IAsrService, WhisperAsrService>();
 }
