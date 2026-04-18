@@ -69,23 +69,23 @@ export default function TranscriptionTicker() {
     if (!serviceAvailable) return
 
     try {
-      // Get talkgroups that have transcripts in the last 15 minutes
-      const talkGroupsWithTranscripts = await apiGet<number[]>('/calls/transcripts-available?windowMinutes=15')
+      // Get talkgroups that have transcripts in the last 60 minutes
+      const talkGroupsWithTranscripts = await apiGet<number[]>('/calls/transcripts-available?windowMinutes=60')
       
       if (!talkGroupsWithTranscripts || talkGroupsWithTranscripts.length === 0) {
         setTickerItems([])
         return
       }
 
-      // Limit to top 10 most recently active talkgroups
-      const limitedTalkGroupIds = talkGroupsWithTranscripts.slice(0, 10)
+      // Limit to top 20 most recently active talkgroups
+      const limitedTalkGroupIds = talkGroupsWithTranscripts.slice(0, 20)
 
       // Get summaries for talkgroups with transcripts and collect notable incidents
       const allIncidents: TickerItem[] = []
       
       const summaryPromises = limitedTalkGroupIds.map(async (talkGroupId) => {
         try {
-          const summary = await apiGet<TranscriptSummaryDto>(`/talkgroups/${talkGroupId}/summary?windowMinutes=15`)
+          const summary = await apiGet<TranscriptSummaryDto>(`/talkgroups/${talkGroupId}/summary?windowMinutes=60`)
           
           // Also fetch the talkgroup details to get description
           let talkGroupDetails: TalkGroupDto | null = null
@@ -116,9 +116,9 @@ export default function TranscriptionTicker() {
 
       await Promise.all(summaryPromises)
       
-      // Sort by timestamp (most recent first) and limit to 20 items
+      // Sort by timestamp (most recent first) and limit to 50 items
       allIncidents.sort((a, b) => b.timestamp - a.timestamp)
-      setTickerItems(allIncidents.slice(0, 20))
+      setTickerItems(allIncidents.slice(0, 50))
     } catch (err) {
       console.error('Failed to load recent summaries:', err)
     }
