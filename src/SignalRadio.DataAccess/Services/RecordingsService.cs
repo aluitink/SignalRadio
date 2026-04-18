@@ -266,14 +266,16 @@ public class RecordingsService : IRecordingsService
         return true;
     }
 
-    public async Task<IEnumerable<Recording>> GetRecordingsNeedingTranscriptionAsync(int limit = 10)
+    public async Task<IEnumerable<Recording>> GetRecordingsNeedingTranscriptionAsync(int limit = 3, int minDurationSeconds = 1, int lookbackHours = 12)
     {
-        var limitParam = new Microsoft.Data.SqlClient.SqlParameter("@Limit", limit);
+        var limitParam           = new Microsoft.Data.SqlClient.SqlParameter("@Limit", limit);
+        var minDurationParam     = new Microsoft.Data.SqlClient.SqlParameter("@MinDurationSeconds", minDurationSeconds);
+        var lookbackHoursParam   = new Microsoft.Data.SqlClient.SqlParameter("@LookbackHours", lookbackHours);
 
         // EXEC-based FromSqlRaw is non-composable; .Include() cannot be chained over it.
         // Materialize the SP results first, then load Call navigation properties separately.
         var recordings = await _db.Recordings
-            .FromSqlRaw("EXEC [dbo].[sp_GetRecordingsNeedingTranscription] @Limit", limitParam)
+            .FromSqlRaw("EXEC [dbo].[sp_GetRecordingsNeedingTranscription] @Limit, @MinDurationSeconds, @LookbackHours", limitParam, minDurationParam, lookbackHoursParam)
             .AsNoTracking()
             .ToListAsync();
 
