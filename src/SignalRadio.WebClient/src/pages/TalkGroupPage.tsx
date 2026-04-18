@@ -45,25 +45,42 @@ export default function TalkGroupPage() {
   // Auto-play from a specific call when navigated here from the ticker
   useEffect(() => {
     if (autoPlayHandledRef.current) return
-    if (!calls.length) return
+    if (!talkGroupId) return
 
     const autoPlayFromCallId = (location.state as { autoPlayFromCallId?: number } | null)?.autoPlayFromCallId
     if (!autoPlayFromCallId) return
 
-    const callIndex = calls.findIndex(c => c.id === autoPlayFromCallId)
-    if (callIndex === -1) return
-
     autoPlayHandledRef.current = true
 
-    const callsToQueue = calls.slice(0, callIndex + 1).reverse()
-    audioPlayerService.clearQueue()
-    callsToQueue.forEach(c => audioPlayerService.addToQueue(c))
-    if (audioPlayerService.getState() === 'stopped') {
-      audioPlayerService.play().catch(error => {
-        console.error('Failed to start audio player:', error)
-      })
+    const fetchAndQueueCallsSince = async () => {
+      try {
+        // Fetch a large batch of recent calls so we capture the target call even on busy talkgroups
+        const result = await apiGet<PagedResult<CallDto>>(
+          `/talkgroups/${talkGroupId}/calls?page=1&pageSize=200&sortBy=recordingTime&sortDir=desc`
+        )
+        if (!result?.items?.length) return
+
+        const allCalls = result.items
+        const callIndex = allCalls.findIndex(c => c.id === autoPlayFromCallId)
+        if (callIndex === -1) return
+
+        // calls are sorted desc (newest first); slice from 0..callIndex gives newest→target,
+        // reverse so we play from target call forward through the most recent
+        const callsToQueue = allCalls.slice(0, callIndex + 1).reverse()
+        audioPlayerService.clearQueue()
+        callsToQueue.forEach(c => audioPlayerService.addToQueue(c))
+        if (audioPlayerService.getState() === 'stopped') {
+          audioPlayerService.play().catch(error => {
+            console.error('Failed to start audio player:', error)
+          })
+        }
+      } catch (error) {
+        console.error('Failed to fetch calls for auto-play queue:', error)
+      }
     }
-  }, [calls, location.state])
+
+    fetchAndQueueCallsSince()
+  }, [talkGroupId, location.state])
 
   const updateTalkGroupPriority = async (newPriority: number | undefined) => {
     if (!talkGroup) return
