@@ -8,9 +8,9 @@ export function usePageTitle(title: string, breadcrumbTitle?: string) {
     document.title = `${title} - SignalRadio`
     
     // Notify breadcrumb component via custom event
-    const title = breadcrumbTitle ?? undefined
-    ;(window as any).__breadcrumbTitle = title
-    window.dispatchEvent(new CustomEvent('breadcrumbtitlechange', { detail: title }))
+    const crumbTitle = breadcrumbTitle ?? undefined
+    ;(window as any).__breadcrumbTitle = crumbTitle
+    window.dispatchEvent(new CustomEvent('breadcrumbtitlechange', { detail: crumbTitle }))
     
     return () => {
       document.title = originalTitle
