@@ -239,4 +239,7 @@ call-data/
 capture/
 
 # Docker override files (keep personal configurations private)
+
+# OpenWebRX config (contains sensitive keys, managed separately)
+config/openwebrx-settings.json
 docker-compose.override.yml
