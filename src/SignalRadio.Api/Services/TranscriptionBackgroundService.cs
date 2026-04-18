@@ -86,48 +86,51 @@ public class TranscriptionBackgroundService : BackgroundService
             return false;
         }
 
-        // fetch the top recording to process (limit 1)
-        var pending = (await recordingService.GetRecordingsNeedingTranscriptionAsync(limit: 1)).FirstOrDefault();
-        if (pending == null)
+        var pendingList = await recordingService.GetRecordingsNeedingTranscriptionAsync(limit: 3);
+        if (!pendingList.Any())
             return false;
 
-        try
+        // resolve shared dependencies once for this batch
+        var storageService = scope.ServiceProvider.GetRequiredService<IStorageService>();
+        var callsService = scope.ServiceProvider.GetRequiredService<ICallsService>();
+        var transcriptionsService = scope.ServiceProvider.GetRequiredService<ITranscriptionsService>();
+        var callNotifier = scope.ServiceProvider.GetService<SignalRadio.Core.Services.ICallNotifier>();
+
+        foreach (var pending in pendingList)
         {
-            // refresh the recording
-            var fresh = await recordingService.GetByIdAsync(pending.Id);
-            if (fresh == null)
+            if (cancellationToken.IsCancellationRequested)
+                break;
+
+            try
             {
-                _logger.LogWarning("Pending recording disappeared: {Id}", pending.Id);
-                return false;
+                var fresh = await recordingService.GetByIdAsync(pending.Id);
+                if (fresh == null)
+                {
+                    _logger.LogWarning("Pending recording disappeared: {Id}", pending.Id);
+                    continue;
+                }
+
+                await ProcessRecordingTranscription(
+                    fresh,
+                    storageService,
+                    asrService,
+                    recordingService,
+                    callsService,
+                    transcriptionsService,
+                    callNotifier,
+                    cancellationToken);
             }
-
-            // resolve dependencies for processing
-            var storageService = scope.ServiceProvider.GetRequiredService<IStorageService>();
-            var callsService = scope.ServiceProvider.GetRequiredService<ICallsService>();
-            var transcriptionsService = scope.ServiceProvider.GetRequiredService<ITranscriptionsService>();
-            var callNotifier = scope.ServiceProvider.GetService<SignalRadio.Core.Services.ICallNotifier>();
-
-            await ProcessRecordingTranscription(
-                fresh,
-                storageService,
-                asrService,
-                recordingService,
-                callsService,
-                transcriptionsService,
-                callNotifier,
-                cancellationToken);
-
-            return true;
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                break;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to process pending recording {Id}", pending.Id);
+            }
         }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            return false;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to process pending recording {Id}", pending.Id);
-            return false;
-        }
+
+        return true;
     }
 
     // Reuse the processing logic from the original service but keep it local and simple
