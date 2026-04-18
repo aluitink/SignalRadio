@@ -7,16 +7,15 @@ export function usePageTitle(title: string, breadcrumbTitle?: string) {
     const originalTitle = document.title
     document.title = `${title} - SignalRadio`
     
-    // Store breadcrumb title in a global variable for the breadcrumb component to access
-    if (breadcrumbTitle) {
-      (window as any).__breadcrumbTitle = breadcrumbTitle
-    }
+    // Notify breadcrumb component via custom event
+    const title = breadcrumbTitle ?? undefined
+    ;(window as any).__breadcrumbTitle = title
+    window.dispatchEvent(new CustomEvent('breadcrumbtitlechange', { detail: title }))
     
     return () => {
       document.title = originalTitle
-      if ((window as any).__breadcrumbTitle) {
-        delete (window as any).__breadcrumbTitle
-      }
+      delete (window as any).__breadcrumbTitle
+      window.dispatchEvent(new CustomEvent('breadcrumbtitlechange', { detail: undefined }))
     }
   }, [title, breadcrumbTitle])
 }

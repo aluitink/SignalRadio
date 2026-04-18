@@ -55,7 +55,6 @@ export interface TranscriptSummaryDto {
   totalDurationSeconds: number
   summary: string
   keyTopics: string[]
-  notableIncidents: string[]
   notableIncidentsWithCallIds: NotableIncidentDto[]
   generatedAt: string // ISO string
   fromCache: boolean
@@ -64,6 +63,7 @@ export interface TranscriptSummaryDto {
 export interface NotableIncidentDto {
   description: string
   callIds: number[]
+  importanceScore?: number
 }
 
 export interface PagedResult<T> {

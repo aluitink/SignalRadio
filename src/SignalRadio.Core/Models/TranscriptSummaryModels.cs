@@ -66,11 +66,6 @@ public class TranscriptSummaryResponse
     public List<string> KeyTopics { get; set; } = new();
 
     /// <summary>
-    /// Notable incidents or events mentioned
-    /// </summary>
-    public List<string> NotableIncidents { get; set; } = new();
-
-    /// <summary>
     /// Notable incidents with call ID references for linking
     /// </summary>
     public List<NotableIncident> NotableIncidentsWithCallIds { get; set; } = new();
@@ -100,4 +95,9 @@ public class NotableIncident
     /// Call IDs related to this incident
     /// </summary>
     public List<int> CallIds { get; set; } = new();
+
+    /// <summary>
+    /// Severity/importance score from 1 (routine) to 5 (critical)
+    /// </summary>
+    public double? ImportanceScore { get; set; }
 }

@@ -81,17 +81,9 @@ public class TranscriptSummariesController : ControllerBase
         maxAgeMinutes = Math.Clamp(maxAgeMinutes, 1, 1440); // 1 minute to 24 hours
 
         var cutoffTime = DateTimeOffset.UtcNow.AddMinutes(-maxAgeMinutes);
+        var recentSummaries = await _summariesService.GetRecentAsync(cutoffTime, limit);
 
-        // Get all recent summaries and filter by age
-        var allSummaries = await _summariesService.GetAllAsync(1, 1000);
-        var recentSummaries = allSummaries.Items
-            .Where(s => s.GeneratedAt >= cutoffTime)
-            .OrderByDescending(s => s.GeneratedAt)
-            .Take(limit)
-            .Select(s => s.ToResponse())
-            .ToList();
-
-        return Ok(recentSummaries);
+        return Ok(recentSummaries.Select(s => s.ToResponse()).ToList());
     }
 
     /// <summary>

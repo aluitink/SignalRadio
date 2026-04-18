@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import { TranscriptSummaryDto, NotableIncidentDto, CallDto } from '../types/dtos'
 import { apiGet } from '../api'
 import { audioPlayerService } from '../services/AudioPlayerService'
@@ -272,13 +273,20 @@ export default function TranscriptSummary({ talkGroupId, talkGroupName }: Transc
           ) : (
             <>
               {/* Show Notable Incidents First */}
-              {(summary.notableIncidents.length > 0 || summary.notableIncidentsWithCallIds?.length > 0) && (
+              {summary.notableIncidentsWithCallIds?.length > 0 && (
                 <div className="notable-incidents">
                   <h4>Notable Incidents</h4>
                   <ul>
-                    {/* Show incidents with call IDs first (with links) */}
-                    {summary.notableIncidentsWithCallIds?.map((incident, index) => (
+                    {summary.notableIncidentsWithCallIds.map((incident, index) => (
                       <li key={`with-id-${index}`}>
+                        {incident.importanceScore != null && (
+                          <span
+                            className={`severity-badge severity-${Math.round(incident.importanceScore)}`}
+                            title={`Importance: ${incident.importanceScore}/5`}
+                          >
+                            {['', '1', '2', '3', '4', '5'][Math.min(5, Math.max(1, Math.round(incident.importanceScore)))]}
+                          </span>
+                        )}
                         {incident.description}
                         {incident.callIds && incident.callIds.length > 0 && (
                           <>
@@ -304,11 +312,6 @@ export default function TranscriptSummary({ talkGroupId, talkGroupName }: Transc
                         )}
                       </li>
                     ))}
-                    
-                    {/* Show legacy incidents without call IDs */}
-                    {summary.notableIncidents.map((incident, index) => (
-                      <li key={`legacy-${index}`}>{incident}</li>
-                    ))}
                   </ul>
                 </div>
               )}
@@ -319,7 +322,14 @@ export default function TranscriptSummary({ talkGroupId, talkGroupName }: Transc
                   <h4>Categories</h4>
                   <div className="topics-list">
                     {summary.keyTopics.map((topic, index) => (
-                      <span key={index} className="topic-tag">{topic}</span>
+                      <Link
+                        key={index}
+                        to={`/search?q=${encodeURIComponent(topic)}`}
+                        className="topic-tag"
+                        title={`Search for "${topic}"`}
+                      >
+                        {topic}
+                      </Link>
                     ))}
                   </div>
                 </div>
@@ -564,7 +574,35 @@ export default function TranscriptSummary({ talkGroupId, talkGroupName }: Transc
           border-radius: 16px;
           font-size: 12px;
           font-weight: 500;
+          text-decoration: none;
+          transition: background-color 0.2s, opacity 0.2s;
+          cursor: pointer;
         }
+
+        .topic-tag:hover {
+          background: var(--bg-hover, rgba(255,255,255,0.08));
+          opacity: 0.9;
+          text-decoration: underline;
+        }
+
+        .severity-badge {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 18px;
+          height: 18px;
+          border-radius: 50%;
+          font-size: 11px;
+          font-weight: 700;
+          vertical-align: middle;
+          margin-right: 6px;
+        }
+
+        .severity-1 { background: #2d6a2d; color: #b7f5b7; }
+        .severity-2 { background: #4a5a2d; color: #ddf5b7; }
+        .severity-3 { background: #7a6020; color: #ffe090; }
+        .severity-4 { background: #8a3a1a; color: #ffb080; }
+        .severity-5 { background: #8a1a1a; color: #ffa0a0; }
 
         .notable-incidents {
           margin-bottom: var(--space-2);

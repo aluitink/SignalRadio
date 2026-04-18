@@ -448,4 +448,20 @@ public class TranscriptSummariesService : ITranscriptSummariesService
             .AsNoTracking()
             .FirstOrDefaultAsync();
     }
+
+    public async Task<IEnumerable<TranscriptSummary>> GetRecentAsync(DateTimeOffset cutoffTime, int limit)
+    {
+        return await _db.TranscriptSummaries
+            .Include(s => s.TalkGroup)
+            .Include(s => s.TranscriptSummaryTopics)
+                .ThenInclude(st => st.Topic)
+            .Include(s => s.TranscriptSummaryNotableIncidents)
+                .ThenInclude(sni => sni.NotableIncident!)
+                    .ThenInclude(ni => ni.NotableIncidentCalls)
+            .Where(s => s.GeneratedAt >= cutoffTime)
+            .OrderByDescending(s => s.GeneratedAt)
+            .Take(limit)
+            .AsNoTracking()
+            .ToListAsync();
+    }
 }
