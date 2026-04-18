@@ -22,5 +22,5 @@ public interface IRecordingsService
         CancellationToken cancellationToken = default);
     Task<bool> UpdateAsync(int id, Recording model);
     Task<bool> DeleteAsync(int id);
-    Task<IEnumerable<Recording>> GetRecordingsNeedingTranscriptionAsync(int limit = 10);
+    Task<IEnumerable<Recording>> GetRecordingsNeedingTranscriptionAsync(int limit = 3, int minDurationSeconds = 1, int lookbackHours = 12);
 }

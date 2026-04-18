@@ -121,7 +121,7 @@ export default function TalkGroupsPage() {
 
       // Subscription filter
       if (subscriptionFilter !== 'all') {
-        const isSubscribedToTalkGroup = isSubscribed(tg.number || 0)
+        const isSubscribedToTalkGroup = isSubscribed(tg.id)
         if (subscriptionFilter === 'subscribed' && !isSubscribedToTalkGroup) return false
         if (subscriptionFilter === 'unsubscribed' && isSubscribedToTalkGroup) return false
       }
@@ -176,9 +176,9 @@ export default function TalkGroupsPage() {
   const totalFilteredItems = filteredAndSortedTalkGroups.length
   const totalPages = Math.ceil(totalFilteredItems / pageSize)
 
-  const handleSubscriptionToggle = async (talkGroupNumber: number) => {
+  const handleSubscriptionToggle = async (talkGroupId: number) => {
     try {
-      await toggleSubscription(talkGroupNumber)
+      await toggleSubscription(talkGroupId)
     } catch (error) {
       console.error('Failed to toggle subscription:', error)
     }
@@ -366,8 +366,8 @@ export default function TalkGroupsPage() {
               <TalkGroupCard
                 key={talkGroup.id}
                 talkGroup={talkGroup}
-                isSubscribed={isSubscribed(talkGroup.number || 0)}
-                onSubscriptionToggle={() => handleSubscriptionToggle(talkGroup.number || 0)}
+                isSubscribed={isSubscribed(talkGroup.id)}
+                onSubscriptionToggle={() => handleSubscriptionToggle(talkGroup.id)}
               />
             ))}
           </div>

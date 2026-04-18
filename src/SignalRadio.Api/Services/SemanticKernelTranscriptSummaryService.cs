@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.SemanticKernel;
@@ -18,7 +17,6 @@ namespace SignalRadio.Api.Services;
 public class SemanticKernelTranscriptSummaryService : ITranscriptSummaryService, IDisposable
 {
     private readonly SemanticKernelOptions _options;
-    private readonly IMemoryCache _cache;
     private readonly ILogger<SemanticKernelTranscriptSummaryService> _logger;
     private readonly ITranscriptionsService _transcriptionsService;
     private readonly ITalkGroupsService _talkGroupsService;
@@ -53,6 +51,7 @@ public class SemanticKernelTranscriptSummaryService : ITranscriptSummaryService,
         - Communication frequency and duration patterns
         - Any escalating situations or ongoing incidents
         - Call IDs from the transcript headers for referencing specific incidents
+        - Transcription confidence levels - if a transcript has confidence below 70%, note it may be unreliable
 
         Please be concise but thorough. Focus on operational significance and avoid speculation about information not clearly stated in the transcripts.
 
@@ -61,18 +60,20 @@ public class SemanticKernelTranscriptSummaryService : ITranscriptSummaryService,
             "summary": "Overall summary of the communications and activities",
             "keyTopics": ["topic1", "topic2", "topic3"],
             "notableIncidentsWithCallIds": [
-                {"description": "incident description", "callIds": [12345, 12346]},
-                {"description": "another incident", "callIds": [12347]}
+                {"description": "incident description", "callIds": [12345, 12346], "importanceScore": 3},
+                {"description": "another incident", "callIds": [12347], "importanceScore": 5}
             ]
         }
 
-        For notableIncidentsWithCallIds, include arrays of Call IDs from the transcript headers when incidents can be linked to specific calls. Multiple calls can be related to the same incident if they show progression, updates, or different perspectives of the same event. The callIds should be integers matching the "Call ID" fields from the transcript entries.
+        For notableIncidentsWithCallIds, include arrays of Call IDs from the transcript headers when incidents can be linked to specific calls. Multiple calls can be related to the same incident if they show progression, updates, or different perspectives of the same event. The callIds should be integers matching the "Call ID" fields from the transcript entries. The importanceScore should be an integer from 1 (routine/minor) to 5 (critical/emergency).
 
         Radio Communication Transcripts:
         {{$transcripts}}
 
         Additional Context:
         - Talk Group: {{$talkGroupName}}
+        - Talk Group Description: {{$talkGroupDescription}}
+        - Talk Group Category: {{$talkGroupCategory}}
         - Time Period: {{$timePeriod}}
         - Total Calls: {{$callCount}}
         - Total Duration: {{$totalDuration}}
@@ -82,14 +83,12 @@ public class SemanticKernelTranscriptSummaryService : ITranscriptSummaryService,
 
     public SemanticKernelTranscriptSummaryService(
         IOptions<SemanticKernelOptions> options,
-        IMemoryCache cache,
         ILogger<SemanticKernelTranscriptSummaryService> logger,
         ITranscriptionsService transcriptionsService,
         ITalkGroupsService talkGroupsService,
         ITranscriptSummariesService summariesService)
     {
         _options = options.Value;
-        _cache = cache;
         _logger = logger;
         _transcriptionsService = transcriptionsService;
         _talkGroupsService = talkGroupsService;
@@ -194,7 +193,6 @@ public class SemanticKernelTranscriptSummaryService : ITranscriptSummaryService,
                     TotalDurationSeconds = 0,
                     Summary = "No radio communications recorded during this time period.",
                     KeyTopics = new List<string>(),
-                    NotableIncidents = new List<string>(),
                     NotableIncidentsWithCallIds = new List<SignalRadio.Core.Models.NotableIncident>(),
                     GeneratedAt = DateTimeOffset.UtcNow,
                     FromCache = false
@@ -224,7 +222,6 @@ public class SemanticKernelTranscriptSummaryService : ITranscriptSummaryService,
                         "Single brief communication with minimal or no transcribed content." :
                         $"{transcripts.Count} brief communications with minimal or no transcribed content.",
                     KeyTopics = new List<string>(),
-                    NotableIncidents = new List<string>(),
                     NotableIncidentsWithCallIds = new List<SignalRadio.Core.Models.NotableIncident>(),
                     GeneratedAt = DateTimeOffset.UtcNow,
                     FromCache = false
@@ -435,10 +432,17 @@ public class SemanticKernelTranscriptSummaryService : ITranscriptSummaryService,
                 timingAnalysis = $"First call: {firstCall:yyyy-MM-dd HH:mm:ss}, Last call: {lastCall:yyyy-MM-dd HH:mm:ss}, Time span: {timeSpanFormatted}";
             }
 
-            var result = await _summaryFunction.InvokeAsync(_kernel, new()
+            var result = await _summaryFunction.InvokeAsync(_kernel, new KernelArguments(
+                new AzureOpenAIPromptExecutionSettings
+                {
+                    MaxTokens = _options.MaxTokens > 0 ? _options.MaxTokens : 1500,
+                    Temperature = _options.Temperature > 0 ? _options.Temperature : 0.3
+                })
             {
                 ["transcripts"] = transcriptText,
                 ["talkGroupName"] = talkGroupName,
+                ["talkGroupDescription"] = !string.IsNullOrWhiteSpace(talkGroup.Description) ? talkGroup.Description : "No description available",
+                ["talkGroupCategory"] = !string.IsNullOrWhiteSpace(talkGroup.Tag) ? talkGroup.Tag : (!string.IsNullOrWhiteSpace(talkGroup.Category) ? talkGroup.Category : "Unknown"),
                 ["timePeriod"] = timePeriod,
                 ["callCount"] = callCount.ToString(),
                 ["totalDuration"] = TimeSpan.FromSeconds(totalDuration).ToString(@"hh\:mm\:ss"),
@@ -475,7 +479,6 @@ public class SemanticKernelTranscriptSummaryService : ITranscriptSummaryService,
                 {
                     Summary = responseText,
                     KeyTopics = new List<string>(),
-                    NotableIncidents = new List<string>(),
                     NotableIncidentsWithCallIds = new List<SignalRadio.Core.Models.NotableIncident>()
                 };
             }
@@ -590,7 +593,6 @@ public class SemanticKernelTranscriptSummaryService : ITranscriptSummaryService,
     {
         public string Summary { get; set; } = string.Empty;
         public List<string> KeyTopics { get; set; } = new();
-        public List<string> NotableIncidents { get; set; } = new();
         public List<SignalRadio.Core.Models.NotableIncident> NotableIncidentsWithCallIds { get; set; } = new();
     }
 

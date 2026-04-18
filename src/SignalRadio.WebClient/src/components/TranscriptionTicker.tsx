@@ -1,8 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { apiGet } from '../api'
-import { audioPlayerService } from '../services/AudioPlayerService'
-import type { TranscriptSummaryDto, TalkGroupDto, CallDto, TalkGroupStats, NotableIncidentDto } from '../types/dtos'
+import type { TranscriptSummaryDto, TalkGroupDto, TalkGroupStats, NotableIncidentDto } from '../types/dtos'
 
 interface TickerItem {
   id: string
@@ -12,6 +11,7 @@ interface TickerItem {
   incidentDescription: string
   timestamp: number
   callIds: number[]
+  importanceScore?: number
 }
 
 const getTimeAgo = (timestamp: number): string => {
@@ -32,7 +32,17 @@ const getTimeAgo = (timestamp: number): string => {
   }
 }
 
+const getImportanceColor = (score?: number): string => {
+  if (score === undefined || score === null) return 'var(--text-muted)'
+  if (score >= 5) return '#ef4444'
+  if (score >= 4) return '#f97316'
+  if (score >= 3) return '#eab308'
+  if (score >= 2) return '#3b82f6'
+  return 'var(--text-muted)'
+}
+
 export default function TranscriptionTicker() {
+  const navigate = useNavigate()
   const [tickerItems, setTickerItems] = useState<TickerItem[]>([])
   const [isPaused, setIsPaused] = useState(false)
   const [serviceAvailable, setServiceAvailable] = useState<boolean | null>(null)
@@ -69,23 +79,23 @@ export default function TranscriptionTicker() {
     if (!serviceAvailable) return
 
     try {
-      // Get talkgroups that have transcripts in the last 15 minutes
-      const talkGroupsWithTranscripts = await apiGet<number[]>('/calls/transcripts-available?windowMinutes=15')
+      // Get talkgroups that have transcripts in the last 60 minutes
+      const talkGroupsWithTranscripts = await apiGet<number[]>('/calls/transcripts-available?windowMinutes=60')
       
       if (!talkGroupsWithTranscripts || talkGroupsWithTranscripts.length === 0) {
         setTickerItems([])
         return
       }
 
-      // Limit to top 10 most recently active talkgroups
-      const limitedTalkGroupIds = talkGroupsWithTranscripts.slice(0, 10)
+      // Limit to top 20 most recently active talkgroups
+      const limitedTalkGroupIds = talkGroupsWithTranscripts.slice(0, 20)
 
       // Get summaries for talkgroups with transcripts and collect notable incidents
       const allIncidents: TickerItem[] = []
       
       const summaryPromises = limitedTalkGroupIds.map(async (talkGroupId) => {
         try {
-          const summary = await apiGet<TranscriptSummaryDto>(`/talkgroups/${talkGroupId}/summary?windowMinutes=15`)
+          const summary = await apiGet<TranscriptSummaryDto>(`/talkgroups/${talkGroupId}/summary?windowMinutes=60`)
           
           // Also fetch the talkgroup details to get description
           let talkGroupDetails: TalkGroupDto | null = null
@@ -105,7 +115,8 @@ export default function TranscriptionTicker() {
                 talkGroupDescription: talkGroupDetails?.description,
                 incidentDescription: incident.description,
                 timestamp: new Date(summary.generatedAt).getTime(),
-                callIds: incident.callIds
+                callIds: incident.callIds,
+                importanceScore: incident.importanceScore
               } as TickerItem)
             })
           }
@@ -116,9 +127,9 @@ export default function TranscriptionTicker() {
 
       await Promise.all(summaryPromises)
       
-      // Sort by timestamp (most recent first) and limit to 20 items
+      // Sort by timestamp (most recent first) and limit to 50 items
       allIncidents.sort((a, b) => b.timestamp - a.timestamp)
-      setTickerItems(allIncidents.slice(0, 20))
+      setTickerItems(allIncidents.slice(0, 50))
     } catch (err) {
       console.error('Failed to load recent summaries:', err)
     }
@@ -128,34 +139,11 @@ export default function TranscriptionTicker() {
     try {
       // Close dropdown when item is clicked
       setIsExpanded(false)
-      
-      // If there are call IDs for this incident, play those calls
-      if (item.callIds && item.callIds.length > 0) {
-        // Fetch and add calls to the front of the queue (in reverse order so first call plays first)
-        const callsToAdd = []
-        for (const callId of item.callIds.slice(0, 5)) { // Limit to first 5 calls
-          try {
-            const call = await apiGet<CallDto>(`/calls/${callId}`)
-            if (call) {
-              callsToAdd.push(call)
-            }
-          } catch (err) {
-            console.warn(`Failed to fetch call ${callId}:`, err)
-          }
-        }
-        
-        // Add calls to front of queue in reverse order so they play in correct order
-        for (let i = callsToAdd.length - 1; i >= 0; i--) {
-          audioPlayerService.addToFront(callsToAdd[i])
-        }
-        
-        // Start playing if not already playing
-        if (audioPlayerService.getState() === 'stopped') {
-          audioPlayerService.play().catch(error => {
-            console.error('Failed to start audio player:', error)
-          })
-        }
-      }
+
+      // Navigate to the talkgroup stream page with the first incident call as the auto-play starting point
+      navigate(`/talkgroup/${item.talkGroupId}`, {
+        state: { autoPlayFromCallId: item.callIds[0] }
+      })
     } catch (error) {
       console.error('Failed to handle ticker item click:', error)
     }
@@ -246,6 +234,11 @@ export default function TranscriptionTicker() {
             >
               <div className="ticker-link">
                 <span className="ticker-talkgroup">{item.talkGroupDescription || item.talkGroupName}:</span>
+                {item.importanceScore !== undefined && (
+                  <span className="ticker-score" style={{ color: getImportanceColor(item.importanceScore) }} title={`Importance: ${item.importanceScore}/5`}>
+                    {'●'.repeat(item.importanceScore)}{'○'.repeat(5 - item.importanceScore)}
+                  </span>
+                )}
                 <span className="ticker-text">{item.incidentDescription}</span>
                 <span className="ticker-calls">
                   ({item.callIds.length} call{item.callIds.length !== 1 ? 's' : ''})
@@ -262,6 +255,11 @@ export default function TranscriptionTicker() {
             >
               <div className="ticker-link">
                 <span className="ticker-talkgroup">{item.talkGroupDescription || item.talkGroupName}:</span>
+                {item.importanceScore !== undefined && (
+                  <span className="ticker-score" style={{ color: getImportanceColor(item.importanceScore) }} title={`Importance: ${item.importanceScore}/5`}>
+                    {'●'.repeat(item.importanceScore)}{'○'.repeat(5 - item.importanceScore)}
+                  </span>
+                )}
                 <span className="ticker-text">{item.incidentDescription}</span>
                 <span className="ticker-calls">
                   ({item.callIds.length} call{item.callIds.length !== 1 ? 's' : ''})
@@ -297,7 +295,14 @@ export default function TranscriptionTicker() {
               >
                 <div className="dropdown-item-header">
                   <span className="dropdown-talkgroup">{item.talkGroupDescription || item.talkGroupName}</span>
-                  <span className="dropdown-time">{getTimeAgo(item.timestamp)}</span>
+                  <div className="dropdown-header-right">
+                    {item.importanceScore !== undefined && (
+                      <span className="dropdown-score" style={{ color: getImportanceColor(item.importanceScore), borderColor: getImportanceColor(item.importanceScore) }}>
+                        {item.importanceScore}/5
+                      </span>
+                    )}
+                    <span className="dropdown-time">{getTimeAgo(item.timestamp)}</span>
+                  </div>
                 </div>
                 <div className="dropdown-item-content">
                   <span className="dropdown-text">{item.incidentDescription}</span>
@@ -400,6 +405,13 @@ export default function TranscriptionTicker() {
           border-radius: 4px;
         }
 
+        .ticker-score {
+          font-size: 10px;
+          letter-spacing: 1px;
+          flex-shrink: 0;
+          margin-right: var(--space-1);
+        }
+
         .ticker-time {
           color: var(--text-muted);
           font-size: 12px;
@@ -456,6 +468,21 @@ export default function TranscriptionTicker() {
           font-weight: 600;
           color: var(--accent-primary);
           font-size: 14px;
+        }
+
+        .dropdown-header-right {
+          display: flex;
+          align-items: center;
+          gap: var(--space-2);
+          flex-shrink: 0;
+        }
+
+        .dropdown-score {
+          font-size: 11px;
+          font-weight: 600;
+          padding: 1px 5px;
+          border: 1px solid;
+          border-radius: 4px;
         }
 
         .dropdown-time {

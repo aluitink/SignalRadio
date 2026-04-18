@@ -24,20 +24,20 @@ public class WyomingMoonshineAsrService : IAsrService
     private readonly ILogger<WyomingMoonshineAsrService> _logger;
 
     private const int TargetSampleRate = 16000;
-    private const int AudioChunkBytes  = 4096; // bytes per TCP chunk
+    private const int AudioChunkBytes = 4096; // bytes per TCP chunk
 
     // Moonshine limits: audio must be between 0.1s and 64s per call (exclusive)
     // At 16 kHz / 16-bit / mono: 2 bytes per sample
-    private const int BytesPerSample   = 2;
-    private const int MinPcmBytes      = (int)(0.1 * TargetSampleRate * BytesPerSample) + 1; // > 0.1s
-    private const int MaxPcmBytes      = (int)(64.0 * TargetSampleRate * BytesPerSample) - 1; // < 64s
+    private const int BytesPerSample = 2;
+    private const int MinPcmBytes = (int)(0.1 * TargetSampleRate * BytesPerSample) + 1; // > 0.1s
+    private const int MaxPcmBytes = (int)(64.0 * TargetSampleRate * BytesPerSample) - 1; // < 64s
 
     public WyomingMoonshineAsrService(
         IOptions<AsrOptions> options,
         ILogger<WyomingMoonshineAsrService> logger)
     {
         _options = options.Value;
-        _logger  = logger;
+        _logger = logger;
     }
 
     // ── Public IAsrService ────────────────────────────────────────────────
@@ -86,8 +86,22 @@ public class WyomingMoonshineAsrService : IAsrService
 
         var result = await TranscribePcmAsync(pcm, fileName, cancellationToken);
 
-        _logger.LogInformation("Moonshine transcription completed for {FileName}: {Length} chars",
-            fileName, result.Text.Length);
+        if (string.IsNullOrWhiteSpace(result.Text))
+        {
+            var durationSec = pcm.Length / (double)(TargetSampleRate * BytesPerSample);
+            var rms = ComputePcmRms(pcm);
+            var dbFs = rms > 0 ? 20.0 * Math.Log10(rms) : double.NegativeInfinity;
+            _logger.LogWarning(
+                "Moonshine returned empty transcript for {FileName} — duration: {Duration:F2}s, RMS: {Rms:F6} ({DbFs:F1} dBFS). " +
+                "Likely cause: {Cause}",
+                fileName, durationSec, rms, dbFs,
+                dbFs < -50 ? "silence / squelch tail" : dbFs < -30 ? "low-level noise / tone" : "speech not recognised by model");
+        }
+        else
+        {
+            _logger.LogInformation("Moonshine transcription completed for {FileName}: {Length} chars",
+                fileName, result.Text.Length);
+        }
 
         return result;
     }
@@ -112,7 +126,7 @@ public class WyomingMoonshineAsrService : IAsrService
 
         try
         {
-            var uri  = ParseTcpUri(_options.MoonshineServiceUrl);
+            var uri = ParseTcpUri(_options.MoonshineServiceUrl);
             using var tcp = new TcpClient();
             await tcp.ConnectAsync(uri.host, uri.port);
             return AsrHealthStatus.Healthy;
@@ -130,7 +144,7 @@ public class WyomingMoonshineAsrService : IAsrService
     /// </summary>
     private async Task<TranscriptionResult> TranscribePcmAsync(byte[] pcm, string fileName, CancellationToken cancellationToken)
     {
-        var uri  = ParseTcpUri(_options.MoonshineServiceUrl);
+        var uri = ParseTcpUri(_options.MoonshineServiceUrl);
         var host = uri.host;
         var port = uri.port;
 
@@ -183,7 +197,7 @@ public class WyomingMoonshineAsrService : IAsrService
         // Wyoming wire format: {"type":"...","data_length":N}\n<N bytes of data JSON>
         // Extract "type" from the serialized object, put everything else into data.
         // For simplicity we embed data inline in the header (servers accept both forms).
-        var json  = JsonSerializer.Serialize(message) + "\n";
+        var json = JsonSerializer.Serialize(message) + "\n";
         var bytes = Encoding.UTF8.GetBytes(json);
         await stream.WriteAsync(bytes, ct);
     }
@@ -194,8 +208,8 @@ public class WyomingMoonshineAsrService : IAsrService
         // Header: audio-chunk JSON with payload_length, then raw bytes
         var header = JsonSerializer.Serialize(new
         {
-            type           = "audio-chunk",
-            data           = new { rate = TargetSampleRate, width = 2, channels = 1 },
+            type = "audio-chunk",
+            data = new { rate = TargetSampleRate, width = 2, channels = 1 },
             payload_length = length
         }) + "\n";
 
@@ -343,15 +357,15 @@ public class WyomingMoonshineAsrService : IAsrService
 
         while (pos + 8 <= data.Length)
         {
-            var chunkId   = Encoding.ASCII.GetString(data, pos, 4);
+            var chunkId = Encoding.ASCII.GetString(data, pos, 4);
             var chunkSize = BitConverter.ToInt32(data, pos + 4);
             pos += 8;
 
             if (chunkId == "fmt ")
             {
-                audioFormat  = BitConverter.ToInt16(data, pos);
-                channels     = BitConverter.ToInt16(data, pos + 2);
-                sampleRate   = BitConverter.ToInt32(data, pos + 4);
+                audioFormat = BitConverter.ToInt16(data, pos);
+                channels = BitConverter.ToInt16(data, pos + 2);
+                sampleRate = BitConverter.ToInt32(data, pos + 4);
                 bitsPerSample = BitConverter.ToInt16(data, pos + 14);
             }
             else if (chunkId == "data")
@@ -379,8 +393,8 @@ public class WyomingMoonshineAsrService : IAsrService
     private static double[] ExtractSamples(byte[] data, WavFormat fmt)
     {
         var bytesPerSample = fmt.BitsPerSample / 8;
-        var sampleCount    = fmt.DataLength / bytesPerSample;
-        var samples        = new double[sampleCount];
+        var sampleCount = fmt.DataLength / bytesPerSample;
+        var samples = new double[sampleCount];
 
         for (int i = 0; i < sampleCount; i++)
         {
@@ -422,17 +436,17 @@ public class WyomingMoonshineAsrService : IAsrService
         if (inputRate == outputRate) return input;
 
         var outputLength = (int)((long)input.Length * outputRate / inputRate);
-        var output       = new double[outputLength];
-        var ratio        = (double)inputRate / outputRate;
+        var output = new double[outputLength];
+        var ratio = (double)inputRate / outputRate;
 
         for (int i = 0; i < outputLength; i++)
         {
             var srcPos = i * ratio;
             var srcIdx = (int)srcPos;
             var frac   = srcPos - srcIdx;
-            var a      = srcIdx     < input.Length ? input[srcIdx]     : 0.0;
-            var b      = srcIdx + 1 < input.Length ? input[srcIdx + 1] : 0.0;
-            output[i]  = a + frac * (b - a);
+            var a = srcIdx < input.Length ? input[srcIdx] : 0.0;
+            var b = srcIdx + 1 < input.Length ? input[srcIdx + 1] : 0.0;
+            output[i] = a + frac * (b - a);
         }
 
         return output;
@@ -443,11 +457,27 @@ public class WyomingMoonshineAsrService : IAsrService
         var bytes = new byte[samples.Length * 2];
         for (int i = 0; i < samples.Length; i++)
         {
-            var s   = (short)Math.Clamp(samples[i] * 32767.0, short.MinValue, short.MaxValue);
-            bytes[i * 2]     = (byte)(s & 0xFF);
+            var s = (short)Math.Clamp(samples[i] * 32767.0, short.MinValue, short.MaxValue);
+            bytes[i * 2] = (byte)(s & 0xFF);
             bytes[i * 2 + 1] = (byte)((s >> 8) & 0xFF);
         }
         return bytes;
+    }
+
+    /// <summary>
+    /// Computes the root-mean-square amplitude of a 16-bit LE PCM buffer, normalised to [0, 1].
+    /// </summary>
+    private static double ComputePcmRms(byte[] pcm)
+    {
+        if (pcm.Length < 2) return 0.0;
+        double sum = 0.0;
+        var sampleCount = pcm.Length / 2;
+        for (int i = 0; i < sampleCount; i++)
+        {
+            var s = BitConverter.ToInt16(pcm, i * 2) / 32768.0;
+            sum += s * s;
+        }
+        return Math.Sqrt(sum / sampleCount);
     }
 
     private static (string host, int port) ParseTcpUri(string rawUri)

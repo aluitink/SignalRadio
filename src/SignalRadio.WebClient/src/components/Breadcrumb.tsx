@@ -16,20 +16,15 @@ export default function Breadcrumb({ items }: BreadcrumbProps) {
   const location = useLocation()
   const [dynamicTitle, setDynamicTitle] = useState(getDynamicBreadcrumbTitle())
   
-  // Watch for changes to the dynamic breadcrumb title
+  // Watch for changes to the dynamic breadcrumb title via event
   useEffect(() => {
-    const checkForUpdates = () => {
-      const currentTitle = getDynamicBreadcrumbTitle()
-      setDynamicTitle(currentTitle)
+    setDynamicTitle(getDynamicBreadcrumbTitle())
+
+    const handler = (e: Event) => {
+      setDynamicTitle((e as CustomEvent<string | undefined>).detail)
     }
-    
-    // Check immediately
-    checkForUpdates()
-    
-    // Set up a polling mechanism to check for changes
-    const interval = setInterval(checkForUpdates, 100)
-    
-    return () => clearInterval(interval)
+    window.addEventListener('breadcrumbtitlechange', handler)
+    return () => window.removeEventListener('breadcrumbtitlechange', handler)
   }, [location.pathname])
   
   // Auto-generate breadcrumbs if not provided

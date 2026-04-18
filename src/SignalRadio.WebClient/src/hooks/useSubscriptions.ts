@@ -2,9 +2,7 @@
 // Handles storing user subscriptions in localStorage and provides a React hook
 // Integrates with SignalR for real-time subscription management
 
-import { useSignalR } from './useSignalR'
-import { useAudioManager } from './useAudioManager'
-import type { CallDto } from '../types/dtos'
+
 
 const STORAGE_KEY = 'signalradio_subscriptions'
 

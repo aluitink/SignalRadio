@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import React, { useEffect, useRef, useState } from 'react'
+import { useParams, Link, useLocation } from 'react-router-dom'
 import CallCard from '../components/CallCard'
 import FrequencyTabs from '../components/FrequencyTabs'
 import TranscriptSummary from '../components/TranscriptSummary'
@@ -14,6 +14,8 @@ import { apiGet, apiPut } from '../api'
 export default function TalkGroupPage() {
   const { id } = useParams<{ id: string }>()
   const talkGroupId = parseInt(id || '0', 10)
+  const location = useLocation()
+  const autoPlayHandledRef = useRef(false)
   
   const [calls, setCalls] = useState<CallDto[]>([])
   const [talkGroup, setTalkGroup] = useState<TalkGroupDto | null>(null)
@@ -39,6 +41,46 @@ export default function TalkGroupPage() {
 
     loadTalkGroupData()
   }, [talkGroupId, currentPage])
+
+  // Auto-play from a specific call when navigated here from the ticker
+  useEffect(() => {
+    if (autoPlayHandledRef.current) return
+    if (!talkGroupId) return
+
+    const autoPlayFromCallId = (location.state as { autoPlayFromCallId?: number } | null)?.autoPlayFromCallId
+    if (!autoPlayFromCallId) return
+
+    autoPlayHandledRef.current = true
+
+    const fetchAndQueueCallsSince = async () => {
+      try {
+        // Fetch a large batch of recent calls so we capture the target call even on busy talkgroups
+        const result = await apiGet<PagedResult<CallDto>>(
+          `/talkgroups/${talkGroupId}/calls?page=1&pageSize=200&sortBy=recordingTime&sortDir=desc`
+        )
+        if (!result?.items?.length) return
+
+        const allCalls = result.items
+        const callIndex = allCalls.findIndex(c => c.id === autoPlayFromCallId)
+        if (callIndex === -1) return
+
+        // calls are sorted desc (newest first); slice from 0..callIndex gives newest→target,
+        // reverse so we play from target call forward through the most recent
+        const callsToQueue = allCalls.slice(0, callIndex + 1).reverse()
+        audioPlayerService.clearQueue()
+        callsToQueue.forEach(c => audioPlayerService.addToQueue(c))
+        if (audioPlayerService.getState() === 'stopped') {
+          audioPlayerService.play().catch(error => {
+            console.error('Failed to start audio player:', error)
+          })
+        }
+      } catch (error) {
+        console.error('Failed to fetch calls for auto-play queue:', error)
+      }
+    }
+
+    fetchAndQueueCallsSince()
+  }, [talkGroupId, location.state])
 
   const updateTalkGroupPriority = async (newPriority: number | undefined) => {
     if (!talkGroup) return

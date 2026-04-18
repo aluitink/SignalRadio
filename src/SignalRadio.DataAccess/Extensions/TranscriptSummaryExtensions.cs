@@ -19,12 +19,12 @@ public static class TranscriptSummaryExtensions
             TotalDurationSeconds = summary.TotalDurationSeconds,
             Summary = summary.Summary,
             KeyTopics = summary.TranscriptSummaryTopics.Select(st => st.Topic?.Name ?? "").Where(name => !string.IsNullOrEmpty(name)).ToList(),
-            NotableIncidents = summary.TranscriptSummaryNotableIncidents.Select(sni => sni.NotableIncident?.Description ?? "").Where(desc => !string.IsNullOrEmpty(desc)).ToList(),
             NotableIncidentsWithCallIds = summary.TranscriptSummaryNotableIncidents
                 .Where(sni => sni.NotableIncident != null)
                 .Select(sni => new SignalRadio.Core.Models.NotableIncident
                 {
                     Description = sni.NotableIncident!.Description,
+                    ImportanceScore = sni.NotableIncident.ImportanceScore,
                     CallIds = sni.NotableIncident.NotableIncidentCalls.Select(nic => nic.CallId).ToList()
                 }).ToList(),
             GeneratedAt = summary.GeneratedAt,
@@ -80,6 +80,7 @@ public static class TranscriptSummaryExtensions
             var notableIncident = new SignalRadio.DataAccess.NotableIncident
             {
                 Description = incident.Description,
+                ImportanceScore = incident.ImportanceScore,
                 CreatedAt = DateTimeOffset.UtcNow
             };
 

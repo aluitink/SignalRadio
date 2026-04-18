@@ -23,19 +23,11 @@ namespace SignalRadio.Api.Migrations
                     INCLUDE ([ReceivedAtUtc], [StorageLocationId], [FileName], [SizeBytes], [IsProcessed]);
             ");
 
-            // Descending index on Recordings(ReceivedAtUtc) — supports newest-first ordered scans.
-            migrationBuilder.Sql(@"
-                IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Recordings_ReceivedAtUtc_Covering' AND object_id = OBJECT_ID('Recordings'))
-                    CREATE INDEX [IX_Recordings_ReceivedAtUtc_Covering]
-                    ON [dbo].[Recordings] ([ReceivedAtUtc] DESC)
-                    INCLUDE ([CallId], [StorageLocationId], [FileName], [SizeBytes], [IsProcessed]);
-            ");
         }
 
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.Sql(@"
-                DROP INDEX IF EXISTS [IX_Recordings_ReceivedAtUtc_Covering] ON [dbo].[Recordings];
                 DROP INDEX IF EXISTS [IX_Recordings_CallId_Covering] ON [dbo].[Recordings];
             ");
         }

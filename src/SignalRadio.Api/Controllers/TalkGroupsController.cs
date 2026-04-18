@@ -101,7 +101,7 @@ public class TalkGroupsController : ControllerBase
     }
 
     [HttpGet("{id:int}/summary")]
-    public async Task<IActionResult> GetTalkGroupSummary(int id, [FromQuery] int windowMinutes = 60)
+    public async Task<IActionResult> GetTalkGroupSummary(int id, [FromQuery] int windowMinutes = 60, [FromQuery] bool forceRefresh = false)
     {
         // First verify the talkgroup exists
         var talkGroup = await _svc.GetByIdAsync(id);
@@ -125,7 +125,7 @@ public class TalkGroupsController : ControllerBase
                 TalkGroupId = id,
                 StartTime = startTime,
                 EndTime = endTime,
-                ForceRefresh = false
+                ForceRefresh = forceRefresh
             };
 
             var summary = await _summaryService.GenerateSummaryAsync(request);

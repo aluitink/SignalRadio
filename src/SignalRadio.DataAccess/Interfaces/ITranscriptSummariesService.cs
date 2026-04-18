@@ -84,4 +84,9 @@ public interface ITranscriptSummariesService
     /// Find a similar summary within a time tolerance to help with caching
     /// </summary>
     Task<TranscriptSummary?> FindSimilarSummaryAsync(int talkGroupId, DateTimeOffset startTime, DateTimeOffset endTime, int toleranceMinutes = 10);
+
+    /// <summary>
+    /// Get recent summaries generated after a cutoff time, ordered by newest first
+    /// </summary>
+    Task<IEnumerable<TranscriptSummary>> GetRecentAsync(DateTimeOffset cutoffTime, int limit);
 }

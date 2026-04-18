@@ -430,8 +430,6 @@ public class TranscriptSummariesService : ITranscriptSummariesService
     {
         // Look for summaries that cover similar time ranges within tolerance
         var toleranceSpan = TimeSpan.FromMinutes(toleranceMinutes);
-        var startTolerance = startTime.Add(-toleranceSpan);
-        var endTolerance = endTime.Add(toleranceSpan);
 
         return await _db.TranscriptSummaries
             .Include(s => s.TalkGroup)
@@ -442,10 +440,26 @@ public class TranscriptSummariesService : ITranscriptSummariesService
                     .ThenInclude(ni => ni.NotableIncidentCalls)
                         .ThenInclude(nic => nic.Call)
             .Where(s => s.TalkGroupId == talkGroupId &&
-                       s.StartTime >= startTolerance && s.StartTime <= endTolerance &&
-                       s.EndTime >= startTolerance && s.EndTime <= endTolerance)
+                       s.StartTime >= startTime - toleranceSpan && s.StartTime <= startTime + toleranceSpan &&
+                       s.EndTime >= endTime - toleranceSpan && s.EndTime <= endTime + toleranceSpan)
             .OrderByDescending(s => s.GeneratedAt)
             .AsNoTracking()
             .FirstOrDefaultAsync();
+    }
+
+    public async Task<IEnumerable<TranscriptSummary>> GetRecentAsync(DateTimeOffset cutoffTime, int limit)
+    {
+        return await _db.TranscriptSummaries
+            .Include(s => s.TalkGroup)
+            .Include(s => s.TranscriptSummaryTopics)
+                .ThenInclude(st => st.Topic)
+            .Include(s => s.TranscriptSummaryNotableIncidents)
+                .ThenInclude(sni => sni.NotableIncident!)
+                    .ThenInclude(ni => ni.NotableIncidentCalls)
+            .Where(s => s.GeneratedAt >= cutoffTime)
+            .OrderByDescending(s => s.GeneratedAt)
+            .Take(limit)
+            .AsNoTracking()
+            .ToListAsync();
     }
 }

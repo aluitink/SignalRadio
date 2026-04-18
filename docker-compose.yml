@@ -153,8 +153,8 @@ services:
     networks:
       - signalradio-network
     restart: unless-stopped
-    # Memory limit for Moonshine models
-    mem_limit: 2g
+    # Memory limit for Moonshine models (base ~1.5GB peak; 4g gives headroom)
+    mem_limit: 4g
 
 networks:
   signalradio-network:
