@@ -430,8 +430,6 @@ public class TranscriptSummariesService : ITranscriptSummariesService
     {
         // Look for summaries that cover similar time ranges within tolerance
         var toleranceSpan = TimeSpan.FromMinutes(toleranceMinutes);
-        var startTolerance = startTime.Add(-toleranceSpan);
-        var endTolerance = endTime.Add(toleranceSpan);
 
         return await _db.TranscriptSummaries
             .Include(s => s.TalkGroup)
@@ -442,8 +440,8 @@ public class TranscriptSummariesService : ITranscriptSummariesService
                     .ThenInclude(ni => ni.NotableIncidentCalls)
                         .ThenInclude(nic => nic.Call)
             .Where(s => s.TalkGroupId == talkGroupId &&
-                       s.StartTime >= startTolerance && s.StartTime <= endTolerance &&
-                       s.EndTime >= startTolerance && s.EndTime <= endTolerance)
+                       s.StartTime >= startTime - toleranceSpan && s.StartTime <= startTime + toleranceSpan &&
+                       s.EndTime >= endTime - toleranceSpan && s.EndTime <= endTime + toleranceSpan)
             .OrderByDescending(s => s.GeneratedAt)
             .AsNoTracking()
             .FirstOrDefaultAsync();
