@@ -68,7 +68,7 @@
 
 /* Override body background for night mode */
 .night-mode body {
-  background: linear-gradient(180deg, #0a0a0a 0%, #1a1a1a 100%);
+  background: #111111;
 }
 
 * {
@@ -83,7 +83,7 @@ html, body, #root {
 
 body {
   font-family: var(--font-family);
-  background: linear-gradient(180deg, #e2e8f0 0%, #cbd5e1 100%);
+  background: #d8e1ed;
   color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
