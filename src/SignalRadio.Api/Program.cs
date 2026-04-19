@@ -110,11 +110,15 @@ else
     builder.Services.AddScoped<IAsrService, WhisperAsrService>();
 }
 
-// Configure Semantic Kernel for transcript summarization
+// Configure AI options for transcript summarization
+// Reuses the existing SemanticKernel config section for backward-compatibility
 builder.Services.Configure<SemanticKernelOptions>(
     builder.Configuration.GetSection(SemanticKernelOptions.SectionName));
 builder.Services.AddMemoryCache();
-builder.Services.AddScoped<ITranscriptSummaryService, SignalRadio.Api.Services.SemanticKernelTranscriptSummaryService>();
+
+// Agent Framework replaces Semantic Kernel for transcript summarization.
+// The agent drives its own data-gathering via tools rather than a single large prompt.
+builder.Services.AddScoped<ITranscriptSummaryService, SignalRadio.Api.Services.AgentFrameworkTranscriptSummaryService>();
 
 // Register background services
 // Configure LocalFileCacheService options
