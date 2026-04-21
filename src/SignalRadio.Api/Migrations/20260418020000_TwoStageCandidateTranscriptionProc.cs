@@ -27,13 +27,13 @@ namespace SignalRadio.Api.Migrations
                     --
                     -- Drives from IX_Calls_RecordingTimeUtc (time-range seek), then
                     -- nested-loop joins to Recordings and NOT EXISTS probe.
-                    -- Capping at 500 rows means stage 2 always sorts in memory.
+                    -- Capping at 50 rows means stage 2 always sorts in memory.
                     --
                     -- Parameters let the caller shrink the window further if needed:
                     --   @MinDurationSeconds: skip noise (0-second squelch breaks etc.)
                     --   @LookbackHours:      ignore stale backlog beyond this horizon
                     -- ---------------------------------------------------------------
-                    SELECT TOP (500)
+                    SELECT TOP (50)
                         r.Id,
                         r.CallId,
                         r.StorageLocationId,
@@ -59,10 +59,10 @@ namespace SignalRadio.Api.Migrations
                     -- ---------------------------------------------------------------
                     -- Stage 2 — score and rank the tiny candidate set.
                     --
-                    -- Sorting <=500 rows is trivially in-memory regardless of @Limit.
-                    -- Scoring: EffPriority * (1 + age_hours * 0.5)
+                    -- Sorting <=50 rows is trivially in-memory regardless of @Limit.
+                    -- Scoring: EffPriority * (1 + age_hours * 0.1)
                     --   -> lower score = sooner
-                    --   -> priority-1 ties fresh priority-2 after 2 hours
+                    --   -> priority-1 ties fresh priority-2 after 10 hours
                     -- ---------------------------------------------------------------
                     SELECT TOP (@Limit)
                         cand.Id,
@@ -76,7 +76,7 @@ namespace SignalRadio.Api.Migrations
                     INNER JOIN TalkGroups tg ON tg.Id = cand.TalkGroupId
                     ORDER BY
                         CAST(ISNULL(tg.Priority, 2147483647) AS FLOAT)
-                            * (1.0 + DATEDIFF(SECOND, cand.RecordingTimeUtc, GETUTCDATE()) / 3600.0 * 0.5) ASC,
+                            * (1.0 + DATEDIFF(SECOND, cand.RecordingTimeUtc, GETUTCDATE()) / 3600.0 * 0.1) ASC,
                         cand.DurationSeconds DESC;
 
                     DROP TABLE #Candidates;
