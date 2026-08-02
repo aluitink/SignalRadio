@@ -114,7 +114,7 @@ export default function TranscriptionTicker() {
                 talkGroupName: summary.talkGroupName,
                 talkGroupDescription: talkGroupDetails?.description,
                 incidentDescription: incident.description,
-                timestamp: new Date(summary.generatedAt).getTime(),
+                timestamp: new Date(summary.startTime).getTime(),
                 callIds: incident.callIds,
                 importanceScore: incident.importanceScore
               } as TickerItem)
@@ -127,8 +127,13 @@ export default function TranscriptionTicker() {
 
       await Promise.all(summaryPromises)
       
-      // Sort by timestamp (most recent first) and limit to 50 items
-      allIncidents.sort((a, b) => b.timestamp - a.timestamp)
+      // Sort by importance score descending (5/5 first), then by recency
+      allIncidents.sort((a, b) => {
+        const scoreA = a.importanceScore ?? 0
+        const scoreB = b.importanceScore ?? 0
+        if (scoreB !== scoreA) return scoreB - scoreA
+        return b.timestamp - a.timestamp
+      })
       setTickerItems(allIncidents.slice(0, 50))
     } catch (err) {
       console.error('Failed to load recent summaries:', err)
