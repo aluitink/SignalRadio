@@ -33,8 +33,11 @@ services:
       - AzureStorage__ContainerName=${AzureStorage__ContainerName}
       - ConnectionStrings__DefaultConnection=Server=sqlserver,1433;Database=SignalRadio;User Id=sa;Password=SignalRadio123!;TrustServerCertificate=true;
       - AsrSettings__Enabled=${ASR_ENABLED:-true}
-      - AsrSettings__WhisperServiceUrl=http://whisper-asr:9000
-      - AsrSettings__MoonshineServiceUrl=tcp://wyoming-moonshine:10300
+#      - AsrSettings__WhisperServiceUrl=http://whisper-asr:9000
+      - AsrSettings__WhisperServiceUrl=http://192.168.1.122:9000
+#      - AsrSettings__WhisperServiceUrl=http://192.168.1.122:7891
+#      - AsrSettings__MoonshineServiceUrl=tcp://wyoming-moonshine:10300
+      - AsrSettings__MoonshineServiceUrl=tcp://192.168.1.122:10300
       - AsrSettings__MoonshineModel=${MOONSHINE_MODEL:-moonshine/base}
       - AsrSettings__MoonshineLanguage=${MOONSHINE_LANGUAGE:-en}
       - AsrSettings__AutoTranscribe=${ASR_AUTO_TRANSCRIBE:-true}
@@ -51,6 +54,9 @@ services:
       - SemanticKernel__Temperature=${SEMANTIC_KERNEL_TEMPERATURE:-0.3}
       - SemanticKernel__CacheDurationMinutes=${SEMANTIC_KERNEL_CACHE_DURATION:-30}
       - SemanticKernel__DefaultTimeWindowMinutes=${SEMANTIC_KERNEL_DEFAULT_WINDOW:-60}
+      - SemanticKernel__OpenAICompatibleEndpoint=${OPENAI_COMPATIBLE_ENDPOINT:-}
+      - SemanticKernel__OpenAICompatibleApiKey=${OPENAI_COMPATIBLE_API_KEY:-none}
+      - SemanticKernel__OpenAICompatibleModelName=${OPENAI_COMPATIBLE_MODEL:-}
     volumes:
       # Temporary processing (named volume)
       - temp:/app/temp
@@ -88,7 +94,7 @@ services:
     container_name: trunk-recorder
     command: ["trunk-recorder", "--config=/app/config/trunk-recorder.json"]
     volumes:
-      - /var/run/dbus:/var/run/dbus 
+      - /var/run/dbus:/var/run/dbus
       - /var/run/avahi-daemon/socket:/var/run/avahi-daemon/socket
       # Configuration files (external)
       - ./config:/app/config:ro

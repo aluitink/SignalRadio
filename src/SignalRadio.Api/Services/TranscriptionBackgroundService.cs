@@ -86,35 +86,38 @@ public class TranscriptionBackgroundService : BackgroundService
             return false;
         }
 
-        var pendingList = await recordingService.GetRecordingsNeedingTranscriptionAsync(limit: 1, minDurationSeconds: 2, lookbackHours: 1);
+        var pendingList = await recordingService.GetRecordingsNeedingTranscriptionAsync(limit: 6, minDurationSeconds: 2, lookbackHours: 1);
         if (!pendingList.Any())
             return false;
 
-        // resolve shared dependencies once for this batch
-        var storageService = scope.ServiceProvider.GetRequiredService<IStorageService>();
-        var callsService = scope.ServiceProvider.GetRequiredService<ICallsService>();
-        var transcriptionsService = scope.ServiceProvider.GetRequiredService<ITranscriptionsService>();
-        var callNotifier = scope.ServiceProvider.GetService<SignalRadio.Core.Services.ICallNotifier>();
+     
 
-        foreach (var pending in pendingList)
+        await Parallel.ForEachAsync(pendingList, new ParallelOptions { MaxDegreeOfParallelism = 6 }, async (pending, ct) =>
         {
+            // resolve shared dependencies once for this batch
+            var threadScope = _serviceProvider.CreateScope();
+            var storageService = threadScope.ServiceProvider.GetRequiredService<IStorageService>();
+            var callsService = threadScope.ServiceProvider.GetRequiredService<ICallsService>();
+            var transcriptionsService = threadScope.ServiceProvider.GetRequiredService<ITranscriptionsService>();
+            var callNotifier = threadScope.ServiceProvider.GetService<SignalRadio.Core.Services.ICallNotifier>();
+            var recordingService2 = threadScope.ServiceProvider.GetRequiredService<IRecordingsService>();
             if (cancellationToken.IsCancellationRequested)
-                break;
+                return;
 
             try
             {
-                var fresh = await recordingService.GetByIdAsync(pending.Id);
+                var fresh = await recordingService2.GetByIdAsync(pending.Id);
                 if (fresh == null)
                 {
                     _logger.LogWarning("Pending recording disappeared: {Id}", pending.Id);
-                    continue;
+                    return;
                 }
 
                 await ProcessRecordingTranscription(
                     fresh,
                     storageService,
                     asrService,
-                    recordingService,
+                    recordingService2,
                     callsService,
                     transcriptionsService,
                     callNotifier,
@@ -122,13 +125,47 @@ public class TranscriptionBackgroundService : BackgroundService
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
-                break;
+                return;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to process pending recording {Id}", pending.Id);
             }
-        }
+        });
+
+        // foreach (var pending in pendingList)
+        // {            
+        //     if (cancellationToken.IsCancellationRequested)
+        //         break;
+
+        //     try
+        //     {
+        //         var fresh = await recordingService.GetByIdAsync(pending.Id);
+        //         if (fresh == null)
+        //         {
+        //             _logger.LogWarning("Pending recording disappeared: {Id}", pending.Id);
+        //             continue;
+        //         }
+
+        //         await ProcessRecordingTranscription(
+        //             fresh,
+        //             storageService,
+        //             asrService,
+        //             recordingService,
+        //             callsService,
+        //             transcriptionsService,
+        //             callNotifier,
+        //             cancellationToken);
+        //     }
+        //     catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        //     {
+        //         break;
+        //     }
+        //     catch (Exception ex)
+        //     {
+        //         _logger.LogError(ex, "Failed to process pending recording {Id}", pending.Id);
+        //     }
+        // }
 
         return true;
     }

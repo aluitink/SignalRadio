@@ -58,4 +58,22 @@ public class SemanticKernelOptions
     /// Minimum transcript content length to trigger AI processing
     /// </summary>
     public int MinTranscriptLength { get; set; } = 50;
+
+    /// <summary>
+    /// Base URL for an OpenAI-compatible endpoint (e.g. http://localhost:8000/v1 for vLLM).
+    /// When set and AzureOpenAIEndpoint is not configured, this endpoint is used instead.
+    /// </summary>
+    public string OpenAICompatibleEndpoint { get; set; } = string.Empty;
+
+    /// <summary>
+    /// API key for the OpenAI-compatible endpoint. Use any non-empty string for local
+    /// deployments that do not require authentication (e.g. "none").
+    /// </summary>
+    public string OpenAICompatibleApiKey { get; set; } = "none";
+
+    /// <summary>
+    /// Model/deployment name to request from the OpenAI-compatible endpoint.
+    /// For vLLM this is the model name passed to --model at startup (e.g. "meta-llama/Llama-3-8b-instruct").
+    /// </summary>
+    public string OpenAICompatibleModelName { get; set; } = string.Empty;
 }

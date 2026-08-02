@@ -50,6 +50,18 @@ services:
     #   - SEMANTIC_KERNEL_CACHE_DURATION=30
     #   - SEMANTIC_KERNEL_DEFAULT_WINDOW=60
 
+    # Example: AI Transcript Summarization (OpenAI-compatible / vLLM) configuration
+    # Use this instead of the Azure OpenAI block when running a local vLLM server.
+    # environment:
+    #   - SEMANTIC_KERNEL_ENABLED=true
+    #   - OPENAI_COMPATIBLE_ENDPOINT=http://vllm:8000/v1
+    #   - OPENAI_COMPATIBLE_API_KEY=none
+    #   - OPENAI_COMPATIBLE_MODEL=meta-llama/Llama-3-8b-instruct
+    #   - SEMANTIC_KERNEL_MAX_TOKENS=1500
+    #   - SEMANTIC_KERNEL_TEMPERATURE=0.3
+    #   - SEMANTIC_KERNEL_CACHE_DURATION=30
+    #   - SEMANTIC_KERNEL_DEFAULT_WINDOW=60
+
     # Example: Advanced ASR configuration
     # environment:
     #   - ASR_ENABLED=true

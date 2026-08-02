@@ -1,6 +1,8 @@
 using Azure;
 using Azure.AI.OpenAI;
+using OpenAI;
 using OpenAI.Chat;
+using System.ClientModel;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using SignalRadio.Core.Interfaces;
@@ -21,7 +23,7 @@ public class AgentFrameworkTranscriptSummaryService : ITranscriptSummaryService,
     private readonly ITranscriptionsService _transcriptionsService;
     private readonly ITalkGroupsService _talkGroupsService;
     private readonly ITranscriptSummariesService _summariesService;
-    private readonly AzureOpenAIClient? _azureOpenAIClient;
+    private readonly ChatClient? _chatClient;
     private readonly SemaphoreSlim _semaphore;
     private static readonly ConcurrentDictionary<string, DateTimeOffset> _lastRequestTimes = new();
     private bool _disposed;
@@ -96,20 +98,40 @@ public class AgentFrameworkTranscriptSummaryService : ITranscriptSummaryService,
 
         var maxConcurrent = _options.MaxConcurrentRequests > 0 ? _options.MaxConcurrentRequests : 3;
         _semaphore = new SemaphoreSlim(maxConcurrent, maxConcurrent);
+        _chatClient = CreateChatClient(_options);
+    }
 
-        if (!string.IsNullOrEmpty(_options.AzureOpenAIEndpoint) && !string.IsNullOrEmpty(_options.AzureOpenAIKey))
+    /// <summary>
+    /// Single place that decides which backend to use and returns a ready-to-use
+    /// <see cref="ChatClient"/>. Azure OpenAI takes priority; OpenAI-compatible
+    /// (vLLM, LM Studio, etc.) is used as a fallback.
+    /// </summary>
+    private ChatClient? CreateChatClient(SemanticKernelOptions options)
+    {
+        if (!string.IsNullOrEmpty(options.AzureOpenAIEndpoint))
         {
-            _azureOpenAIClient = new AzureOpenAIClient(
-                new Uri(_options.AzureOpenAIEndpoint),
-                new AzureKeyCredential(_options.AzureOpenAIKey));
+            var azureClient = string.IsNullOrEmpty(options.AzureOpenAIKey)
+                ? new AzureOpenAIClient(new Uri(options.AzureOpenAIEndpoint), new Azure.Identity.DefaultAzureCredential())
+                : new AzureOpenAIClient(new Uri(options.AzureOpenAIEndpoint), new AzureKeyCredential(options.AzureOpenAIKey));
+
+            _logger.LogInformation("Using Azure OpenAI endpoint: {Endpoint}, deployment: {Deployment}",
+                options.AzureOpenAIEndpoint, options.ChatDeploymentName);
+            return azureClient.GetChatClient(options.ChatDeploymentName);
         }
-        else if (!string.IsNullOrEmpty(_options.AzureOpenAIEndpoint))
+
+        if (!string.IsNullOrEmpty(options.OpenAICompatibleEndpoint))
         {
-            // Fall back to DefaultAzureCredential when no API key is configured
-            _azureOpenAIClient = new AzureOpenAIClient(
-                new Uri(_options.AzureOpenAIEndpoint),
-                new Azure.Identity.DefaultAzureCredential());
+            var clientOptions = new OpenAIClientOptions { Endpoint = new Uri(options.OpenAICompatibleEndpoint) };
+            var apiKey = string.IsNullOrEmpty(options.OpenAICompatibleApiKey) ? "none" : options.OpenAICompatibleApiKey;
+            var openAIClient = new OpenAIClient(new ApiKeyCredential(apiKey), clientOptions);
+
+            _logger.LogInformation("Using OpenAI-compatible endpoint: {Endpoint}, model: {Model}",
+                options.OpenAICompatibleEndpoint, options.OpenAICompatibleModelName);
+            return openAIClient.GetChatClient(options.OpenAICompatibleModelName);
         }
+
+        _logger.LogWarning("No AI backend configured — set AzureOpenAIEndpoint or OpenAICompatibleEndpoint");
+        return null;
     }
 
     public async Task<TranscriptSummaryResponse?> GenerateSummaryAsync(
@@ -323,11 +345,16 @@ public class AgentFrameworkTranscriptSummaryService : ITranscriptSummaryService,
     {
         try
         {
-            var isAvailable = _options.Enabled &&
-                   !string.IsNullOrEmpty(_options.AzureOpenAIEndpoint) &&
-                   !string.IsNullOrEmpty(_options.AzureOpenAIKey) &&
-                   !string.IsNullOrEmpty(_options.ChatDeploymentName);
-            return Task.FromResult(isAvailable);
+            if (!_options.Enabled)
+                return Task.FromResult(false);
+
+            var azureConfigured = !string.IsNullOrEmpty(_options.AzureOpenAIEndpoint) &&
+                                  !string.IsNullOrEmpty(_options.ChatDeploymentName);
+
+            var openAICompatibleConfigured = !string.IsNullOrEmpty(_options.OpenAICompatibleEndpoint) &&
+                                             !string.IsNullOrEmpty(_options.OpenAICompatibleModelName);
+
+            return Task.FromResult(azureConfigured || openAICompatibleConfigured);
         }
         catch (Exception ex)
         {
@@ -414,9 +441,9 @@ public class AgentFrameworkTranscriptSummaryService : ITranscriptSummaryService,
         int callCount, double totalDuration, List<Call> callTimes, TimeSpan timeSpan,
         CancellationToken cancellationToken)
     {
-        if (_azureOpenAIClient == null)
+        if (_chatClient == null)
         {
-            _logger.LogError("Azure OpenAI client is not configured — check AzureOpenAIEndpoint and AzureOpenAIKey");
+            _logger.LogError("No AI client is configured — set AzureOpenAIEndpoint or OpenAICompatibleEndpoint");
             return null;
         }
 
@@ -448,15 +475,13 @@ public class AgentFrameworkTranscriptSummaryService : ITranscriptSummaryService,
                 .Replace("{averageDuration}", averageDuration)
                 .Replace("{timingAnalysis}", timingAnalysis);
 
-            var chatClient = _azureOpenAIClient.GetChatClient(_options.ChatDeploymentName);
-
             var completionOptions = new ChatCompletionOptions
             {
                 MaxOutputTokenCount = _options.MaxTokens > 0 ? _options.MaxTokens : 1500,
                 Temperature = (float)(_options.Temperature > 0 ? _options.Temperature : 0.3)
             };
 
-            var result = await chatClient.CompleteChatAsync(
+            var result = await _chatClient.CompleteChatAsync(
                 [new UserChatMessage(prompt)],
                 completionOptions,
                 cancellationToken);
