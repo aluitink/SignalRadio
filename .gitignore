@@ -242,4 +242,8 @@ capture/
 
 # OpenWebRX config (contains sensitive keys, managed separately)
 config/openwebrx-settings.json
+
+# Downloaded models (fetched via models/download-model.sh, not checked in)
+models/*
+!models/download-model.sh
 docker-compose.override.yml

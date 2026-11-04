@@ -1,84 +1,51 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using SignalRadio.DataAccess;
-using SignalRadio.DataAccess.Services;
-using SignalRadio.Api.Extensions;
-using SignalRadio.Api.Dtos;
+using SignalRadio.Core.Dtos;
+using SignalRadio.Core.Interfaces;
 
 namespace SignalRadio.Api.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
-public class CallsController : ControllerBase
+[Route("api/calls")]
+public class CallsController(ICallsService calls, IRecordingsService recordings, ICallNotifier notifier) : ControllerBase
 {
-    private readonly ICallsService _svc;
-    private readonly ILogger<CallsController> _logger;
+    [HttpGet("talkgroup/{talkGroupId:int}")]
+    public async Task<IActionResult> GetByTalkGroup(int talkGroupId, [FromQuery] int page = 1, [FromQuery] int pageSize = 50, CancellationToken ct = default) =>
+        Ok(await calls.GetPagedAsync(talkGroupId, page, pageSize, ct));
 
-    public CallsController(ICallsService svc, ILogger<CallsController> logger)
+    [HttpGet("recent")]
+    public async Task<IActionResult> GetRecent([FromQuery] int count = 20, CancellationToken ct = default) =>
+        Ok(await calls.GetRecentAsync(count, ct));
+
+    [HttpGet("{id:long}")]
+    public async Task<IActionResult> GetById(long id, CancellationToken ct)
     {
-        _svc = svc;
-        _logger = logger;
-    }
-
-    [HttpGet]
-    public async Task<IActionResult> GetAll([FromQuery] int page = 1, [FromQuery] int pageSize = 50,
-        [FromQuery] string sortBy = "recordingTime", [FromQuery] string sortDir = "desc")
-    {
-        page = Math.Max(1, page);
-        pageSize = Math.Clamp(pageSize, 1, 1000);
-
-        var result = await _svc.GetAllAsync(page, pageSize, sortBy, sortDir);
-
-        // Convert to DTOs with TalkGroup information included
-        var apiBaseUrl = $"{Request.Scheme}://{Request.Host}";
-        var dtoResult = new
-        {
-            Items = result.Items.Select(call => call.ToDto(apiBaseUrl)).ToList(),
-            result.TotalCount,
-            result.Page,
-            result.PageSize,
-            result.TotalPages
-        };
-
-        return Ok(dtoResult);
-    }
-
-    [HttpGet("{id:int}")]
-    public async Task<IActionResult> GetById(int id)
-    {
-        var item = await _svc.GetByIdAsync(id);
-        if (item == null) return NotFound();
-
-        var apiBaseUrl = $"{Request.Scheme}://{Request.Host}";
-        return Ok(item.ToDto(apiBaseUrl));
-    }
-
-    [HttpGet("transcripts-available")]
-    public async Task<IActionResult> GetTalkGroupsWithTranscripts([FromQuery] int windowMinutes = 15)
-    {
-        var talkGroupIds = await _svc.GetTalkGroupsWithTranscriptsAsync(windowMinutes);
-        return Ok(talkGroupIds);
+        var result = await calls.GetByIdAsync(id, ct);
+        return result == null ? NotFound() : Ok(result);
     }
 
     [HttpPost]
-    public async Task<IActionResult> Create(Call model)
+    public async Task<IActionResult> Create([FromBody] CreateCallRequest request, CancellationToken ct)
     {
-        var created = await _svc.CreateAsync(model);
-        return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
+        var call = await calls.CreateAsync(request, ct);
+        await notifier.NotifyNewCallAsync(call.TalkGroupId, call.Id, ct);
+        return CreatedAtAction(nameof(GetById), new { id = call.Id }, call);
     }
 
-    [HttpPut("{id:int}")]
-    public async Task<IActionResult> Update(int id, Call model)
+    [HttpPost("{id:long}/recordings")]
+    [RequestSizeLimit(500_000_000)]
+    public async Task<IActionResult> UploadRecording(long id, IFormFile file, CancellationToken ct)
     {
-        if (id != model.Id) return BadRequest("Id mismatch");
-        var ok = await _svc.UpdateAsync(id, model);
-        return ok ? NoContent() : NotFound();
+        if (file == null || file.Length == 0) return BadRequest("No file provided.");
+
+        using var stream = file.OpenReadStream();
+        var recording = await recordings.UploadAsync(id, file.FileName, stream, file.Length, ct);
+        return Ok(recording);
     }
 
-    [HttpDelete("{id:int}")]
-    public async Task<IActionResult> Delete(int id)
+    [HttpDelete("{id:long}")]
+    public async Task<IActionResult> Delete(long id, CancellationToken ct)
     {
-        var ok = await _svc.DeleteAsync(id);
-        return ok ? NoContent() : NotFound();
+        var deleted = await calls.DeleteAsync(id, ct);
+        return deleted ? NoContent() : NotFound();
     }
 }

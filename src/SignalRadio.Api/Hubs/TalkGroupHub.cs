@@ -4,57 +4,13 @@ namespace SignalRadio.Api.Hubs;
 
 public class TalkGroupHub : Hub
 {
-    private readonly ILogger<TalkGroupHub> _logger;
-
-    public TalkGroupHub(ILogger<TalkGroupHub> logger)
-    {
-        _logger = logger;
-    }
-
-    public async Task SubscribeToTalkGroup(string talkGroupId)
-    {
-        await Groups.AddToGroupAsync(Context.ConnectionId, $"talkgroup_{talkGroupId}");
-        _logger.LogInformation("Client {ConnectionId} subscribed to talk group {TalkGroupId}",
-            Context.ConnectionId, talkGroupId);
-
-        await Clients.Caller.SendAsync("SubscriptionConfirmed", talkGroupId);
-    }
-
-    public async Task UnsubscribeFromTalkGroup(string talkGroupId)
-    {
-        await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"talkgroup_{talkGroupId}");
-        _logger.LogInformation("Client {ConnectionId} unsubscribed from talk group {TalkGroupId}",
-            Context.ConnectionId, talkGroupId);
-
-        await Clients.Caller.SendAsync("UnsubscriptionConfirmed", talkGroupId);
-    }
-
-    public async Task SubscribeToAllCallsStream()
-    {
-        await Groups.AddToGroupAsync(Context.ConnectionId, "all_calls_monitor");
-        _logger.LogInformation("Client {ConnectionId} subscribed to all calls stream", Context.ConnectionId);
-
-        await Clients.Caller.SendAsync("AllCallsStreamSubscribed");
-    }
-
-    public async Task UnsubscribeFromAllCallsStream()
-    {
-        await Groups.RemoveFromGroupAsync(Context.ConnectionId, "all_calls_monitor");
-        _logger.LogInformation("Client {ConnectionId} unsubscribed from all calls stream", Context.ConnectionId);
-
-        await Clients.Caller.SendAsync("AllCallsStreamUnsubscribed");
-    }
-
     public override async Task OnConnectedAsync()
     {
-        _logger.LogInformation("Client {ConnectionId} connected to TalkGroupHub", Context.ConnectionId);
+        var talkGroupId = Context.GetHttpContext()?.Request.Query["talkGroupId"];
+        if (int.TryParse(talkGroupId, out var id))
+        {
+            await Groups.AddToGroupAsync(Context.ConnectionId, $"talkgroup-{id}");
+        }
         await base.OnConnectedAsync();
-    }
-
-    public override async Task OnDisconnectedAsync(Exception? exception)
-    {
-        _logger.LogInformation("Client {ConnectionId} disconnected from TalkGroupHub. Exception: {Exception}",
-            Context.ConnectionId, exception?.Message);
-        await base.OnDisconnectedAsync(exception);
     }
 }

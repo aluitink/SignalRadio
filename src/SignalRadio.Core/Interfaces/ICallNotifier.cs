@@ -1,16 +1,8 @@
-using System.Threading;
-using System.Threading.Tasks;
+namespace SignalRadio.Core.Interfaces;
 
-namespace SignalRadio.Core.Services;
-
-/// <summary>
-/// Abstraction used by lower layers to notify interested parties when a Call has been created/updated.
-/// Implementations are expected to broadcast via SignalR or other mechanisms.
-/// </summary>
 public interface ICallNotifier
 {
-    /// <summary>
-    /// Notify that a call has been created or updated. Implementations should be best-effort and not throw.
-    /// </summary>
-    Task NotifyCallUpdatedAsync(int callId, CancellationToken cancellationToken = default);
+    Task NotifyNewCallAsync(int talkGroupId, long callId, CancellationToken ct = default);
+    Task NotifyNewTranscriptionAsync(long recordingId, long transcriptionId, CancellationToken ct = default);
+    Task NotifyNewSummaryAsync(int talkGroupId, long summaryId, CancellationToken ct = default);
 }

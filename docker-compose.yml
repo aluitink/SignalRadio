@@ -1,184 +1,78 @@
 services:
-  # SQL Server Database with Full Text Search
-  sqlserver:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile.mssql
-    container_name: signalradio-sqlserver
+  postgres:
+    image: pgvector/pgvector:pg16
     environment:
-      - ACCEPT_EULA=Y
-      - SA_PASSWORD=SignalRadio123!
-      - MSSQL_PID=Express
+      POSTGRES_DB: signalradio
+      POSTGRES_USER: signalradio
+      POSTGRES_PASSWORD: signalradio
+    ports:
+      - "5432:5432"
     volumes:
-      - sqlserver-data:/var/opt/mssql
-    networks:
-      - signalradio-network
-    restart: unless-stopped
-    # Memory limit set to 2GB
-    mem_limit: 3g
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U signalradio"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
-  # SignalRadio API Service
   api:
     build:
       context: .
       dockerfile: docker/Dockerfile.api
-    container_name: signalradio-api
     ports:
       - "5000:8080"
     environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__Default=Host=postgres;Database=signalradio;Username=signalradio;Password=signalradio
       - StorageType=Local
-      - AzureStorage__ConnectionString=${AzureStorage__ConnectionString}
-      - AzureStorage__ContainerName=${AzureStorage__ContainerName}
-      - ConnectionStrings__DefaultConnection=Server=sqlserver,1433;Database=SignalRadio;User Id=sa;Password=SignalRadio123!;TrustServerCertificate=true;
-      - AsrSettings__Enabled=${ASR_ENABLED:-true}
-#      - AsrSettings__WhisperServiceUrl=http://whisper-asr:9000
-      - AsrSettings__WhisperServiceUrl=http://192.168.1.122:9000
-#      - AsrSettings__WhisperServiceUrl=http://192.168.1.122:7891
-#      - AsrSettings__MoonshineServiceUrl=tcp://wyoming-moonshine:10300
-      - AsrSettings__MoonshineServiceUrl=tcp://192.168.1.122:10300
-      - AsrSettings__MoonshineModel=${MOONSHINE_MODEL:-moonshine/base}
-      - AsrSettings__MoonshineLanguage=${MOONSHINE_LANGUAGE:-en}
-      - AsrSettings__AutoTranscribe=${ASR_AUTO_TRANSCRIBE:-true}
-      - AsrSettings__AzureSpeechKey=${AZURE_SPEECH_KEY:-}
-      - AsrSettings__AzureSpeechRegion=${AZURE_SPEECH_REGION:-}
-      - AsrSettings__Provider=${ASR_PROVIDER:-whisper}
-      - LocalFileCache__CacheDirectory=${LOCALFILECACHE__CACHEDIRECTORY:-/tmp/signalradio-cache}
-      - LocalFileCache__CacheDurationMinutes=${LOCALFILECACHE__CACHEDURATIONMINUTES:-10}
-      - SemanticKernel__Enabled=${SEMANTIC_KERNEL_ENABLED:-false}
-      - SemanticKernel__AzureOpenAIEndpoint=${AZURE_OPENAI_ENDPOINT:-}
-      - SemanticKernel__AzureOpenAIKey=${AZURE_OPENAI_KEY:-}
-      - SemanticKernel__ChatDeploymentName=${AZURE_OPENAI_DEPLOYMENT:-gpt-4}
-      - SemanticKernel__MaxTokens=${SEMANTIC_KERNEL_MAX_TOKENS:-1500}
-      - SemanticKernel__Temperature=${SEMANTIC_KERNEL_TEMPERATURE:-0.3}
-      - SemanticKernel__CacheDurationMinutes=${SEMANTIC_KERNEL_CACHE_DURATION:-30}
-      - SemanticKernel__DefaultTimeWindowMinutes=${SEMANTIC_KERNEL_DEFAULT_WINDOW:-60}
-      - SemanticKernel__OpenAICompatibleEndpoint=${OPENAI_COMPATIBLE_ENDPOINT:-}
-      - SemanticKernel__OpenAICompatibleApiKey=${OPENAI_COMPATIBLE_API_KEY:-none}
-      - SemanticKernel__OpenAICompatibleModelName=${OPENAI_COMPATIBLE_MODEL:-}
+      - StoragePath=/data/recordings
+      - ASR__Provider=stub
+      - AI__Enabled=false
+      - AI__EmbeddingProvider=local
+      - AI__ModelPath=/models/minilm
+      - Simulator__Enabled=true
+      - Simulator__IntervalSeconds=5
+      - Simulator__TalkGroups=1,2,3,4,5
     volumes:
-      # Temporary processing (named volume)
-      - temp:/app/temp
-      # Local recordings storage (make local storage the default mount)
-      - api-recordings:/data/recordings
-      # Configuration files (if needed for API settings)
-      - ./config:/app/config:ro
-    networks:
-      - signalradio-network
+      - recordings:/data/recordings
+      - ./models:/models:ro
     depends_on:
-      - sqlserver
-    restart: unless-stopped
+      postgres:
+        condition: service_healthy
 
-  # SignalRadio Web Client (React)
-  webclient:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile.webclient
-    container_name: signalradio-webclient
-    expose:
-      - "80"
-    ports:
-      - "3001:80"
-    environment:
-      - NODE_ENV=production
-    networks:
-      - signalradio-network
-    depends_on:
-      - api
-    restart: unless-stopped
-
-  # Trunk Recorder Service
   trunk-recorder:
     image: robotastic/trunk-recorder:latest
-    container_name: trunk-recorder
     command: ["trunk-recorder", "--config=/app/config/trunk-recorder.json"]
+    environment:
+      - UPLOAD_SCRIPT=/app/scripts/upload_callback.sh
+      - API_ENDPOINT=http://api:8080/api/recordings/upload
     volumes:
       - /var/run/dbus:/var/run/dbus
       - /var/run/avahi-daemon/socket:/var/run/avahi-daemon/socket
-      # Configuration files (external)
       - ./config:/app/config:ro
-      # Scripts (external)
       - ./scripts:/app/scripts:ro
-      # Audio recordings (named volume)
       - trunk-recordings:/app/audio
-      # Temporary processing (named volume)
       - temp:/app/temp
-      # Logs
       - logs:/app/logs
-    environment:
-      - UPLOAD_SCRIPT=/app/scripts/upload_callback.sh
-      - API_ENDPOINT=http://signalradio-api:8080/api/recordings
-    networks:
-      - signalradio-network
+    devices:
+      - /dev/bus/usb:/dev/bus/usb
+    privileged: true
+    restart: unless-stopped
     depends_on:
       - api
-    restart: unless-stopped
-    # Note: trunk-recorder needs RTL-SDR hardware access
-    devices:
-      - /dev/bus/usb:/dev/bus/usb:rwm
-    privileged: true
 
-  # Whisper ASR Service
-  whisper-asr:
-    image: onerahmet/openai-whisper-asr-webservice:latest
-    container_name: signalradio-whisper
-    environment:
-      - ASR_MODEL=${WHISPER_MODEL:-small.en}
-      - ASR_ENGINE=${WHISPER_ENGINE:-openai_whisper}
-      - ASR_DEVICE=${WHISPER_DEVICE:-cpu}
+  web:
+    build:
+      context: ./src/SignalRadio.Web
+      dockerfile: Dockerfile
     ports:
-      - "9000:9000"
-    volumes:
-      # Model cache to avoid re-downloading
-      - whisper-cache:/root/.cache
-    networks:
-      - signalradio-network
+      - "3001:80"
     depends_on:
-      - sqlserver
-    restart: unless-stopped
-    # Memory limit for Whisper models
-    mem_limit: 2g
-
-  # Wyoming Moonshine ASR Service (alternative to Whisper)
-  # Enable by setting ASR_PROVIDER=moonshine
-  wyoming-moonshine:
-    image: ghcr.io/cronus42/wyoming-moonshine:latest
-    container_name: signalradio-moonshine
-    environment:
-      - WYOMING_URI=tcp://0.0.0.0:10300
-      - MOONSHINE_MODEL=${MOONSHINE_MODEL:-moonshine/base}
-      - MOONSHINE_LANGUAGE=${MOONSHINE_LANGUAGE:-en}
-      - HF_HOME=/data/hf
-      - OFFLINE_AFTER_STARTUP=true
-      - HF_TOKEN=${HF_TOKEN:-}
-    ports:
-      - "10300:10300"
-    volumes:
-      - moonshine-cache:/data
-    networks:
-      - signalradio-network
-    restart: unless-stopped
-    # Memory limit for Moonshine models (base ~1.5GB peak; 4g gives headroom)
-    mem_limit: 4g
-
-networks:
-  signalradio-network:
-    driver: bridge
+      - api
 
 volumes:
-  # Named volumes for persistent data
-  api-recordings:
-    driver: local
+  pgdata:
+  recordings:
   trunk-recordings:
-    driver: local
   temp:
-    driver: local
   logs:
-    driver: local
-  sqlserver-data:
-    driver: local
-  whisper-cache:
-    driver: local
-  moonshine-cache:
-    driver: local

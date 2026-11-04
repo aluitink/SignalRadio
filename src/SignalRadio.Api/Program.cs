@@ -1,218 +1,95 @@
-using SignalRadio.Core.Models;
-using System.Text.Json.Serialization;
-using SignalRadio.Core.Services;
-using SignalRadio.Core.Interfaces;
 using SignalRadio.Api.Hubs;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Data.SqlClient;
-using System.Diagnostics;
-using DotNetEnv;
-using SignalRadio.DataAccess.Services;
-using SignalRadio.DataAccess;
 using SignalRadio.Api.Services;
-
-// Load .env file if it exists
-var envPath = Path.Combine(Directory.GetCurrentDirectory(), ".env");
-if (File.Exists(envPath))
-{
-    Env.Load(envPath);
-}
+using SignalRadio.Core.Interfaces;
+using SignalRadio.Data;
+using SignalRadio.Simulator;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add environment variables to configuration
-builder.Configuration.AddEnvironmentVariables();
+// --- Configuration ---
+var config = builder.Configuration;
+var connectionString = config.GetConnectionString("Default") ?? "Host=localhost;Port=5432;Database=signalradio;Username=signalradio;Password=signalradio";
+var aiEnabled = config.GetValue<bool>("AI:Enabled");
+var simulatorEnabled = config.GetValue<bool>("Simulator:Enabled");
 
-// Add services to the container and configure JSON serializer to ignore reference cycles
-builder.Services.AddControllers()
-    .AddJsonOptions(opts =>
-    {
-        // Prevent System.Text.Json from throwing on object cycles when returning EF entities
-        opts.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
-    });
+// --- Data Access ---
+builder.Services.AddDataAccess(connectionString);
 
-// Add SignalR
+// --- Core Services ---
+// Scoped: LocalStorageService resolves the base path from the StorageLocation row via the DbContext.
+builder.Services.AddScoped<IStorageService, LocalStorageService>();
+builder.Services.AddSingleton<ICallNotifier, SignalRCallNotifier>();
+builder.Services.AddSingleton<IAsrService, StubAsrService>();
+
+// AI client: stub / OpenAI-compatible / local ONNX
+var embeddingProvider = config["AI:EmbeddingProvider"] ?? "none"; // none | openai | local
+if (aiEnabled)
+{
+    builder.Services.AddSingleton<IAiClient, OpenAiCompatibleClient>();
+}
+else if (embeddingProvider == "local")
+{
+    builder.Services.AddSingleton<IAiClient, LocalEmbeddingClient>();
+}
+else
+{
+    builder.Services.AddSingleton<IAiClient, StubAiClient>();
+}
+
+// --- SignalR ---
 builder.Services.AddSignalR();
 
-// Add HttpContextAccessor for getting request context in services
-builder.Services.AddHttpContextAccessor();
-
-// Add CORS for standalone UI
+// --- CORS ---
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowUI", policy =>
+    options.AddDefaultPolicy(policy =>
     {
-        policy.WithOrigins("http://localhost:3000", "http://localhost:8080", "http://localhost:5173")
-              .AllowAnyHeader()
-              .AllowAnyMethod()
-              .AllowCredentials();
+        policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader();
     });
 });
 
-// Configure Entity Framework and Data Access services
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-builder.Services.AddDataAccess(connectionString!);
+// --- Controllers ---
+builder.Services.AddControllers();
 
-// Override the DbContext registration to include migrations assembly
-builder.Services.AddDbContext<SignalRadioDbContext>(options =>
+// --- Background Services ---
+if (simulatorEnabled)
 {
-    options.UseSqlServer(connectionString, b =>
-    {
-        b.MigrationsAssembly("SignalRadio.Api");
-        b.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
-    });
-});
-
-// Configure Azure Storage
-builder.Services.Configure<AzureStorageOptions>(
-    builder.Configuration.GetSection(AzureStorageOptions.Section));
-
-// Configure Local Storage
-builder.Services.Configure<LocalStorageOptions>(
-    builder.Configuration.GetSection("LocalStorage"));
-
-// Configure ASR Settings
-builder.Services.Configure<AsrOptions>(
-    builder.Configuration.GetSection(AsrOptions.SectionName));
-
-// Register services
-// Choose storage service based on config
-var storageType = builder.Configuration["StorageType"] ?? "Azure";
-if (storageType.Equals("Local", StringComparison.OrdinalIgnoreCase))
-{
-    builder.Services.AddScoped<IStorageService, LocalDiskStorageService>();
+    builder.Services.AddHostedService<SimulatorService>();
 }
-else
-{
-    builder.Services.AddScoped<IStorageService, AzureBlobStorageService>();
-}
-
-// Notification service to broadcast call/recording updates to SignalR subscribers
-builder.Services.AddScoped<SignalRadio.Core.Services.ICallNotifier, SignalRadio.Api.Services.HubCallNotifier>();
-
-// Ensure IHttpClientFactory is always available (required by TranscriptionBackgroundService)
-builder.Services.AddHttpClient();
-
-// Register ASR services - provider can be toggled via ASR_PROVIDER (azure|whisper|moonshine)
-var asrProvider = builder.Configuration["ASR_PROVIDER"] ?? builder.Configuration["AsrSettings:Provider"] ?? "whisper";
-if (asrProvider.Equals("azure", StringComparison.OrdinalIgnoreCase))
-{
-    builder.Services.AddScoped<IAsrService, AzureAsrService>();
-}
-else if (asrProvider.Equals("moonshine", StringComparison.OrdinalIgnoreCase))
-{
-    builder.Services.AddScoped<IAsrService, WyomingMoonshineAsrService>();
-}
-else
-{
-    // default to whisper HTTP service
-    builder.Services.AddHttpClient<WhisperAsrService>();
-    builder.Services.AddScoped<IAsrService, WhisperAsrService>();
-}
-
-// Configure AI options for transcript summarization
-// Reuses the existing SemanticKernel config section for backward-compatibility
-builder.Services.Configure<SemanticKernelOptions>(
-    builder.Configuration.GetSection(SemanticKernelOptions.SectionName));
-builder.Services.AddMemoryCache();
-
-// Agent Framework replaces Semantic Kernel for transcript summarization.
-// The agent drives its own data-gathering via tools rather than a single large prompt.
-builder.Services.AddScoped<ITranscriptSummaryService, SignalRadio.Api.Services.AgentFrameworkTranscriptSummaryService>();
-
-// Register background services
-// Configure LocalFileCacheService options
-builder.Services.Configure<LocalFileCacheOptions>(
-    builder.Configuration.GetSection("LocalFileCache"));
-builder.Services.AddSingleton<ILocalFileCacheService, LocalFileCacheService>();
-
-// Register background services
-builder.Services.AddHostedService<TranscriptionBackgroundService>();
-
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
+builder.Services.AddHostedService<TranscriptionPipeline>();
 
 var app = builder.Build();
 
-// Run database migrations on startup, but wait for SQL Server to be ready first.
+// --- Database Initialization ---
 using (var scope = app.Services.CreateScope())
 {
-    var context = scope.ServiceProvider.GetRequiredService<SignalRadioDbContext>();
-    var logger = app.Logger;
+    var db = scope.ServiceProvider.GetRequiredService<SignalRadioDbContext>();
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
 
-    // Allow configuring how long to wait for the DB to become ready (seconds)
-    var timeoutSeconds = app.Configuration.GetValue<int>("DbStartupTimeoutSeconds", 60);
-    var maxWait = TimeSpan.FromSeconds(timeoutSeconds);
-    var delay = TimeSpan.FromSeconds(1);
-    var sw = Stopwatch.StartNew();
-
-    // Poll until the DB is reachable or we've timed out.
-    while (true)
+    // Wait for database to be ready
+    var retries = 30;
+    while (retries-- > 0)
     {
         try
         {
-            if (await context.Database.CanConnectAsync())
-            {
-                logger.LogInformation("Database is reachable; continuing startup.");
-                break;
-            }
-        }
-        catch (SqlException ex)
-        {
-            // SQL Server may not be ready; log and retry.
-            logger.LogInformation(ex, "Database not ready yet (SqlException), retrying...");
-        }
-        catch (Exception ex)
-        {
-            logger.LogInformation(ex, "Unexpected error while checking DB readiness, retrying...");
-        }
-
-        if (sw.Elapsed > maxWait)
-        {
-            logger.LogError("Timed out waiting for database to become ready after {Timeout}s", timeoutSeconds);
+            await db.Database.CanConnectAsync();
             break;
         }
-
-        logger.LogInformation("Waiting {Delay}s for database to become ready...", delay.TotalSeconds);
-        await Task.Delay(delay);
-        // Exponential backoff up to 5s
-        delay = TimeSpan.FromSeconds(Math.Min(5, delay.TotalSeconds * 2));
+        catch
+        {
+            logger.LogWarning("Database not ready, retrying in 2s... ({Retries} left)", retries);
+            await Task.Delay(2000);
+        }
     }
 
-    try
-    {
-        await context.Database.MigrateAsync();
-        logger.LogInformation("Database migrations completed successfully");
-    }
-    catch (SqlException ex) when (ex.Number == 1801)
-    {
-        // SQL Server error 1801 = Database already exists. Race between processes creating DB.
-        logger.LogWarning(ex, "Database already exists (race). Continuing without failing startup.");
-    }
-    catch (Exception ex)
-    {
-        logger.LogError(ex, "An error occurred while migrating the database");
-    }
+    await DatabaseInitializer.InitializeAsync(db, logger);
 }
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
-}
-
+// --- Middleware ---
+app.UseCors();
 app.UseHttpsRedirection();
-
-app.UseCors("AllowUI");
-
 app.UseAuthorization();
-
 app.MapControllers();
-
-// Map SignalR hub
-app.MapHub<TalkGroupHub>("/hubs/talkgroup");
-
-// Add health check endpoint
-app.MapGet("/health", () => Results.Ok(new { status = "healthy", timestamp = DateTime.UtcNow }));
+app.MapHub<TalkGroupHub>("/hubs/talkgroups");
 
 app.Run();

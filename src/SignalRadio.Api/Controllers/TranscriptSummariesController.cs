@@ -1,177 +1,25 @@
 using Microsoft.AspNetCore.Mvc;
-using SignalRadio.Core.Models;
-using SignalRadio.DataAccess.Services;
-using SignalRadio.DataAccess.Extensions;
+using SignalRadio.Core.Dtos;
+using SignalRadio.Core.Interfaces;
 
 namespace SignalRadio.Api.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
-public class TranscriptSummariesController : ControllerBase
+[Route("api/transcript-summaries")]
+public class TranscriptSummariesController(ITranscriptSummariesService summaries) : ControllerBase
 {
-    private readonly ITranscriptSummariesService _summariesService;
+    [HttpGet("talkgroup/{talkGroupId:int}")]
+    public async Task<IActionResult> GetByTalkGroup(int talkGroupId, [FromQuery] DateTimeOffset? startTime, [FromQuery] DateTimeOffset? endTime, CancellationToken ct) =>
+        Ok(await summaries.GetByTalkGroupAsync(talkGroupId, startTime, endTime, ct));
 
-    public TranscriptSummariesController(ITranscriptSummariesService summariesService)
+    [HttpGet("{id:long}")]
+    public async Task<IActionResult> GetById(long id, CancellationToken ct)
     {
-        _summariesService = summariesService;
+        var result = await summaries.GetByIdAsync(id, ct);
+        return result == null ? NotFound() : Ok(result);
     }
 
-    /// <summary>
-    /// Get transcript summaries for a talkgroup within a time range
-    /// </summary>
-    [HttpGet("talkgroup/{talkGroupId}")]
-    public async Task<ActionResult<IEnumerable<TranscriptSummaryResponse>>> GetByTalkGroupAndTimeRange(
-        int talkGroupId,
-        [FromQuery] DateTimeOffset startTime,
-        [FromQuery] DateTimeOffset endTime)
-    {
-        var summaries = await _summariesService.GetByTalkGroupAndTimeRangeAsync(talkGroupId, startTime, endTime);
-        var responses = summaries.Select(s => s.ToResponse()).ToList();
-
-        return Ok(responses);
-    }
-
-    /// <summary>
-    /// Get a specific transcript summary by ID
-    /// </summary>
-    [HttpGet("{id}")]
-    public async Task<ActionResult<TranscriptSummaryResponse>> GetById(int id)
-    {
-        var summary = await _summariesService.GetByIdAsync(id);
-        if (summary == null)
-        {
-            return NotFound();
-        }
-
-        return Ok(summary.ToResponse());
-    }
-
-    /// <summary>
-    /// Get all transcript summaries with pagination
-    /// </summary>
-    [HttpGet]
-    public async Task<ActionResult<PagedResult<TranscriptSummaryResponse>>> GetAll(
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 20)
-    {
-        var pagedResult = await _summariesService.GetAllAsync(page, pageSize);
-
-        var responseResult = new PagedResult<TranscriptSummaryResponse>
-        {
-            Items = pagedResult.Items.Select(s => s.ToResponse()).ToList(),
-            TotalCount = pagedResult.TotalCount,
-            Page = pagedResult.Page,
-            PageSize = pagedResult.PageSize,
-            TotalPages = pagedResult.TotalPages
-        };
-
-        return Ok(responseResult);
-    }
-
-    /// <summary>
-    /// Get recent transcript summaries for ticker/dashboard display
-    /// Returns summaries generated within the last specified minutes (defaults to fresh summaries)
-    /// </summary>
-    [HttpGet("recent")]
-    public async Task<ActionResult<IEnumerable<TranscriptSummaryResponse>>> GetRecent(
-        [FromQuery] int maxAgeMinutes = 15,
-        [FromQuery] int limit = 10)
-    {
-        limit = Math.Clamp(limit, 1, 50);
-        maxAgeMinutes = Math.Clamp(maxAgeMinutes, 1, 1440); // 1 minute to 24 hours
-
-        var cutoffTime = DateTimeOffset.UtcNow.AddMinutes(-maxAgeMinutes);
-        var recentSummaries = await _summariesService.GetRecentAsync(cutoffTime, limit);
-
-        return Ok(recentSummaries.Select(s => s.ToResponse()).ToList());
-    }
-
-    /// <summary>
-    /// Get summaries for a specific talkgroup with pagination
-    /// </summary>
-    [HttpGet("talkgroup/{talkGroupId}/paged")]
-    public async Task<ActionResult<PagedResult<TranscriptSummaryResponse>>> GetByTalkGroup(
-        int talkGroupId,
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 20)
-    {
-        var pagedResult = await _summariesService.GetByTalkGroupAsync(talkGroupId, page, pageSize);
-
-        var responseResult = new PagedResult<TranscriptSummaryResponse>
-        {
-            Items = pagedResult.Items.Select(s => s.ToResponse()).ToList(),
-            TotalCount = pagedResult.TotalCount,
-            Page = pagedResult.Page,
-            PageSize = pagedResult.PageSize,
-            TotalPages = pagedResult.TotalPages
-        };
-
-        return Ok(responseResult);
-    }
-
-    /// <summary>
-    /// Search for topics across all summaries
-    /// </summary>
-    [HttpGet("topics/search")]
-    public async Task<ActionResult<IEnumerable<object>>> SearchTopics([FromQuery] string searchTerm)
-    {
-        if (string.IsNullOrWhiteSpace(searchTerm))
-        {
-            return BadRequest("Search term is required");
-        }
-
-        var topics = await _summariesService.SearchTopicsAsync(searchTerm);
-        var results = topics.Select(t => new
-        {
-            Topic = t.Topic,
-            Relevance = t.Relevance,
-            TalkGroupId = t.TranscriptSummary?.TalkGroupId,
-            TalkGroupName = t.TranscriptSummary?.TalkGroup?.Name ?? t.TranscriptSummary?.TalkGroup?.AlphaTag,
-            GeneratedAt = t.TranscriptSummary?.GeneratedAt
-        });
-
-        return Ok(results);
-    }
-
-    /// <summary>
-    /// Get notable calls for a specific call ID
-    /// </summary>
-    [HttpGet("notable-calls/{callId}")]
-    public async Task<ActionResult<IEnumerable<object>>> GetNotableCallsByCallId(int callId)
-    {
-        var notableCalls = await _summariesService.GetNotableCallsByCallIdAsync(callId);
-        var results = notableCalls.Select(nic => new
-        {
-            Description = nic.NotableIncident?.Description ?? "",
-            ImportanceScore = nic.NotableIncident?.ImportanceScore,
-            CallNote = nic.CallNote,
-            CallId = nic.CallId,
-            // Get summary information via the incident's relationships
-            Summaries = nic.NotableIncident?.TranscriptSummaryNotableIncidents?.Select(tsni => new
-            {
-                TalkGroupId = tsni.TranscriptSummary?.TalkGroupId,
-                TalkGroupName = tsni.TranscriptSummary?.TalkGroup?.Name ?? tsni.TranscriptSummary?.TalkGroup?.AlphaTag,
-                StartTime = tsni.TranscriptSummary?.StartTime,
-                EndTime = tsni.TranscriptSummary?.EndTime
-            }) ?? Enumerable.Empty<object>()
-        });
-
-        return Ok(results);
-    }
-
-    /// <summary>
-    /// Delete a transcript summary
-    /// </summary>
-    [HttpDelete("{id}")]
-    public async Task<IActionResult> Delete(int id)
-    {
-        var summary = await _summariesService.GetByIdAsync(id);
-        if (summary == null)
-        {
-            return NotFound();
-        }
-
-        await _summariesService.DeleteAsync(id);
-        return NoContent();
-    }
+    [HttpPost]
+    public async Task<IActionResult> Create([FromBody] CreateTranscriptSummaryRequest request, CancellationToken ct) =>
+        CreatedAtAction(nameof(GetById), new { id = (await summaries.CreateAsync(request, ct)).Id }, null);
 }

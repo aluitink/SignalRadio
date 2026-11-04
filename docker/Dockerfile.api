@@ -1,40 +1,14 @@
-# Build stage
-FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
+COPY src/SignalRadio.Core/SignalRadio.Core.csproj src/SignalRadio.Core/
+COPY src/SignalRadio.Data/SignalRadio.Data.csproj src/SignalRadio.Data/
+COPY src/SignalRadio.Api/SignalRadio.Api.csproj src/SignalRadio.Api/
+RUN dotnet restore src/SignalRadio.Api/SignalRadio.Api.csproj
+COPY src/ src/
+RUN dotnet publish src/SignalRadio.Api/SignalRadio.Api.csproj -c Release -o /app/publish
 
-# Copy project files
-COPY src/SignalRadio.Core/SignalRadio.Core.csproj SignalRadio.Core/
-COPY src/SignalRadio.DataAccess/SignalRadio.DataAccess.csproj SignalRadio.DataAccess/
-COPY src/SignalRadio.Api/SignalRadio.Api.csproj SignalRadio.Api/
-
-# Restore dependencies
-RUN dotnet restore SignalRadio.Api/SignalRadio.Api.csproj
-
-# Copy source code
-COPY src/SignalRadio.Core/ SignalRadio.Core/
-COPY src/SignalRadio.DataAccess/ SignalRadio.DataAccess/
-COPY src/SignalRadio.Api/ SignalRadio.Api/
-
-# Build the application
-WORKDIR /src/SignalRadio.Api
-RUN dotnet build -c Release -o /app/build
-RUN dotnet publish -c Release -o /app/publish
-
-# Runtime stage
-FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
 WORKDIR /app
-
-# Create directories
-RUN mkdir -p /app/temp /app/logs
-
-# Copy published application
 COPY --from=build /app/publish .
-
-# Expose port
 EXPOSE 8080
-
-# Set environment variables
-ENV ASPNETCORE_URLS=http://+:8080
-ENV ASPNETCORE_ENVIRONMENT=Production
-
 ENTRYPOINT ["dotnet", "SignalRadio.Api.dll"]

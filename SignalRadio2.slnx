@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/SignalRadio.Api/SignalRadio.Api.csproj" />
+    <Project Path="src/SignalRadio.Core/SignalRadio.Core.csproj" />
+    <Project Path="src/SignalRadio.Data/SignalRadio.Data.csproj" />
+    <Project Path="src/SignalRadio.Simulator/SignalRadio.Simulator.csproj" />
+  </Folder>
+</Solution>
