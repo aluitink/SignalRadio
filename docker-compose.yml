@@ -30,7 +30,7 @@ services:
       - AI__Enabled=false
       - AI__EmbeddingProvider=local
       - AI__ModelPath=/models/minilm
-      - Simulator__Enabled=true
+      - Simulator__Enabled=false
       - Simulator__IntervalSeconds=5
       - Simulator__TalkGroups=1,2,3,4,5
     volumes:
