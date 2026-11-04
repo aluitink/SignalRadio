@@ -21,8 +21,8 @@
   "systems": [{
     "shortName": "DaneCom",
     "type": "p25",
-    "control_channels": [172500000],
-    "modulation": "qpsk",
+    "control_channels": [172500000, 172075000, 171350000, 154972500, 154092500],
+    "modulation": "cqpsk",
     "talkgroupsFile": "/app/config/danecom-talkgroups.csv",
     "squelch": -50,
     "uploadScript": "/app/scripts/upload_callback.sh",
