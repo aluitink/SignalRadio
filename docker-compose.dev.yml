@@ -1,0 +1,20 @@
+services:
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    restart: unless-stopped
+    ports:
+      - "5050:80"
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@signalradio.dev
+      - PGADMIN_DEFAULT_PASSWORD=pgadmin
+      - PGADMIN_CONFIG_SERVER_MODE=False
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+      - ./docker/pgadmin/servers.json:/pgadmin4/servers.json:ro
+      - ./docker/pgadmin/passfile:/var/lib/pgadmin/passfile:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  pgadmin-data:

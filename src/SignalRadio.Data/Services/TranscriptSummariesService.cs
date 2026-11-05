@@ -44,6 +44,16 @@ public class TranscriptSummariesService(SignalRadioDbContext db) : ITranscriptSu
         return s == null ? null : ToDto(s);
     }
 
+    public async Task<TranscriptSummaryDto?> GetLatestForTalkGroupAsync(int talkGroupId, CancellationToken ct = default)
+    {
+        var s = await db.TranscriptSummaries
+            .Include(s => s.TalkGroup)
+            .Where(s => s.TalkGroupId == talkGroupId)
+            .OrderByDescending(s => s.EndTime)
+            .FirstOrDefaultAsync(ct);
+        return s == null ? null : ToDto(s);
+    }
+
     public async Task<TranscriptSummaryDto> CreateAsync(CreateTranscriptSummaryRequest request, CancellationToken ct = default)
     {
         var entity = new TranscriptSummary

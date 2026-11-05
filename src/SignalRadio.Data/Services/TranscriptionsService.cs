@@ -43,6 +43,20 @@ public class TranscriptionsService(SignalRadioDbContext db) : ITranscriptionsSer
         return t == null ? null : new TranscriptionDto(t.Id, t.RecordingId, t.Service, t.Language, t.FullText, t.Confidence, t.AdditionalDataJson, t.CreatedAt, t.IsFinal);
     }
 
+    public async Task<IReadOnlyList<TranscriptionDto>> GetFinalByTalkGroupSinceAsync(int talkGroupId, DateTime since, int limit, CancellationToken ct = default)
+    {
+        var sinceOffset = new DateTimeOffset(since, TimeSpan.Zero);
+        return await db.Transcriptions
+            .AsNoTracking()
+            .Where(t => t.IsFinal)
+            .Where(t => t.Recording.Call.TalkGroupId == talkGroupId)
+            .Where(t => t.Recording.Call.RecordingTime > sinceOffset)
+            .OrderBy(t => t.Recording.Call.RecordingTime)
+            .Take(limit)
+            .Select(t => new TranscriptionDto(t.Id, t.RecordingId, t.Service, t.Language, t.FullText, t.Confidence, t.AdditionalDataJson, t.CreatedAt, t.IsFinal))
+            .ToListAsync(ct);
+    }
+
     public async Task<bool> DeleteAsync(long id, CancellationToken ct = default)
     {
         var entity = await db.Transcriptions.FindAsync([id], ct);
