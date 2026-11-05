@@ -7,7 +7,7 @@ namespace SignalRadio.Api.Controllers;
 
 [ApiController]
 [Route("api/recordings")]
-public class RecordingsController(IRecordingsService recordings) : ControllerBase
+public class RecordingsController(IRecordingsService recordings, ICallNotifier notifier) : ControllerBase
 {
     [HttpPost("upload")]
     [RequestSizeLimit(524288000)]
@@ -31,8 +31,13 @@ public class RecordingsController(IRecordingsService recordings) : ControllerBas
             return BadRequest("Invalid metadata JSON.");
 
         using var stream = file.OpenReadStream();
-        var result = await recordings.CreateWithFileAsync(stream, file.FileName, request, ct);
-        return Ok(result);
+        var (recording, call) = await recordings.CreateWithFileAsync(stream, file.FileName, request, ct);
+
+        // Push the new call to the UI immediately (live stream + talk group pages).
+        // The full payload lets clients prepend the card and enqueue it for auto-play.
+        await notifier.NotifyNewCallAsync(call, ct);
+
+        return Ok(recording);
     }
 
     [HttpGet("{id:long}")]

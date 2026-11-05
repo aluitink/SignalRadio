@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import SummaryTicker from './SummaryTicker'
+import { useSubscriptions } from '../contexts/SubscriptionsContext'
 
 const links = [
   { to: '/', label: 'Live', end: true },
@@ -10,12 +11,14 @@ const links = [
 
 export default function Navigation() {
   const [open, setOpen] = useState(false)
+  const { queue, current, subscribedIds } = useSubscriptions()
+  const pending = queue.length + (current ? 1 : 0)
 
   const linkClass = ({ isActive }: { isActive: boolean }) =>
     `nav-link${isActive ? ' active' : ''}`
 
   return (
-    <header className="nav" role="banner">
+    <header className={`nav${open ? ' open' : ''}`} role="banner">
       <div className="nav-inner">
         <NavLink to="/" className="brand" aria-label="SignalRadio home">
           <span className="brand-dot" aria-hidden="true" />
@@ -34,6 +37,15 @@ export default function Navigation() {
               {l.label}
             </NavLink>
           ))}
+          {subscribedIds.length > 0 && (
+            <span
+              className={`nav-queue-badge${pending > 0 ? ' active' : ''}`}
+              title={`${subscribedIds.length} subscribed talk group${subscribedIds.length === 1 ? '' : 's'} · ${pending} in auto-play queue`}
+            >
+              <span className="nav-queue-icon" aria-hidden="true">🔔</span>
+              {pending > 0 && <span className="nav-queue-count">{pending}</span>}
+            </span>
+          )}
         </nav>
 
         {/* Mobile hamburger */}
@@ -48,7 +60,7 @@ export default function Navigation() {
       </div>
 
       {open && (
-        <nav className="nav-mobile" aria-label="Primary mobile">
+        <nav className="nav-menu" aria-label="Primary menu">
           {links.map((l) => (
             <NavLink
               key={l.to}

@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import type { CallDto } from '../types/dtos'
 import { useAudioPlayer } from '../contexts/AudioPlayerContext'
+import { useSubscriptions } from '../contexts/SubscriptionsContext'
 import { recordingDownloadUrlByCall } from '../api'
 import { formatDuration, formatDateTime, formatRelativeTime } from '../utils/format'
 import { useNow } from '../hooks/useNow'
@@ -13,10 +14,12 @@ export default function CallCard({
   transcript?: string | null
 }) {
   const { nowPlaying, isPlaying, play } = useAudioPlayer()
+  const { isSubscribed, toggleSubscription } = useSubscriptions()
   const now = useNow()
   const url = recordingDownloadUrlByCall(call.id)
   const isThis = nowPlaying?.url === url
   const playing = isThis && isPlaying
+  const subscribed = isSubscribed(call.talkGroupId)
 
   const handlePlay = () => {
     play({
@@ -24,6 +27,11 @@ export default function CallCard({
       title: `TG ${call.talkGroupNumber} · ${formatDateTime(call.recordingTime)}`,
       callId: call.id,
     })
+  }
+
+  const handleSubscribe = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    toggleSubscription(call.talkGroupId)
   }
 
   return (
@@ -58,6 +66,15 @@ export default function CallCard({
           <span className="dot">•</span>
           <span>{(call.frequencyHz / 1000).toFixed(3)} MHz</span>
         </span>
+        <button
+          className={`subscribe-icon${subscribed ? ' subscribed' : ''}`}
+          onClick={handleSubscribe}
+          aria-pressed={subscribed}
+          aria-label={subscribed ? `Unsubscribe from talk group ${call.talkGroupNumber}` : `Subscribe to talk group ${call.talkGroupNumber}`}
+          title={subscribed ? 'Unsubscribe from auto-play' : 'Subscribe to auto-play new calls'}
+        >
+          {subscribed ? '🔔' : '🔕'}
+        </button>
       </div>
 
       <span className="time" title={formatDateTime(call.recordingTime)}>

@@ -86,10 +86,17 @@ export default function CallStreamPage() {
   }, [hasMore, page, load])
 
   const status = useSignalR(null, {
-    onNewCall: () => {
-      setPage(1)
-      setTranscripts(new Map())
-      void load(1, false)
+    onNewCall: (payload) => {
+      // Prepend the new call to the top of the list (de-duplicated).
+      const call = typeof payload === 'number' ? null : payload
+      if (call) {
+        setCalls((prev) => (prev.some((c) => c.id === call.id) ? prev : [call, ...prev]))
+        void fetchTranscripts([call])
+      } else {
+        // Legacy numeric payload: refetch the first page.
+        setPage(1)
+        void load(1, false)
+      }
     },
     onNewTranscription: () => {
       // Re-fetch transcripts for currently loaded calls.

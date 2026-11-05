@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AudioPlayerProvider } from './contexts/AudioPlayerContext'
+import { SubscriptionsProvider } from './contexts/SubscriptionsContext'
 import Navigation from './components/Navigation'
 import AudioPlayer from './components/AudioPlayer'
 import CallStreamPage from './pages/CallStreamPage'
@@ -12,6 +13,7 @@ import NotFoundPage from './pages/NotFoundPage'
 export default function App() {
   return (
     <AudioPlayerProvider>
+      <SubscriptionsProvider>
       <BrowserRouter>
         <div className="app">
           <Navigation />
@@ -30,6 +32,7 @@ export default function App() {
           <AudioPlayer />
         </div>
       </BrowserRouter>
+      </SubscriptionsProvider>
     </AudioPlayerProvider>
   )
 }

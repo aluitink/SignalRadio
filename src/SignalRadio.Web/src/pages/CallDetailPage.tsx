@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import type { CallDto } from '../types/dtos'
 import { getCall, recordingDownloadUrlByCall, getFinalTranscription } from '../api'
 import { useAudioPlayer } from '../contexts/AudioPlayerContext'
+import { useSignalR } from '../hooks/useSignalR'
 import { formatDuration, formatFrequency, formatDateTime } from '../utils/format'
 
 export default function CallDetailPage() {
@@ -16,6 +17,15 @@ export default function CallDetailPage() {
 
   const { play } = useAudioPlayer()
 
+  const loadTranscript = useCallback(async (recordingId: number) => {
+    try {
+      const t = await getFinalTranscription(recordingId)
+      setTranscript(t?.fullText ?? null)
+    } catch {
+      // transcription not available yet
+    }
+  }, [])
+
   useEffect(() => {
     if (!Number.isFinite(callId)) return
     let active = true
@@ -27,12 +37,7 @@ export default function CallDetailPage() {
         if (!active) return
         setCall(c)
         if (c.latestRecordingId) {
-          try {
-            const t = await getFinalTranscription(c.latestRecordingId)
-            if (active) setTranscript(t?.fullText ?? null)
-          } catch {
-            // transcription not available yet
-          }
+          await loadTranscript(c.latestRecordingId)
         }
       })
       .catch((e) => {
@@ -45,7 +50,17 @@ export default function CallDetailPage() {
     return () => {
       active = false
     }
-  }, [callId])
+  }, [callId, loadTranscript])
+
+  // Live-update: when the backend finishes transcribing this call's recording,
+  // fetch and show the transcript without a manual refresh.
+  useSignalR(null, {
+    onNewTranscription: (recordingId) => {
+      if (call?.latestRecordingId === recordingId) {
+        void loadTranscript(recordingId)
+      }
+    },
+  })
 
   if (!Number.isFinite(callId)) {
     return <div className="error-state">Invalid call id.</div>

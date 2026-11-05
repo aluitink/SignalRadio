@@ -6,7 +6,7 @@ namespace SignalRadio.Core.Interfaces;
 public interface IRecordingsService
 {
     Task<RecordingDto> UploadAsync(long callId, string fileName, Stream content, long sizeBytes, CancellationToken ct = default);
-    Task<RecordingDto> CreateWithFileAsync(Stream content, string fileName, RecordingUploadRequest request, CancellationToken ct = default);
+    Task<(RecordingDto Recording, CallDto Call)> CreateWithFileAsync(Stream content, string fileName, RecordingUploadRequest request, CancellationToken ct = default);
     Task<RecordingDto?> GetByIdAsync(long id, CancellationToken ct = default);
     Task<Stream?> GetFileAsync(long id, CancellationToken ct = default);
     Task<Stream?> GetFileByCallIdAsync(long callId, CancellationToken ct = default);

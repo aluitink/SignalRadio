@@ -1,10 +1,17 @@
 import { useEffect, useRef, useState } from 'react'
 import { HubConnectionBuilder, HubConnectionState } from '@microsoft/signalr'
+import type { CallDto } from '../types/dtos'
 
 export type HubStatus = 'connecting' | 'connected' | 'disconnected'
 
 export interface SignalRHandlers {
-  onNewCall?: (callId: number) => void
+  /**
+   * New call notification. The server sends the full CallDto (rich payload) so
+   * clients can prepend the card and enqueue it for auto-play without an extra
+   * API round-trip. The legacy numeric callId form is still handled for
+   * backwards compatibility.
+   */
+  onNewCall?: (call: CallDto | number) => void
   onNewTranscription?: (recordingId: number, transcriptionId: number) => void
   onNewSummary?: (summaryId: number) => void
 }
@@ -38,7 +45,7 @@ export function useSignalR(talkGroupId: number | null, handlers: SignalRHandlers
       connection = build()
       setStatus('connecting')
 
-      connection.on('NewCall', (callId: number) => handlersRef.current.onNewCall?.(callId))
+      connection.on('NewCall', (payload: CallDto | number) => handlersRef.current.onNewCall?.(payload))
       connection.on('NewTranscription', (recordingId: number, transcriptionId: number) =>
         handlersRef.current.onNewTranscription?.(recordingId, transcriptionId),
       )

@@ -28,7 +28,7 @@ public class RecordingsService(SignalRadioDbContext db, IStorageService storage)
 
         return new RecordingDto(entity.Id, entity.CallId, entity.StorageLocationId, entity.FileName, entity.SizeBytes, entity.ReceivedAt, entity.IsProcessed, storage.GetUrl(storedFileName));
     }
-    public async Task<RecordingDto> CreateWithFileAsync(Stream content, string fileName, RecordingUploadRequest request, CancellationToken ct = default)
+    public async Task<(RecordingDto Recording, CallDto Call)> CreateWithFileAsync(Stream content, string fileName, RecordingUploadRequest request, CancellationToken ct = default)
     {
         // Upsert talk group by number
         var talkGroup = await db.TalkGroups.FirstOrDefaultAsync(t => t.Number == request.TalkgroupId, ct);
@@ -50,6 +50,11 @@ public class RecordingsService(SignalRadioDbContext db, IStorageService storage)
         db.Calls.Add(call);
         await db.SaveChangesAsync(ct);
 
+        var callDto = new CallDto(
+            call.Id, call.TalkGroupId, talkGroup.Number, talkGroup.Name,
+            call.RecordingTime, call.FrequencyHz, call.DurationSeconds, call.CreatedAt,
+            1, null);
+
         // Save the audio file and create the recording
         var storageLocation = await db.StorageLocations.FirstOrDefaultAsync(s => s.Kind == StorageKind.Local, ct)
             ?? throw new InvalidOperationException("No local storage location configured.");
@@ -68,7 +73,9 @@ public class RecordingsService(SignalRadioDbContext db, IStorageService storage)
         db.Recordings.Add(entity);
         await db.SaveChangesAsync(ct);
 
-        return new RecordingDto(entity.Id, entity.CallId, entity.StorageLocationId, entity.FileName, entity.SizeBytes, entity.ReceivedAt, entity.IsProcessed, storage.GetUrl(storedFileName));
+        var recordingDto = new RecordingDto(entity.Id, entity.CallId, entity.StorageLocationId, entity.FileName, entity.SizeBytes, entity.ReceivedAt, entity.IsProcessed, storage.GetUrl(storedFileName));
+        callDto = callDto with { LatestRecordingId = entity.Id };
+        return (recordingDto, callDto);
     }
 
     public async Task<RecordingDto?> GetByIdAsync(long id, CancellationToken ct = default)

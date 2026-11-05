@@ -58,9 +58,12 @@ services:
       - AI__Endpoint=http://192.168.1.225:8000/v1
       - AI__ApiKey=not-needed
       - AI__Model=Qwen3.8-27B
+      # Talk group CSV import (rich talkgroup info for the UI)
+      - TalkGroups__CsvPath=/app/config/danecom-talkgroups.csv
     volumes:
       - recordings:/data/recordings
       - ./models:/models:ro
+      - ./config:/app/config:ro
     depends_on:
       postgres:
         condition: service_healthy

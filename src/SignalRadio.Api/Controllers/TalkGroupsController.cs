@@ -1,13 +1,31 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using SignalRadio.Api.Services;
 using SignalRadio.Core.Dtos;
 using SignalRadio.Core.Interfaces;
+using SignalRadio.Data;
 
 namespace SignalRadio.Api.Controllers;
 
 [ApiController]
 [Route("api/talkgroups")]
-public class TalkGroupsController(ITalkGroupsService talkGroups) : ControllerBase
+public class TalkGroupsController(ITalkGroupsService talkGroups, SignalRadioDbContext db, IConfiguration config, ILogger<TalkGroupsController> logger) : ControllerBase
 {
+    /// <summary>
+    /// Re-imports talk group definitions from the configured CSV
+    /// (TalkGroups:CsvPath). Existing rows are enriched, never overwritten.
+    /// </summary>
+    [HttpPost("import")]
+    public async Task<IActionResult> Import(CancellationToken ct)
+    {
+        var csvPath = config["TalkGroups:CsvPath"];
+        if (string.IsNullOrWhiteSpace(csvPath))
+            return BadRequest("TalkGroups:CsvPath is not configured.");
+
+        var result = await TalkGroupCsvImporter.ImportFromFileAsync(db, csvPath, logger, ct);
+        return Ok(new { created = result.Created, updated = result.Updated, skipped = result.Skipped, totalRows = result.TotalRows });
+    }
+
     [HttpGet]
     public async Task<IActionResult> GetAll(CancellationToken ct) =>
         Ok(await talkGroups.GetAllAsync(ct));

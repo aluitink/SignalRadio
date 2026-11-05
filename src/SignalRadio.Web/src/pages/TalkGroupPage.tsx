@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import type { CallDto, TalkGroupDto, PagedResult } from '../types/dtos'
 import { getTalkGroup, getCalls, getFinalTranscription } from '../api'
 import { useSignalR } from '../hooks/useSignalR'
+import { useSubscriptions } from '../contexts/SubscriptionsContext'
 import CallCard from '../components/CallCard'
 import Pagination from '../components/Pagination'
 
@@ -18,6 +19,7 @@ export default function TalkGroupPage() {
   const [transcripts, setTranscripts] = useState<Map<number, string>>(new Map())
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const { isSubscribed, toggleSubscription } = useSubscriptions()
 
   const fetchTranscripts = useCallback(async (items: CallDto[]) => {
     const withRecording = items.filter((c) => c.latestRecordingId)
@@ -71,9 +73,24 @@ export default function TalkGroupPage() {
   }, [load, page])
 
   const status = useSignalR(Number.isFinite(talkGroupId) ? talkGroupId : null, {
-    onNewCall: () => {
-      setPage(1)
-      void load(1)
+    onNewCall: (payload) => {
+      const call = typeof payload === 'number' ? null : payload
+      if (call) {
+        // Prepend the new call to the top of the list (de-duplicated).
+        setResult((prev) => {
+          if (!prev) return prev
+          if (prev.items.some((c) => c.id === call.id)) return prev
+          return {
+            ...prev,
+            items: [call, ...prev.items],
+            totalCount: prev.totalCount + 1,
+          }
+        })
+        void fetchTranscripts([call])
+      } else {
+        setPage(1)
+        void load(1)
+      }
     },
     onNewTranscription: () => void load(page),
   })
@@ -92,10 +109,20 @@ export default function TalkGroupPage() {
             {group?.name ? ` · ${group.name}` : ''}
           </h1>
         </div>
-        <span className="live">
-          <span className={`status-dot ${status}`} aria-hidden="true" />
-          {status === 'connected' ? 'Live' : status === 'connecting' ? 'Connecting…' : 'Offline'}
-        </span>
+        <div className="page-header-actions">
+          <button
+            className={`btn subscribe-btn${isSubscribed(talkGroupId) ? ' subscribed' : ''}`}
+            onClick={() => toggleSubscription(talkGroupId)}
+            aria-pressed={isSubscribed(talkGroupId)}
+            title={isSubscribed(talkGroupId) ? 'Unsubscribe from auto-play' : 'Subscribe to auto-play new calls'}
+          >
+            {isSubscribed(talkGroupId) ? '✓ Subscribed' : '＋ Subscribe'}
+          </button>
+          <span className="live">
+            <span className={`status-dot ${status}`} aria-hidden="true" />
+            {status === 'connected' ? 'Live' : status === 'connecting' ? 'Connecting…' : 'Offline'}
+          </span>
+        </div>
       </div>
 
       {group?.description && <p className="tg-desc">{group.description}</p>}

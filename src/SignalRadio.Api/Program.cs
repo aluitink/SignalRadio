@@ -146,6 +146,23 @@ using (var seedScope = app.Services.CreateScope())
     var seedDb = seedScope.ServiceProvider.GetRequiredService<SignalRadioDbContext>();
     var seedLogger = seedScope.ServiceProvider.GetRequiredService<ILogger<Program>>();
     await DatabaseInitializer.SeedDataAsync(seedDb, seedLogger);
+
+    // Import rich talk group definitions (name/description/category/priority) from the
+    // trunk-recorder CSV. The recorder only yields the talkgroup number on upload, so
+    // this ensures the UI has full info for every group. Existing rows are enriched,
+    // never overwritten.
+    var csvPath = config["TalkGroups:CsvPath"];
+    if (!string.IsNullOrWhiteSpace(csvPath))
+    {
+        try
+        {
+            await TalkGroupCsvImporter.ImportFromFileAsync(seedDb, csvPath, seedLogger);
+        }
+        catch (Exception ex)
+        {
+            seedLogger.LogWarning(ex, "Talk group CSV import failed.");
+        }
+    }
 }
 
 // --- Middleware ---
