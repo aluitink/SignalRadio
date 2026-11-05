@@ -1,0 +1,37 @@
+# ASR overlay: adds the whisper ASR webservice to the main stack.
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.asr.yml up -d
+#
+# The webservice (onerahmet/openai-whisper-asr-webservice) runs faster-whisper
+# (CPU, int8) on port 9000. The API reaches it via the compose service name
+# "whisper-asr" (see ASR__Endpoint in docker-compose.yml).
+#
+# Model weights are cached in a named volume; the first start downloads the
+# model (~460 MB for "small"). To use a different model, change ASR_MODEL
+# (tiny/base/small/medium/large-v3) — a fresh download will occur.
+#
+# GPU: this image is the CPU build (torch+cpu). For GPU, use the
+# Dockerfile.gpu variant and add deploy.resources.reservations.devices.
+services:
+  whisper-asr:
+    image: onerahmet/openai-whisper-asr-webservice:latest
+    restart: unless-stopped
+    environment:
+      - ASR_ENGINE=faster_whisper
+      - ASR_MODEL=small
+      - ASR_DEVICE=cpu
+      - ASR_QUANTIZATION=int8
+    ports:
+      - "9000:9000"
+    volumes:
+      - whisper-cache:/root/.cache/whisper
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://localhost:9000/docs')\" || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+volumes:
+  whisper-cache:

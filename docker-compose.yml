@@ -27,7 +27,10 @@ services:
       - ConnectionStrings__Default=Host=postgres;Database=signalradio;Username=signalradio;Password=signalradio
       - StorageType=Local
       - StoragePath=/data/recordings
-      - ASR__Provider=stub
+      - ASR__Provider=whisper
+      # Service name from docker-compose.asr.yml (the whisper webservice).
+      - ASR__Endpoint=http://whisper-asr:9000
+      - ASR__Language=en
       - AI__Enabled=false
       - AI__EmbeddingProvider=local
       - AI__ModelPath=/models/minilm

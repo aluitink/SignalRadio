@@ -33,7 +33,21 @@ builder.Services.AddDataAccess(connectionString);
 // Scoped: LocalStorageService resolves the base path from the StorageLocation row via the DbContext.
 builder.Services.AddScoped<IStorageService, LocalStorageService>();
 builder.Services.AddSingleton<ICallNotifier, SignalRCallNotifier>();
-builder.Services.AddSingleton<IAsrService, StubAsrService>();
+
+// ASR provider: "stub" (default) or "whisper" (openai-whisper-asr-webservice, POST /asr).
+var asrProvider = config["ASR:Provider"] ?? "stub";
+if (asrProvider == "whisper")
+{
+    builder.Services.AddHttpClient<IAsrService, WhisperAsrService>(client =>
+    {
+        // Transcriptions can take a while on CPU; give the client a generous timeout.
+        client.Timeout = TimeSpan.FromMinutes(5);
+    });
+}
+else
+{
+    builder.Services.AddSingleton<IAsrService, StubAsrService>();
+}
 
 // AI client: stub / OpenAI-compatible / local ONNX
 var embeddingProvider = config["AI:EmbeddingProvider"] ?? "none"; // none | openai | local
@@ -90,6 +104,7 @@ if (simulatorEnabled)
 }
 builder.Services.AddHostedService<CallProcessingPipeline>();
 builder.Services.AddHostedService<SummariesAgentService>();
+// NOTE: TranscriptionPipeline (legacy, ungated) was removed — CallProcessingPipeline supersedes it.
 
 var app = builder.Build();
 
