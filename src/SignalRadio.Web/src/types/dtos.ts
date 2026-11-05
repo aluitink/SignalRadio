@@ -13,6 +13,25 @@ export interface CallDto {
   latestRecordingId?: number | null
 }
 
+export interface CallVolumeDto {
+  bucketStart: string // ISO
+  callCount: number
+  totalDurationSeconds: number
+}
+
+export interface TalkGroupVolumeDto {
+  talkGroupId: number
+  talkGroupNumber: string
+  talkGroupName?: string | null
+  callCount: number
+  totalDurationSeconds: number
+}
+
+export interface CallVolumeByTalkGroupDto {
+  bucketStart: string // ISO
+  talkGroups: TalkGroupVolumeDto[]
+}
+
 export interface PagedResult<T> {
   items: T[]
   page: number

@@ -3,6 +3,7 @@ import type { CallDto } from '../types/dtos'
 import { getRecentCallsPaged, getFinalTranscription } from '../api'
 import { useSignalR } from '../hooks/useSignalR'
 import CallCard from '../components/CallCard'
+import { CallVolumeStackedChart } from '../components/CallVolumeChart'
 
 const PAGE_SIZE = 20
 
@@ -14,6 +15,7 @@ export default function CallStreamPage() {
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [volumeRefresh, setVolumeRefresh] = useState(0)
   const sentinelRef = useRef<HTMLDivElement | null>(null)
   const loadingRef = useRef(false)
 
@@ -91,6 +93,7 @@ export default function CallStreamPage() {
       const call = typeof payload === 'number' ? null : payload
       if (call) {
         setCalls((prev) => (prev.some((c) => c.id === call.id) ? prev : [call, ...prev]))
+        setVolumeRefresh((k) => k + 1)
         void fetchTranscripts([call])
       } else {
         // Legacy numeric payload: refetch the first page.
@@ -113,6 +116,8 @@ export default function CallStreamPage() {
           {status === 'connected' ? 'Live' : status === 'connecting' ? 'Connecting…' : 'Offline'}
         </span>
       </div>
+
+      <CallVolumeStackedChart title="Call volume · all talk groups" refreshKey={volumeRefresh} />
 
       {loading ? (
         <div aria-busy="true">

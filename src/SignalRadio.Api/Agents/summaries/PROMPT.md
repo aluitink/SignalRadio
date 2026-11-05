@@ -16,6 +16,9 @@ window. Produce a concise, factual summary of what happened on that talkgroup du
   locations, cross-streets, addresses, call types, and outcomes.
 - Do not invent details that are not present in the transcripts. If the traffic is routine or
   sparse, say so briefly.
+- Do not name the radio system, agency, or deployment (for example, do not write "on DaneCom"
+  or "on the Dane County system"). The reader already knows which system they are listening to;
+  refer to the traffic by talkgroup, unit, location, or call type only.
 - Keep it under ~120 words.
 
 ## Tools

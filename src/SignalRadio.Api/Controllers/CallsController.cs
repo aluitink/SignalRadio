@@ -20,6 +20,23 @@ public class CallsController(ICallsService calls, IRecordingsService recordings,
     public async Task<IActionResult> GetRecentPaged([FromQuery] int page = 1, [FromQuery] int pageSize = 20, CancellationToken ct = default) =>
         Ok(await calls.GetRecentPagedAsync(page, pageSize, ct));
 
+    [HttpGet("volume")]
+    public async Task<IActionResult> GetVolume(
+        [FromQuery] DateTimeOffset? from,
+        [FromQuery] DateTimeOffset? to,
+        [FromQuery] int? talkGroupId,
+        [FromQuery] int? bucketMinutes,
+        CancellationToken ct) =>
+        Ok(await calls.GetVolumeAsync(from, to, talkGroupId, bucketMinutes, ct));
+
+    [HttpGet("volume-by-talkgroup")]
+    public async Task<IActionResult> GetVolumeByTalkGroup(
+        [FromQuery] DateTimeOffset? from,
+        [FromQuery] DateTimeOffset? to,
+        [FromQuery] int? bucketMinutes,
+        CancellationToken ct) =>
+        Ok(await calls.GetVolumeByTalkGroupAsync(from, to, bucketMinutes, ct));
+
     [HttpGet("{id:long}")]
     public async Task<IActionResult> GetById(long id, CancellationToken ct)
     {

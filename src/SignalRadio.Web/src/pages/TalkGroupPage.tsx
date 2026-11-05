@@ -6,6 +6,7 @@ import { useSignalR } from '../hooks/useSignalR'
 import { useSubscriptions } from '../contexts/SubscriptionsContext'
 import CallCard from '../components/CallCard'
 import Pagination from '../components/Pagination'
+import CallVolumeChart, { talkGroupColor } from '../components/CallVolumeChart'
 
 const PAGE_SIZE = 20
 
@@ -19,6 +20,7 @@ export default function TalkGroupPage() {
   const [transcripts, setTranscripts] = useState<Map<number, string>>(new Map())
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [volumeRefresh, setVolumeRefresh] = useState(0)
   const { isSubscribed, toggleSubscription } = useSubscriptions()
 
   const fetchTranscripts = useCallback(async (items: CallDto[]) => {
@@ -86,6 +88,7 @@ export default function TalkGroupPage() {
             totalCount: prev.totalCount + 1,
           }
         })
+        setVolumeRefresh((k) => k + 1)
         void fetchTranscripts([call])
       } else {
         setPage(1)
@@ -126,6 +129,13 @@ export default function TalkGroupPage() {
       </div>
 
       {group?.description && <p className="tg-desc">{group.description}</p>}
+
+      <CallVolumeChart
+        talkGroupId={talkGroupId}
+        title={`Call volume · TG ${group?.number ?? talkGroupId}`}
+        refreshKey={volumeRefresh}
+        barColor={talkGroupColor(talkGroupId)}
+      />
 
       {loading ? (
         <div aria-busy="true">

@@ -4,6 +4,8 @@
 
 import type {
   CallDto,
+  CallVolumeByTalkGroupDto,
+  CallVolumeDto,
   PagedResult,
   RecordingDto,
   SearchResultsDto,
@@ -57,6 +59,12 @@ export function getRecentCallsPaged(page = 1, pageSize = 20) {
 }
 export function getCall(id: number) {
   return apiGet<CallDto>(`/calls/${id}`)
+}
+export function getCallVolume(from?: string, to?: string, talkGroupId?: number, bucketMinutes?: number) {
+  return apiGet<CallVolumeDto[]>(`/calls/volume${qs({ from, to, talkGroupId, bucketMinutes })}`)
+}
+export function getCallVolumeByTalkGroup(from?: string, to?: string, bucketMinutes?: number) {
+  return apiGet<CallVolumeByTalkGroupDto[]>(`/calls/volume-by-talkgroup${qs({ from, to, bucketMinutes })}`)
 }
 
 // ---- Recordings ----

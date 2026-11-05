@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { TalkGroupDto } from '../types/dtos'
 import { getTalkGroups } from '../api'
+import { CallVolumeStackedChart } from '../components/CallVolumeChart'
 
 export default function TalkGroupsPage() {
   const [groups, setGroups] = useState<TalkGroupDto[]>([])
@@ -33,6 +34,8 @@ export default function TalkGroupsPage() {
       <div className="page-header">
         <h1>Talk Groups</h1>
       </div>
+
+      <CallVolumeStackedChart title="Call volume · all talk groups" />
 
       {loading ? (
         <div aria-busy="true">
