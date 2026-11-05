@@ -68,18 +68,25 @@ using (var scope = app.Services.CreateScope())
 
     // Wait for database to be ready
     var retries = 30;
-    while (retries-- > 0)
+    var connected = false;
+    while (retries-- > 0 && !connected)
     {
         try
         {
             await db.Database.CanConnectAsync();
-            break;
+            connected = true;
         }
-        catch
+        catch (Exception ex)
         {
-            logger.LogWarning("Database not ready, retrying in 2s... ({Retries} left)", retries);
+            logger.LogWarning(ex, "Database not ready, retrying in 2s... ({Retries} left)", retries);
             await Task.Delay(2000);
         }
+    }
+
+    if (!connected)
+    {
+        logger.LogError("Could not connect to database after {Retries} retries. Exiting.", retries);
+        Environment.Exit(1);
     }
 
     await DatabaseInitializer.InitializeAsync(db, logger);

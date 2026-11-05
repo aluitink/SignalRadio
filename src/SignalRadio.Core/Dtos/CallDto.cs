@@ -9,7 +9,8 @@ public record CallDto(
     double FrequencyHz,
     double DurationSeconds,
     DateTime CreatedAt,
-    int RecordingCount);
+    int RecordingCount,
+    long? LatestRecordingId = null);
 
 public record CreateCallRequest(
     int TalkGroupId,

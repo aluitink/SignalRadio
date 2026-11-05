@@ -42,6 +42,14 @@ public class RecordingsController(IRecordingsService recordings) : ControllerBas
         return result == null ? NotFound() : Ok(result);
     }
 
+    [HttpGet("call/{callId:long}/download")]
+    public async Task<IActionResult> DownloadByCallId(long callId, CancellationToken ct)
+    {
+        var stream = await recordings.GetFileByCallIdAsync(callId, ct);
+        if (stream == null) return NotFound();
+        return File(stream, "audio/wav");
+    }
+
     [HttpGet("{id:long}/download")]
     public async Task<IActionResult> Download(long id, CancellationToken ct)
     {

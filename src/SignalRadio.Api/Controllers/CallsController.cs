@@ -16,6 +16,10 @@ public class CallsController(ICallsService calls, IRecordingsService recordings,
     public async Task<IActionResult> GetRecent([FromQuery] int count = 20, CancellationToken ct = default) =>
         Ok(await calls.GetRecentAsync(count, ct));
 
+    [HttpGet("recent-paged")]
+    public async Task<IActionResult> GetRecentPaged([FromQuery] int page = 1, [FromQuery] int pageSize = 20, CancellationToken ct = default) =>
+        Ok(await calls.GetRecentPagedAsync(page, pageSize, ct));
+
     [HttpGet("{id:long}")]
     public async Task<IActionResult> GetById(long id, CancellationToken ct)
     {

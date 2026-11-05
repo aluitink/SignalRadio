@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import type { CallDto, TalkGroupDto, PagedResult } from '../types/dtos'
-import { getTalkGroup, getCalls } from '../api'
+import { getTalkGroup, getCalls, getFinalTranscription } from '../api'
 import { useSignalR } from '../hooks/useSignalR'
 import CallCard from '../components/CallCard'
 import Pagination from '../components/Pagination'
@@ -15,8 +15,31 @@ export default function TalkGroupPage() {
   const [group, setGroup] = useState<TalkGroupDto | null>(null)
   const [page, setPage] = useState(1)
   const [result, setResult] = useState<PagedResult<CallDto> | null>(null)
+  const [transcripts, setTranscripts] = useState<Map<number, string>>(new Map())
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  const fetchTranscripts = useCallback(async (items: CallDto[]) => {
+    const withRecording = items.filter((c) => c.latestRecordingId)
+    if (withRecording.length === 0) return
+    const results = await Promise.all(
+      withRecording.map(async (c) => {
+        try {
+          const t = await getFinalTranscription(c.latestRecordingId!)
+          return { callId: c.id, text: t?.fullText ?? null }
+        } catch {
+          return { callId: c.id, text: null }
+        }
+      }),
+    )
+    setTranscripts((prev) => {
+      const next = new Map(prev)
+      for (const r of results) {
+        if (r.text) next.set(r.callId, r.text)
+      }
+      return next
+    })
+  }, [])
 
   const load = useCallback(async (p: number) => {
     if (!Number.isFinite(talkGroupId)) return
@@ -24,12 +47,13 @@ export default function TalkGroupPage() {
       const data = await getCalls(talkGroupId, p, PAGE_SIZE)
       setResult(data)
       setError(null)
+      void fetchTranscripts(data.items)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load calls')
     } finally {
       setLoading(false)
     }
-  }, [talkGroupId])
+  }, [talkGroupId, fetchTranscripts])
 
   useEffect(() => {
     if (!Number.isFinite(talkGroupId)) return
@@ -94,7 +118,7 @@ export default function TalkGroupPage() {
       ) : (
         <>
           {result.items.map((c) => (
-            <CallCard key={c.id} call={c} />
+            <CallCard key={c.id} call={c} transcript={transcripts.get(c.id)} />
           ))}
           {result.totalPages > 1 && (
             <Pagination

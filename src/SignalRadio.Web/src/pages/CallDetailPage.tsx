@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import type { CallDto } from '../types/dtos'
-import { getCall, recordingDownloadUrl } from '../api'
+import { getCall, recordingDownloadUrlByCall, getFinalTranscription } from '../api'
 import { useAudioPlayer } from '../contexts/AudioPlayerContext'
 import { formatDuration, formatFrequency, formatDateTime } from '../utils/format'
 
@@ -10,6 +10,7 @@ export default function CallDetailPage() {
   const callId = id ? Number(id) : NaN
 
   const [call, setCall] = useState<CallDto | null>(null)
+  const [transcript, setTranscript] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -22,8 +23,17 @@ export default function CallDetailPage() {
     setError(null)
 
     getCall(callId)
-      .then((c) => {
-        if (active) setCall(c)
+      .then(async (c) => {
+        if (!active) return
+        setCall(c)
+        if (c.latestRecordingId) {
+          try {
+            const t = await getFinalTranscription(c.latestRecordingId)
+            if (active) setTranscript(t?.fullText ?? null)
+          } catch {
+            // transcription not available yet
+          }
+        }
       })
       .catch((e) => {
         if (active) setError(e instanceof Error ? e.message : 'Failed to load call')
@@ -58,7 +68,7 @@ export default function CallDetailPage() {
     )
   }
 
-  const audioUrl = recordingDownloadUrl(call.id)
+  const audioUrl = recordingDownloadUrlByCall(call.id)
 
   return (
     <div>
@@ -111,10 +121,14 @@ export default function CallDetailPage() {
 
       <div className="card">
         <h2 style={{ marginTop: 0 }}>Transcript</h2>
-        <div className="empty-state">
-          Transcription is processed asynchronously and will appear in search once
-          available.
-        </div>
+        {transcript ? (
+          <p className="detail-transcript">{transcript}</p>
+        ) : (
+          <div className="empty-state">
+            Transcription is processed asynchronously and will appear here once
+            available.
+          </div>
+        )}
       </div>
     </div>
   )

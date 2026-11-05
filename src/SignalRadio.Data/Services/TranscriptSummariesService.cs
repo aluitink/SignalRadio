@@ -22,6 +22,18 @@ public class TranscriptSummariesService(SignalRadioDbContext db) : ITranscriptSu
         return summaries.Select(ToDto).ToList();
     }
 
+    public async Task<IReadOnlyList<TranscriptSummaryDto>> GetRecentAsync(int count = 10, CancellationToken ct = default)
+    {
+        var summaries = await db.TranscriptSummaries
+            .Include(s => s.TalkGroup)
+            .Include(s => s.TranscriptSummaryTopics).ThenInclude(t => t.Topic)
+            .Include(s => s.TranscriptSummaryNotableIncidents).ThenInclude(n => n.NotableIncident)
+            .OrderByDescending(s => s.GeneratedAt)
+            .Take(count)
+            .ToListAsync(ct);
+        return summaries.Select(ToDto).ToList();
+    }
+
     public async Task<TranscriptSummaryDto?> GetByIdAsync(long id, CancellationToken ct = default)
     {
         var s = await db.TranscriptSummaries

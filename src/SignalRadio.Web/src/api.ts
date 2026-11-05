@@ -52,6 +52,9 @@ export function getCalls(talkGroupId: number, page = 1, pageSize = 20) {
 export function getRecentCalls(count = 30) {
   return apiGet<CallDto[]>(`/calls/recent${qs({ count })}`)
 }
+export function getRecentCallsPaged(page = 1, pageSize = 20) {
+  return apiGet<PagedResult<CallDto>>(`/calls/recent-paged${qs({ page, pageSize })}`)
+}
 export function getCall(id: number) {
   return apiGet<CallDto>(`/calls/${id}`)
 }
@@ -63,6 +66,9 @@ export function getRecording(id: number) {
 // Audio stream URLs (used directly by <audio> / fetch)
 export function recordingDownloadUrl(id: number): string {
   return `${API_BASE}/recordings/${id}/download`
+}
+export function recordingDownloadUrlByCall(callId: number): string {
+  return `${API_BASE}/recordings/call/${callId}/download`
 }
 export function recordingFileUrl(fileName: string): string {
   return `${API_BASE}/recordings/file/${encodeURIComponent(fileName)}`
@@ -90,6 +96,9 @@ export function search(q: string, page = 1, pageSize = 20, semantic = false) {
 }
 
 // ---- Transcript Summaries ----
+export function getRecentSummaries(count = 10) {
+  return apiGet<TranscriptSummaryDto[]>(`/transcript-summaries/recent${qs({ count })}`)
+}
 export function getSummariesForTalkGroup(talkGroupId: number, startTime?: string, endTime?: string) {
   return apiGet<TranscriptSummaryDto[]>(
     `/transcript-summaries/talkgroup/${talkGroupId}${qs({ startTime, endTime })}`,

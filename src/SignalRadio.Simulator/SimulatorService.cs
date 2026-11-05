@@ -76,6 +76,55 @@ public class SimulatorService(
         // Notify
         await notifier.NotifyNewCallAsync(group.Id, call.Id, ct);
         logger.LogInformation("Simulated call {CallId} on talk group {Group} ({Duration}s).", call.Id, group.Number, duration);
+
+        // Occasionally generate a mock AI summary for this talk group so the
+        // web UI's summary ticker has data to show while the simulator runs.
+        if (_rng.NextDouble() < 0.35)
+        {
+            await TryCreateMockSummaryAsync(scope, group, ct);
+        }
+    }
+
+    private async Task TryCreateMockSummaryAsync(IServiceScope scope, TalkGroupDto group, CancellationToken ct)
+    {
+        var summaries = scope.ServiceProvider.GetRequiredService<ITranscriptSummariesService>();
+        var calls = scope.ServiceProvider.GetRequiredService<ICallsService>();
+        var notifier = scope.ServiceProvider.GetRequiredService<ICallNotifier>();
+
+        // Gather a handful of recent calls on this talk group to summarise.
+        var recent = await calls.GetPagedAsync(group.Id, page: 1, pageSize: 5, ct: ct);
+        if (recent.Items.Count == 0) return;
+
+        var start = recent.Items[^1].RecordingTime;
+        var end = recent.Items[0].RecordingTime;
+        var totalDuration = recent.Items.Sum(c => c.DurationSeconds);
+
+        var summaryText = PickMockSummary(group, recent.Items.Count);
+        var created = await summaries.CreateAsync(new CreateTranscriptSummaryRequest(
+            group.Id,
+            start,
+            end,
+            recent.Items.Count,
+            totalDuration,
+            summaryText,
+            Array.Empty<int>(),
+            Array.Empty<long>()), ct);
+
+        await notifier.NotifyNewSummaryAsync(group.Id, created.Id, ct);
+        logger.LogInformation("Simulated summary {SummaryId} for talk group {Group}.", created.Id, group.Number);
+    }
+
+    private string PickMockSummary(TalkGroupDto group, int callCount)
+    {
+        var templates = new[]
+        {
+            $"Routine traffic on {group.Name ?? group.Number}: {callCount} calls logged, no emergencies reported.",
+            $"Unit check-in and status updates on {group.Name ?? group.Number}. Traffic nominal.",
+            $"Dispatch coordination on {group.Name ?? group.Number}; {callCount} calls handled, no incidents.",
+            $"Field units reporting on {group.Name ?? group.Number}. Weather advisory discussed, operations continuing.",
+            $"Maintenance and logistics chatter on {group.Name ?? group.Number}. No actionable incidents.",
+        };
+        return templates[_rng.Next(templates.Length)];
     }
 
     private static byte[] CreateSilentWav(int durationSeconds)

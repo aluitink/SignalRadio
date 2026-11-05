@@ -85,6 +85,17 @@ public class RecordingsService(SignalRadioDbContext db, IStorageService storage)
         return await storage.OpenAsync(rec.FileName, ct);
     }
 
+    public async Task<Stream?> GetFileByCallIdAsync(long callId, CancellationToken ct = default)
+    {
+        var recording = await db.Recordings
+            .Where(r => r.CallId == callId)
+            .OrderByDescending(r => r.ReceivedAt)
+            .FirstOrDefaultAsync(ct);
+
+        if (recording == null) return null;
+        return await GetFileAsync(recording.Id, ct);
+    }
+
     public Task<Stream?> GetFileByFileNameAsync(string fileName, CancellationToken ct = default)
     {
         return storage.OpenAsync(fileName, ct);
