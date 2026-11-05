@@ -28,8 +28,8 @@ services:
       - StorageType=Local
       - StoragePath=/data/recordings
       - ASR__Provider=whisper
-      # Service name from docker-compose.asr.yml (the whisper webservice).
-      - ASR__Endpoint=http://whisper-asr:9000
+      # Overridden by ASR__Endpoint in .env if set
+      - ASR__Endpoint=${ASR__Endpoint:-http://whisper-asr:9000}
       - ASR__Language=en
       - AI__Enabled=false
       - AI__EmbeddingProvider=local
