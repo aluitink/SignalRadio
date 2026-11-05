@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 COPY src/SignalRadio.Core/SignalRadio.Core.csproj src/SignalRadio.Core/
 COPY src/SignalRadio.Data/SignalRadio.Data.csproj src/SignalRadio.Data/
@@ -7,7 +7,7 @@ RUN dotnet restore src/SignalRadio.Api/SignalRadio.Api.csproj
 COPY src/ src/
 RUN dotnet publish src/SignalRadio.Api/SignalRadio.Api.csproj -c Release -o /app/publish
 
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
 COPY --from=build /app/publish .
 EXPOSE 8080
