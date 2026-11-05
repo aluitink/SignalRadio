@@ -124,7 +124,7 @@ button {
 /* ---- Call card ---- */
 .call-card {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto 1fr;
   gap: var(--space-2);
   align-items: start;
 }
@@ -146,24 +146,36 @@ button {
   color: #06121f;
 }
 
-.call-card .meta {
+.call-card .card-body {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px 12px;
-  font-size: 13px;
-  color: var(--text-dim);
-  margin-top: 6px;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
 }
-.call-card .meta .dot { color: var(--text-faint); }
 
-.call-card .transcript {
-  margin-top: 8px;
+.call-card .card-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.call-card .tg-link {
+  font-weight: 600;
   font-size: 14px;
-  color: var(--text-dim);
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+  color: var(--text);
+  min-width: 0;
   overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.call-card .row-end {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
 }
 
 .call-card .time {
@@ -172,41 +184,43 @@ button {
   white-space: nowrap;
 }
 
-/* Subscribe icon on call cards */
-.subscribe-icon {
+.call-card .card-row.sub {
+  font-size: 13px;
+  color: var(--text-dim);
+}
+.call-card .card-row.sub .dot { color: var(--text-faint); }
+
+.call-card .subscribe-icon {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
   background: transparent;
-  border: 1px solid transparent;
-  border-radius: 999px;
-  font-size: 14px;
-  line-height: 1;
-  padding: 3px 6px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
   color: var(--text-faint);
+  flex-shrink: 0;
   transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
-.subscribe-icon:hover {
+.call-card .subscribe-icon:hover {
   background: var(--card-bg-hover);
   border-color: var(--border-strong);
+  color: var(--text-dim);
 }
-.subscribe-icon.subscribed {
-  color: var(--accent);
-  background: var(--accent-soft);
-  border-color: transparent;
-}
-.subscribe-icon:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
-/* Page header action cluster (subscribe button + live status) */
-.page-header-actions {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-}
-.subscribe-btn.subscribed {
+.call-card .subscribe-icon.subscribed {
   background: var(--accent-soft);
   border-color: var(--accent-dim);
   color: var(--accent);
+}
+
+.call-card .transcript {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-dim);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 /* Spacing between call cards */
@@ -839,9 +853,7 @@ button {
 .ticker-stars .star.filled { color: var(--warning); }
 
 .nav-tabs {
-  display: flex;
-  gap: 4px;
-  margin-left: auto;
+  display: none;
 }
 .nav-link {
   padding: 8px 14px;
@@ -852,36 +864,6 @@ button {
 }
 .nav-link:hover { background: var(--card-bg-hover); color: var(--text); text-decoration: none; }
 .nav-link.active { background: var(--accent-soft); color: var(--accent); }
-
-/* Auto-play queue badge in nav */
-.nav-queue-badge {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 8px 10px;
-  border-radius: var(--radius);
-  color: var(--text-dim);
-  font-size: 15px;
-}
-.nav-queue-badge:hover { background: var(--card-bg-hover); color: var(--text); }
-.nav-queue-badge.active { color: var(--accent); }
-.nav-queue-count {
-  position: absolute;
-  top: 2px;
-  right: 2px;
-  min-width: 16px;
-  height: 16px;
-  padding: 0 4px;
-  border-radius: 999px;
-  background: var(--accent);
-  color: #06121f;
-  font-size: 10px;
-  font-weight: 700;
-  display: grid;
-  place-items: center;
-  line-height: 1;
-}
 .nav-burger {
   display: inline-flex;
   align-items: center;
@@ -896,21 +878,42 @@ button {
   border-radius: var(--radius);
   cursor: pointer;
 }
-.nav-menu {
-  display: none;
-  flex-direction: column;
-  padding: var(--space-1) var(--space-2) var(--space-2);
-  gap: 4px;
+.nav-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 999;
 }
-.nav.open .nav-menu {
+.nav-menu {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 260px;
+  background: rgba(10, 14, 22, 0.92);
+  backdrop-filter: blur(8px);
+  border-left: 1px solid var(--border);
+  padding: var(--space-3) var(--space-2);
   display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transform: translateX(100%);
+  transition: transform 0.25s ease;
+  z-index: 1000;
+}
+.nav-menu.open {
+  transform: translateX(0);
 }
 .nav-menu .nav-link { display: block; }
 
 @media (max-width: 767px) {
-  .nav-tabs { display: none; }
   .main-content { padding: var(--space-1); padding-bottom: calc(var(--space-3) + 72px); }
-  .call-card { grid-template-columns: auto 1fr; }
-  .call-card .time { grid-column: 2; }
+  .call-card .card-row {
+    flex-wrap: wrap;
+    gap: 4px 12px;
+  }
+  .call-card .card-row .time {
+    margin-left: auto;
+  }
   .audio-player .ap-title { max-width: 30%; }
 }

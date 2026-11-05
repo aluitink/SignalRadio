@@ -10,7 +10,7 @@ export function formatDuration(seconds: number): string {
 
 export function formatFrequency(hz: number): string {
   if (!Number.isFinite(hz)) return '—'
-  return `${(hz / 1000).toFixed(3)} MHz`
+  return `${(hz / 1_000_000).toFixed(3)} MHz`
 }
 
 export function formatTime(iso: string): string {
