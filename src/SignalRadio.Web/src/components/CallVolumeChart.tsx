@@ -322,8 +322,7 @@ export function CallVolumeStackedChart({
                       groupOrder.map((g, gi) => {
                         const tg = bucket.talkGroups.find((t) => t.talkGroupId === g.id)
                         if (!tg || tg.callCount === 0) return null
-                        // Minimum 3% height so even small buckets stay visible.
-                        const h = Math.max((tg.callCount / maxTotal) * 100, 3)
+                        const h = (tg.callCount / maxTotal) * 100
                         return (
                           <div
                             key={g.id}
