@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
+import SummaryTicker from './SummaryTicker'
 
 const links = [
   { to: '/', label: 'Live', end: true },
@@ -20,6 +21,11 @@ export default function Navigation() {
           <span className="brand-dot" aria-hidden="true" />
           SignalRadio
         </NavLink>
+
+        {/* Centered AI summary ticker */}
+        <div className="nav-ticker">
+          <SummaryTicker />
+        </div>
 
         {/* Desktop tab bar */}
         <nav className="nav-tabs" aria-label="Primary">

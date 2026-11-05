@@ -10,10 +10,12 @@ public static class DatabaseInitializer
         await db.Database.EnsureCreatedAsync();
         logger.LogInformation("Database created/verified via EnsureCreated.");
         await ApplySearchIndexesAsync(db, logger);
-        await SeedDataAsync(db, logger);
+        logger.LogInformation("DIAG: ApplySearchIndexesAsync returned, disposing context...");
+        await db.DisposeAsync();
+        logger.LogInformation("DIAG: Context disposed.");
     }
 
-    private static async Task SeedDataAsync(SignalRadioDbContext db, ILogger logger)
+    public static async Task SeedDataAsync(SignalRadioDbContext db, ILogger logger)
     {
         // Seed storage location if missing
         if (!await db.StorageLocations.AnyAsync())
@@ -49,50 +51,31 @@ public static class DatabaseInitializer
 
     private static async Task ApplySearchIndexesAsync(SignalRadioDbContext db, ILogger logger)
     {
-        var sql = $@"
-            ALTER TABLE ""Transcriptions""
-                ADD COLUMN IF NOT EXISTS ""SearchVector"" tsvector
-                GENERATED ALWAYS AS (to_tsvector('english', coalesce(""FullText"", ''))) STORED;
-            CREATE INDEX IF NOT EXISTS ""IX_Transcriptions_SearchVector""
-                ON ""Transcriptions"" USING GIN (""SearchVector"");
-
-            ALTER TABLE ""TranscriptSummaries""
-                ADD COLUMN IF NOT EXISTS ""SearchVector"" tsvector
-                GENERATED ALWAYS AS (to_tsvector('english', coalesce(""Summary"", ''))) STORED;
-            CREATE INDEX IF NOT EXISTS ""IX_TranscriptSummaries_SearchVector""
-                ON ""TranscriptSummaries"" USING GIN (""SearchVector"");
-
-            ALTER TABLE ""NotableIncidents""
-                ADD COLUMN IF NOT EXISTS ""SearchVector"" tsvector
-                GENERATED ALWAYS AS (to_tsvector('english', coalesce(""Description"", ''))) STORED;
-            CREATE INDEX IF NOT EXISTS ""IX_NotableIncidents_SearchVector""
-                ON ""NotableIncidents"" USING GIN (""SearchVector"");
-
-            ALTER TABLE ""Topics""
-                ADD COLUMN IF NOT EXISTS ""SearchVector"" tsvector
-                GENERATED ALWAYS AS (to_tsvector('english', coalesce(""Name"", ''))) STORED;
-            CREATE INDEX IF NOT EXISTS ""IX_Topics_SearchVector""
-                ON ""Topics"" USING GIN (""SearchVector"");
-
-            -- pgvector embedding columns (managed outside EF Core) + HNSW indexes for cosine search
-            ALTER TABLE ""Transcriptions""
-                ADD COLUMN IF NOT EXISTS ""Embedding"" vector({EmbeddingDimension});
-            CREATE INDEX IF NOT EXISTS ""IX_Transcriptions_Embedding""
-                ON ""Transcriptions"" USING hnsw (""Embedding"" vector_cosine_ops);
-
-            ALTER TABLE ""TranscriptSummaries""
-                ADD COLUMN IF NOT EXISTS ""Embedding"" vector({EmbeddingDimension});
-            CREATE INDEX IF NOT EXISTS ""IX_TranscriptSummaries_Embedding""
-                ON ""TranscriptSummaries"" USING hnsw (""Embedding"" vector_cosine_ops);
-
-            -- A recording should have at most one final transcription
-            CREATE UNIQUE INDEX IF NOT EXISTS ""UX_Transcriptions_FinalPerRecording""
-                ON ""Transcriptions"" (""RecordingId"") WHERE ""IsFinal"";
-        ";
+        // Each statement runs as its own command to avoid Npgsql multi-statement
+        // batch locking issues that can hang subsequent queries on the same context.
+        var statements = new[]
+        {
+            "ALTER TABLE \"Transcriptions\" ADD COLUMN IF NOT EXISTS \"SearchVector\" tsvector GENERATED ALWAYS AS (to_tsvector('english', coalesce(\"FullText\", ''))) STORED",
+            "CREATE INDEX IF NOT EXISTS \"IX_Transcriptions_SearchVector\" ON \"Transcriptions\" USING GIN (\"SearchVector\")",
+            "ALTER TABLE \"TranscriptSummaries\" ADD COLUMN IF NOT EXISTS \"SearchVector\" tsvector GENERATED ALWAYS AS (to_tsvector('english', coalesce(\"Summary\", ''))) STORED",
+            "CREATE INDEX IF NOT EXISTS \"IX_TranscriptSummaries_SearchVector\" ON \"TranscriptSummaries\" USING GIN (\"SearchVector\")",
+            "ALTER TABLE \"NotableIncidents\" ADD COLUMN IF NOT EXISTS \"SearchVector\" tsvector GENERATED ALWAYS AS (to_tsvector('english', coalesce(\"Description\", ''))) STORED",
+            "CREATE INDEX IF NOT EXISTS \"IX_NotableIncidents_SearchVector\" ON \"NotableIncidents\" USING GIN (\"SearchVector\")",
+            "ALTER TABLE \"Topics\" ADD COLUMN IF NOT EXISTS \"SearchVector\" tsvector GENERATED ALWAYS AS (to_tsvector('english', coalesce(\"Name\", ''))) STORED",
+            "CREATE INDEX IF NOT EXISTS \"IX_Topics_SearchVector\" ON \"Topics\" USING GIN (\"SearchVector\")",
+            $"ALTER TABLE \"Transcriptions\" ADD COLUMN IF NOT EXISTS \"Embedding\" vector({EmbeddingDimension})",
+            "CREATE INDEX IF NOT EXISTS \"IX_Transcriptions_Embedding\" ON \"Transcriptions\" USING hnsw (\"Embedding\" vector_cosine_ops)",
+            $"ALTER TABLE \"TranscriptSummaries\" ADD COLUMN IF NOT EXISTS \"Embedding\" vector({EmbeddingDimension})",
+            "CREATE INDEX IF NOT EXISTS \"IX_TranscriptSummaries_Embedding\" ON \"TranscriptSummaries\" USING hnsw (\"Embedding\" vector_cosine_ops)",
+            "CREATE UNIQUE INDEX IF NOT EXISTS \"UX_Transcriptions_FinalPerRecording\" ON \"Transcriptions\" (\"RecordingId\") WHERE \"IsFinal\""
+        };
 
         try
         {
-            await db.Database.ExecuteSqlRawAsync(sql);
+            foreach (var sql in statements)
+            {
+                await db.Database.ExecuteSqlRawAsync(sql);
+            }
             logger.LogInformation("Search indexes (tsvector GIN + vector HNSW) applied.");
         }
         catch (Exception ex)

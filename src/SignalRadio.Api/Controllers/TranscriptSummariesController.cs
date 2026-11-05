@@ -12,6 +12,10 @@ public class TranscriptSummariesController(ITranscriptSummariesService summaries
     public async Task<IActionResult> GetByTalkGroup(int talkGroupId, [FromQuery] DateTimeOffset? startTime, [FromQuery] DateTimeOffset? endTime, CancellationToken ct) =>
         Ok(await summaries.GetByTalkGroupAsync(talkGroupId, startTime, endTime, ct));
 
+    [HttpGet("recent")]
+    public async Task<IActionResult> GetRecent([FromQuery] int count = 10, CancellationToken ct = default) =>
+        Ok(await summaries.GetRecentAsync(count, ct));
+
     [HttpGet("{id:long}")]
     public async Task<IActionResult> GetById(long id, CancellationToken ct)
     {

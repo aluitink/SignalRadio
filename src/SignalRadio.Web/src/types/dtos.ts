@@ -10,6 +10,7 @@ export interface CallDto {
   durationSeconds: number
   createdAt: string // ISO
   recordingCount: number
+  latestRecordingId?: number | null
 }
 
 export interface PagedResult<T> {

@@ -1,3 +1,9 @@
+using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Options;
+using OpenAI;
+using OpenAI.Chat;
+using SignalRadio.Api.Agents;
+using SignalRadio.Api.Features;
 using SignalRadio.Api.Hubs;
 using SignalRadio.Api.Services;
 using SignalRadio.Core.Interfaces;
@@ -11,6 +17,14 @@ var config = builder.Configuration;
 var connectionString = config.GetConnectionString("Default") ?? "Host=localhost;Port=5432;Database=signalradio;Username=signalradio;Password=signalradio";
 var aiEnabled = config.GetValue<bool>("AI:Enabled");
 var simulatorEnabled = config.GetValue<bool>("Simulator:Enabled");
+
+// Feature flags + pipeline/summaries tuning
+builder.Services.Configure<FeatureFlags>(config.GetSection(FeatureFlags.SectionName));
+builder.Services.Configure<PipelineOptions>(config.GetSection(PipelineOptions.SectionName));
+builder.Services.Configure<SummariesOptions>(config.GetSection(SummariesOptions.SectionName));
+builder.Services.AddSingleton(sp => sp.GetRequiredService<IOptions<FeatureFlags>>().Value);
+builder.Services.AddSingleton(sp => sp.GetRequiredService<IOptions<PipelineOptions>>().Value);
+builder.Services.AddSingleton(sp => sp.GetRequiredService<IOptions<SummariesOptions>>().Value);
 
 // --- Data Access ---
 builder.Services.AddDataAccess(connectionString);
@@ -51,12 +65,31 @@ builder.Services.AddCors(options =>
 // --- Controllers ---
 builder.Services.AddControllers();
 
+// --- AI agent infrastructure (MAF) ---
+builder.Services.AddSingleton<IAgentDefinition, SummariesAgent>();
+builder.Services.AddSingleton<AgentRegistry>(sp =>
+{
+    var registry = new AgentRegistry(
+        sp.GetRequiredService<ILogger<AgentRegistry>>(),
+        sp.GetRequiredService<IConfiguration>());
+    foreach (var def in sp.GetServices<IAgentDefinition>())
+        registry.Register(def);
+    return registry;
+});
+
+builder.Services.AddSingleton<IChatClient>(sp =>
+    AgentChatClientFactory.CreateOrStub(
+        config["AI:Endpoint"],
+        config["AI:ApiKey"],
+        config["AI:Model"]));
+
 // --- Background Services ---
 if (simulatorEnabled)
 {
     builder.Services.AddHostedService<SimulatorService>();
 }
-builder.Services.AddHostedService<TranscriptionPipeline>();
+builder.Services.AddHostedService<CallProcessingPipeline>();
+builder.Services.AddHostedService<SummariesAgentService>();
 
 var app = builder.Build();
 
@@ -68,21 +101,36 @@ using (var scope = app.Services.CreateScope())
 
     // Wait for database to be ready
     var retries = 30;
-    while (retries-- > 0)
+    var connected = false;
+    while (retries-- > 0 && !connected)
     {
         try
         {
             await db.Database.CanConnectAsync();
-            break;
+            connected = true;
         }
-        catch
+        catch (Exception ex)
         {
-            logger.LogWarning("Database not ready, retrying in 2s... ({Retries} left)", retries);
+            logger.LogWarning(ex, "Database not ready, retrying in 2s... ({Retries} left)", retries);
             await Task.Delay(2000);
         }
     }
 
+    if (!connected)
+    {
+        logger.LogError("Could not connect to database after {Retries} retries. Exiting.", retries);
+        Environment.Exit(1);
+    }
+
     await DatabaseInitializer.InitializeAsync(db, logger);
+}
+
+// Seed data in a fresh scope to avoid any connection state issues from raw SQL above
+using (var seedScope = app.Services.CreateScope())
+{
+    var seedDb = seedScope.ServiceProvider.GetRequiredService<SignalRadioDbContext>();
+    var seedLogger = seedScope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+    await DatabaseInitializer.SeedDataAsync(seedDb, seedLogger);
 }
 
 // --- Middleware ---

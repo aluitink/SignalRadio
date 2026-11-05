@@ -9,6 +9,7 @@ public interface IRecordingsService
     Task<RecordingDto> CreateWithFileAsync(Stream content, string fileName, RecordingUploadRequest request, CancellationToken ct = default);
     Task<RecordingDto?> GetByIdAsync(long id, CancellationToken ct = default);
     Task<Stream?> GetFileAsync(long id, CancellationToken ct = default);
+    Task<Stream?> GetFileByCallIdAsync(long callId, CancellationToken ct = default);
     Task<Stream?> GetFileByFileNameAsync(string fileName, CancellationToken ct = default);
     Task<IReadOnlyList<RecordingDto>> GetNeedingTranscriptionAsync(int limit, double minDurationSeconds, int lookbackHours, CancellationToken ct = default);
     Task MarkProcessedAsync(long id, CancellationToken ct = default);

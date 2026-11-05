@@ -20,6 +20,7 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile.api
+    restart: unless-stopped
     ports:
       - "5000:8080"
     environment:
@@ -33,6 +34,27 @@ services:
       - Simulator__Enabled=false
       - Simulator__IntervalSeconds=5
       - Simulator__TalkGroups=1,2,3,4,5
+      # Feature flags
+      - Features__Asr=true
+      - Features__Embeddings=true
+      - Features__Summaries=true
+      # Pipeline tuning
+      - Pipeline__RecentBatchSize=10
+      - Pipeline__RecentLookbackMinutes=5
+      - Pipeline__BackfillBatchSize=20
+      - Pipeline__BackfillLookbackHours=24
+      - Pipeline__MaxConcurrent=2
+      - Pipeline__PollIntervalSeconds=10
+      - Pipeline__BackfillPollIntervalSeconds=60
+      # Summaries agent tuning
+      - Summaries__WindowMinutes=60
+      - Summaries__MinTranscripts=5
+      - Summaries__MaxTranscriptsPerRun=50
+      - Summaries__PollIntervalSeconds=300
+      # AI agent (OpenAI-compatible endpoint for MAF agents)
+      - AI__Endpoint=http://192.168.1.225:8000/v1
+      - AI__ApiKey=not-needed
+      - AI__Model=Qwen3.8-27B
     volumes:
       - recordings:/data/recordings
       - ./models:/models:ro

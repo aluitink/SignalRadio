@@ -20,7 +20,8 @@ public class CallsService(SignalRadioDbContext db) : ICallsService
             .Select(c => new CallDto(
                 c.Id, c.TalkGroupId, c.TalkGroup!.Number, c.TalkGroup.Name,
                 c.RecordingTime, c.FrequencyHz, c.DurationSeconds, c.CreatedAt,
-                c.Recordings.Count))
+                c.Recordings.Count,
+                c.Recordings.OrderByDescending(r => r.ReceivedAt).Select(r => r.Id).FirstOrDefault()))
             .ToListAsync(ct);
 
         return new PagedResult<CallDto>(items, page, pageSize, totalCount, (int)Math.Ceiling(totalCount / (double)pageSize));
@@ -33,8 +34,9 @@ public class CallsService(SignalRadioDbContext db) : ICallsService
             .Include(c => c.Recordings)
             .FirstOrDefaultAsync(c => c.Id == id, ct);
         if (call == null) return null;
+        var latestRecordingId = call.Recordings.OrderByDescending(r => r.ReceivedAt).Select(r => r.Id).FirstOrDefault();
         return new CallDto(call.Id, call.TalkGroupId, call.TalkGroup!.Number, call.TalkGroup.Name,
-            call.RecordingTime, call.FrequencyHz, call.DurationSeconds, call.CreatedAt, call.Recordings.Count);
+            call.RecordingTime, call.FrequencyHz, call.DurationSeconds, call.CreatedAt, call.Recordings.Count, latestRecordingId);
     }
 
     public async Task<CallDto> CreateAsync(CreateCallRequest request, CancellationToken ct = default)
@@ -63,8 +65,26 @@ public class CallsService(SignalRadioDbContext db) : ICallsService
             .Select(c => new CallDto(
                 c.Id, c.TalkGroupId, c.TalkGroup!.Number, c.TalkGroup.Name,
                 c.RecordingTime, c.FrequencyHz, c.DurationSeconds, c.CreatedAt,
-                c.Recordings.Count))
+                c.Recordings.Count,
+                c.Recordings.OrderByDescending(r => r.ReceivedAt).Select(r => r.Id).FirstOrDefault()))
             .ToListAsync(ct);
+    }
+
+    public async Task<PagedResult<CallDto>> GetRecentPagedAsync(int page, int pageSize, CancellationToken ct = default)
+    {
+        var query = db.Calls.OrderByDescending(c => c.RecordingTime);
+        var totalCount = await query.CountAsync(ct);
+        var items = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(c => new CallDto(
+                c.Id, c.TalkGroupId, c.TalkGroup!.Number, c.TalkGroup.Name,
+                c.RecordingTime, c.FrequencyHz, c.DurationSeconds, c.CreatedAt,
+                c.Recordings.Count,
+                c.Recordings.OrderByDescending(r => r.ReceivedAt).Select(r => r.Id).FirstOrDefault()))
+            .ToListAsync(ct);
+
+        return new PagedResult<CallDto>(items, page, pageSize, totalCount, (int)Math.Ceiling(totalCount / (double)pageSize));
     }
 
     public async Task<bool> DeleteAsync(long id, CancellationToken ct = default)

@@ -112,7 +112,7 @@ public class SignalRadioDbContext : DbContext
                 .HasForeignKey(e => e.TranscriptSummaryId)
                 .OnDelete(DeleteBehavior.Cascade);
             entity.HasOne(e => e.Topic)
-                .WithMany()
+                .WithMany(t => t.TranscriptSummaryTopics)
                 .HasForeignKey(e => e.TopicId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
@@ -126,7 +126,7 @@ public class SignalRadioDbContext : DbContext
                 .HasForeignKey(e => e.TranscriptSummaryId)
                 .OnDelete(DeleteBehavior.Cascade);
             entity.HasOne(e => e.NotableIncident)
-                .WithMany()
+                .WithMany(n => n.TranscriptSummaryNotableIncidents)
                 .HasForeignKey(e => e.NotableIncidentId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
