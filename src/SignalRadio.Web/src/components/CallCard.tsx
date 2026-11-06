@@ -10,14 +10,16 @@ export default function CallCard({
   call,
   transcript,
   accentColor,
+  stream,
 }: {
   call: CallDto
   transcript?: string | null
   /** Optional per-talkgroup accent color (matches the call-volume histogram). */
   accentColor?: string
+  stream?: CallDto[]
 }) {
-  const { nowPlaying, isPlaying, play } = useAudioPlayer()
-  const { isSubscribed, toggleSubscription } = useSubscriptions()
+  const { nowPlaying, isPlaying } = useAudioPlayer()
+  const { isSubscribed, toggleSubscription, playFromCall } = useSubscriptions()
   const now = useNow()
   const url = recordingDownloadUrlByCall(call.id)
   const isThis = nowPlaying?.url === url
@@ -25,11 +27,13 @@ export default function CallCard({
   const subscribed = isSubscribed(call.talkGroupId)
 
   const handlePlay = () => {
-    play({
-      url,
-      title: `TG ${call.talkGroupNumber} · ${formatDateTime(call.recordingTime)}`,
-      callId: call.id,
-    })
+    if (stream) {
+      // Continue playing consecutive calls in the stream until the top.
+      playFromCall(call, stream)
+    } else {
+      // No stream context (e.g. search results): play just this call.
+      playFromCall(call, [])
+    }
   }
 
   const handleSubscribe = (e: React.MouseEvent) => {

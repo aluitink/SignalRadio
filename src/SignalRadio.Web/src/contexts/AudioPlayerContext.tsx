@@ -21,6 +21,12 @@ interface AudioPlayerValue {
   currentTime: number
   duration: number
   play: (np: NowPlaying) => void
+  /**
+   * Start playback of `np` without toggling. Used by the auto-play queue
+   * engine: when the queue advances to the next call it must always start
+   * playing, even if the same URL was playing before.
+   */
+  playFromCall: (np: NowPlaying) => void
   toggle: () => void
   stop: () => void
   seek: (time: number) => void
@@ -80,6 +86,18 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
     void audio.play().catch(() => { /* autoplay may be blocked */ })
   }, [nowPlaying])
 
+  const playFromCall = useCallback((np: NowPlaying) => {
+    const audio = audioRef.current
+    if (!audio) return
+    if (nowPlaying?.url !== np.url) {
+      setNowPlaying(np)
+      setCurrentTime(0)
+      setDuration(0)
+      audio.src = np.url
+    }
+    void audio.play().catch(() => { /* autoplay may be blocked */ })
+  }, [nowPlaying])
+
   const toggle = useCallback(() => {
     const audio = audioRef.current
     if (!audio || !nowPlaying) return
@@ -106,8 +124,8 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const value = useMemo<AudioPlayerValue>(
-    () => ({ nowPlaying, isPlaying, currentTime, duration, play, toggle, stop, seek }),
-    [nowPlaying, isPlaying, currentTime, duration, play, toggle, stop, seek],
+    () => ({ nowPlaying, isPlaying, currentTime, duration, play, playFromCall, toggle, stop, seek }),
+    [nowPlaying, isPlaying, currentTime, duration, play, playFromCall, toggle, stop, seek],
   )
 
   return <AudioPlayerContext.Provider value={value}>{children}</AudioPlayerContext.Provider>

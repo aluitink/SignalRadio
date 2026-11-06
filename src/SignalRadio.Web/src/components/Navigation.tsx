@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import SummaryTicker from './SummaryTicker'
 import { useConnectionStatus } from '../contexts/ConnectionStatusContext'
@@ -12,6 +12,15 @@ const links = [
 export default function Navigation() {
   const [open, setOpen] = useState(false)
   const status = useConnectionStatus()
+
+  useEffect(() => {
+    if (!open) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [open])
 
   const linkClass = ({ isActive }: { isActive: boolean }) =>
     `nav-link${isActive ? ' active' : ''}`

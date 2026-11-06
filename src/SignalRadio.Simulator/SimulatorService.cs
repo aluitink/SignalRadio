@@ -92,7 +92,7 @@ public class SimulatorService(
         var notifier = scope.ServiceProvider.GetRequiredService<ICallNotifier>();
 
         // Gather a handful of recent calls on this talk group to summarise.
-        var recent = await calls.GetPagedAsync(group.Id, page: 1, pageSize: 5, ct: ct);
+        var recent = await calls.GetCursorAsync(pageSize: 5, talkGroupId: group.Id, ct: ct);
         if (recent.Items.Count == 0) return;
 
         var start = recent.Items[^1].RecordingTime;

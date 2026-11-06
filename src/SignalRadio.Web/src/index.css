@@ -41,6 +41,7 @@ body,
 #root {
   height: 100%;
   margin: 0;
+  overflow-x: hidden;
 }
 
 body {
@@ -884,11 +885,13 @@ button {
   height: 40px;
   border-radius: var(--radius);
   cursor: pointer;
+  position: relative;
+  z-index: 1002;
 }
 .nav-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--bg-0);
   z-index: 999;
 }
 .nav-menu {
@@ -897,8 +900,7 @@ button {
   right: 0;
   bottom: 0;
   width: 260px;
-  background: rgba(10, 14, 22, 0.92);
-  backdrop-filter: blur(8px);
+  background: var(--bg-1);
   border-left: 1px solid var(--border);
   padding: var(--space-3) var(--space-2);
   display: flex;
@@ -923,6 +925,64 @@ button {
     margin-left: auto;
   }
   .audio-player .ap-title { max-width: 30%; }
+}
+
+/* ---- Call stream toolbar ---- */
+.stream-toolbar {
+  display: flex;
+  align-items: center;
+  margin-bottom: var(--space-2);
+}
+.toggle-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  cursor: pointer;
+  user-select: none;
+}
+.toggle-switch input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.toggle-track {
+  position: relative;
+  width: 36px;
+  height: 20px;
+  border-radius: 999px;
+  background: var(--card-bg-hover);
+  border: 1px solid var(--border);
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.toggle-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--text-dim);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+.toggle-switch input:checked + .toggle-track {
+  background: var(--accent-soft);
+  border-color: var(--accent-dim);
+}
+.toggle-switch input:checked + .toggle-track .toggle-thumb {
+  transform: translateX(16px);
+  background: var(--accent);
+}
+.toggle-switch input:focus-visible + .toggle-track {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.toggle-label {
+  font-size: 13px;
+  color: var(--text-dim);
+}
+.toggle-switch input:checked ~ .toggle-label {
+  color: var(--text);
 }
 
 /* ---- Call volume chart ---- */

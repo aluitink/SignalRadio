@@ -7,26 +7,6 @@ namespace SignalRadio.Data.Services;
 
 public class CallsService(SignalRadioDbContext db) : ICallsService
 {
-    public async Task<PagedResult<CallDto>> GetPagedAsync(int talkGroupId, int page, int pageSize, CancellationToken ct = default)
-    {
-        var query = db.Calls
-            .Where(c => c.TalkGroupId == talkGroupId)
-            .OrderByDescending(c => c.RecordingTime);
-
-        var totalCount = await query.CountAsync(ct);
-        var items = await query
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .Select(c => new CallDto(
-                c.Id, c.TalkGroupId, c.TalkGroup!.Number, c.TalkGroup.Name,
-                c.RecordingTime, c.FrequencyHz, c.DurationSeconds, c.CreatedAt,
-                c.Recordings.Count,
-                c.Recordings.OrderByDescending(r => r.ReceivedAt).Select(r => r.Id).FirstOrDefault()))
-            .ToListAsync(ct);
-
-        return new PagedResult<CallDto>(items, page, pageSize, totalCount, (int)Math.Ceiling(totalCount / (double)pageSize));
-    }
-
     public async Task<CallDto?> GetByIdAsync(long id, CancellationToken ct = default)
     {
         var call = await db.Calls
@@ -70,10 +50,14 @@ public class CallsService(SignalRadioDbContext db) : ICallsService
             .ToListAsync(ct);
     }
 
-    public async Task<PagedResult<CallDto>> GetRecentPagedAsync(int page, int pageSize, IEnumerable<int>? talkGroupIds = null, CancellationToken ct = default)
+    public async Task<CursorPagedResult<CallDto>> GetCursorAsync(int pageSize, DateTimeOffset? beforeTime = null, long? beforeId = null, int? talkGroupId = null, IEnumerable<int>? talkGroupIds = null, CancellationToken ct = default)
     {
         var query = db.Calls.AsQueryable();
-        if (talkGroupIds != null)
+        if (talkGroupId is int singleId)
+        {
+            query = query.Where(c => c.TalkGroupId == singleId);
+        }
+        else if (talkGroupIds != null)
         {
             var idList = talkGroupIds.ToList();
             if (idList.Count > 0)
@@ -81,11 +65,20 @@ public class CallsService(SignalRadioDbContext db) : ICallsService
                 query = query.Where(c => idList.Contains(c.TalkGroupId));
             }
         }
-        query = query.OrderByDescending(c => c.RecordingTime);
-        var totalCount = await query.CountAsync(ct);
+
+        // Cursor: strictly "older than" the (RecordingTime, Id) pair. The Id tiebreaker
+        // keeps the ordering total even when several calls share a RecordingTime, so
+        // rows are neither skipped nor duplicated as new calls arrive at the top.
+        if (beforeTime is DateTimeOffset t && beforeId is long id)
+        {
+            query = query.Where(c => c.RecordingTime < t || (c.RecordingTime == t && c.Id < id));
+        }
+
+        query = query.OrderByDescending(c => c.RecordingTime).ThenByDescending(c => c.Id);
+
+        // Fetch one extra row to detect whether more pages exist without a COUNT query.
         var items = await query
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
+            .Take(pageSize + 1)
             .Select(c => new CallDto(
                 c.Id, c.TalkGroupId, c.TalkGroup!.Number, c.TalkGroup.Name,
                 c.RecordingTime, c.FrequencyHz, c.DurationSeconds, c.CreatedAt,
@@ -93,7 +86,15 @@ public class CallsService(SignalRadioDbContext db) : ICallsService
                 c.Recordings.OrderByDescending(r => r.ReceivedAt).Select(r => r.Id).FirstOrDefault()))
             .ToListAsync(ct);
 
-        return new PagedResult<CallDto>(items, page, pageSize, totalCount, (int)Math.Ceiling(totalCount / (double)pageSize));
+        var hasMore = items.Count > pageSize;
+        if (hasMore) items.RemoveAt(items.Count - 1);
+
+        var last = items.Count > 0 ? items[^1] : null;
+        return new CursorPagedResult<CallDto>(
+            items,
+            last?.RecordingTime,
+            last?.Id,
+            hasMore);
     }
 
     public async Task<IReadOnlyList<CallVolumeDto>> GetVolumeAsync(DateTimeOffset? from, DateTimeOffset? to, int? talkGroupId, int? bucketMinutes, CancellationToken ct = default)

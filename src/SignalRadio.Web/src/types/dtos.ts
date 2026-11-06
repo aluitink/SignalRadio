@@ -32,12 +32,11 @@ export interface CallVolumeByTalkGroupDto {
   talkGroups: TalkGroupVolumeDto[]
 }
 
-export interface PagedResult<T> {
+export interface CursorPagedResult<T> {
   items: T[]
-  page: number
-  pageSize: number
-  totalCount: number
-  totalPages: number
+  nextCursorTime?: string | null // ISO
+  nextCursorId?: number | null
+  hasMore: boolean
 }
 
 export interface TalkGroupDto {

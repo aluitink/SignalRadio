@@ -37,9 +37,13 @@ public record CallVolumeByTalkGroupDto(
     DateTimeOffset BucketStart,
     IReadOnlyList<TalkGroupVolumeDto> TalkGroups);
 
-public record PagedResult<T>(
+/// <summary>
+/// Cursor-based page of results for "scroll back in time" feeds. The cursor is a
+/// (RecordingTime, Id) pair that is stable even when new rows are inserted at the
+/// top of the feed, unlike offset paging which can shift or duplicate rows.
+/// </summary>
+public record CursorPagedResult<T>(
     IReadOnlyList<T> Items,
-    int Page,
-    int PageSize,
-    int TotalCount,
-    int TotalPages);
+    DateTimeOffset? NextCursorTime,
+    long? NextCursorId,
+    bool HasMore);

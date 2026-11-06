@@ -8,23 +8,27 @@ namespace SignalRadio.Api.Controllers;
 [Route("api/calls")]
 public class CallsController(ICallsService calls, IRecordingsService recordings, ICallNotifier notifier) : ControllerBase
 {
-    [HttpGet("talkgroup/{talkGroupId:int}")]
-    public async Task<IActionResult> GetByTalkGroup(int talkGroupId, [FromQuery] int page = 1, [FromQuery] int pageSize = 50, CancellationToken ct = default) =>
-        Ok(await calls.GetPagedAsync(talkGroupId, page, pageSize, ct));
-
     [HttpGet("recent")]
     public async Task<IActionResult> GetRecent([FromQuery] int count = 20, CancellationToken ct = default) =>
         Ok(await calls.GetRecentAsync(count, ct));
 
-    [HttpGet("recent-paged")]
-    public async Task<IActionResult> GetRecentPaged([FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] string[]? talkGroupIds = null, CancellationToken ct = default)
+    // Unified cursor-paged call list. Omit talkGroupId for the global stream;
+    // pass it to scope the list to a single talk group.
+    [HttpGet("cursor")]
+    public async Task<IActionResult> GetCursor(
+        [FromQuery] int pageSize = 20,
+        [FromQuery] DateTimeOffset? beforeTime = null,
+        [FromQuery] long? beforeId = null,
+        [FromQuery] int? talkGroupId = null,
+        [FromQuery] string[]? talkGroupIds = null,
+        CancellationToken ct = default)
     {
         var ids = talkGroupIds?
             .Select(s => int.TryParse(s, out var v) ? v : (int?)null)
             .Where(v => v.HasValue)
             .Select(v => v!.Value)
             .ToList();
-        return Ok(await calls.GetRecentPagedAsync(page, pageSize, ids, ct));
+        return Ok(await calls.GetCursorAsync(pageSize, beforeTime, beforeId, talkGroupId, ids, ct));
     }
 
     [HttpGet("volume")]

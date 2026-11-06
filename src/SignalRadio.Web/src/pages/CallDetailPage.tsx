@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import type { CallDto } from '../types/dtos'
-import { getCall, recordingDownloadUrlByCall, getFinalTranscription } from '../api'
-import { useAudioPlayer } from '../contexts/AudioPlayerContext'
+import { getCall, getFinalTranscription } from '../api'
+import { useSubscriptions } from '../contexts/SubscriptionsContext'
 import { useSignalR } from '../hooks/useSignalR'
 import { formatDuration, formatFrequency, formatDateTime } from '../utils/format'
 
@@ -15,7 +15,7 @@ export default function CallDetailPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const { play } = useAudioPlayer()
+  const { playFromCall } = useSubscriptions()
 
   const loadTranscript = useCallback(async (recordingId: number) => {
     try {
@@ -83,8 +83,6 @@ export default function CallDetailPage() {
     )
   }
 
-  const audioUrl = recordingDownloadUrlByCall(call.id)
-
   return (
     <div>
       <div className="page-header">
@@ -121,13 +119,7 @@ export default function CallDetailPage() {
         <div style={{ marginTop: 16 }}>
           <button
             className="btn primary"
-            onClick={() =>
-              play({
-                url: audioUrl,
-                title: `TG ${call.talkGroupNumber} · ${formatDateTime(call.recordingTime)}`,
-                callId: call.id,
-              })
-            }
+            onClick={() => playFromCall(call, [])}
           >
             ▶ Play audio
           </button>

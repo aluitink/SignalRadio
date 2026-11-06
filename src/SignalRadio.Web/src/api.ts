@@ -6,7 +6,7 @@ import type {
   CallDto,
   CallVolumeByTalkGroupDto,
   CallVolumeDto,
-  PagedResult,
+  CursorPagedResult,
   RecordingDto,
   SearchResultsDto,
   TalkGroupDto,
@@ -48,14 +48,24 @@ function qs(params: Record<string, string | number | boolean | undefined>): stri
 }
 
 // ---- Calls ----
-export function getCalls(talkGroupId: number, page = 1, pageSize = 20) {
-  return apiGet<PagedResult<CallDto>>(`/calls/talkgroup/${talkGroupId}${qs({ page, pageSize })}`)
-}
 export function getRecentCalls(count = 30) {
   return apiGet<CallDto[]>(`/calls/recent${qs({ count })}`)
 }
-export function getRecentCallsPaged(page = 1, pageSize = 20, talkGroupIds?: number[]) {
-  const params: Record<string, string | number | boolean | undefined> = { page, pageSize }
+// Unified cursor-paged call list. Omit talkGroupId for the global stream;
+// pass it to scope the list to a single talk group. `before` is the cursor
+// (time + id of the oldest loaded call) for scrolling back in time.
+export function getCallsCursor(
+  pageSize = 20,
+  before?: { time: string; id: number } | null,
+  talkGroupId?: number,
+  talkGroupIds?: number[],
+) {
+  const params: Record<string, string | number | boolean | undefined> = { pageSize }
+  if (before) {
+    params.beforeTime = before.time
+    params.beforeId = before.id
+  }
+  if (talkGroupId != null) params.talkGroupId = talkGroupId
   let query = qs(params)
   // Use repeated params (talkGroupIds=1&talkGroupIds=2) — ASP.NET Core binds
   // these to string[] reliably, whereas a single comma-joined value is not
@@ -64,7 +74,7 @@ export function getRecentCallsPaged(page = 1, pageSize = 20, talkGroupIds?: numb
     const extra = talkGroupIds.map((id) => `talkGroupIds=${id}`).join('&')
     query += (query ? '&' : '?') + extra
   }
-  return apiGet<PagedResult<CallDto>>(`/calls/recent-paged${query}`)
+  return apiGet<CursorPagedResult<CallDto>>(`/calls/cursor${query}`)
 }
 export function getCall(id: number) {
   return apiGet<CallDto>(`/calls/${id}`)
