@@ -54,8 +54,17 @@ export function getCalls(talkGroupId: number, page = 1, pageSize = 20) {
 export function getRecentCalls(count = 30) {
   return apiGet<CallDto[]>(`/calls/recent${qs({ count })}`)
 }
-export function getRecentCallsPaged(page = 1, pageSize = 20) {
-  return apiGet<PagedResult<CallDto>>(`/calls/recent-paged${qs({ page, pageSize })}`)
+export function getRecentCallsPaged(page = 1, pageSize = 20, talkGroupIds?: number[]) {
+  const params: Record<string, string | number | boolean | undefined> = { page, pageSize }
+  let query = qs(params)
+  // Use repeated params (talkGroupIds=1&talkGroupIds=2) — ASP.NET Core binds
+  // these to string[] reliably, whereas a single comma-joined value is not
+  // split for array binding.
+  if (talkGroupIds && talkGroupIds.length > 0) {
+    const extra = talkGroupIds.map((id) => `talkGroupIds=${id}`).join('&')
+    query += (query ? '&' : '?') + extra
+  }
+  return apiGet<PagedResult<CallDto>>(`/calls/recent-paged${query}`)
 }
 export function getCall(id: number) {
   return apiGet<CallDto>(`/calls/${id}`)

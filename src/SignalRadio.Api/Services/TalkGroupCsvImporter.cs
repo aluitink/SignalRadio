@@ -63,10 +63,17 @@ public class TalkGroupCsvImporter
                 if (string.IsNullOrEmpty(tg.Category) && !string.IsNullOrWhiteSpace(row.Category)) { tg.Category = row.Category; changed = true; }
                 if (!tg.Priority.HasValue && row.Priority.HasValue) { tg.Priority = row.Priority; changed = true; }
                 // Name: prefer the human-readable Description; fall back to AlphaTag.
-                if (string.IsNullOrEmpty(tg.Name))
+                // Also upgrade names that are just the system name (e.g. "DaneCom")
+                // — those were set by the upload path before the CSV import ran and
+                // carry no real information.
+                var csvName = !string.IsNullOrWhiteSpace(row.Description) ? row.Description : row.AlphaTag;
+                if (string.IsNullOrEmpty(tg.Name) || IsGenericSystemName(tg.Name))
                 {
-                    tg.Name = !string.IsNullOrWhiteSpace(row.Description) ? row.Description : row.AlphaTag;
-                    changed = true;
+                    if (!string.IsNullOrWhiteSpace(csvName) && !string.Equals(tg.Name, csvName, StringComparison.OrdinalIgnoreCase))
+                    {
+                        tg.Name = csvName;
+                        changed = true;
+                    }
                 }
                 if (changed) updated++;
             }
@@ -94,6 +101,18 @@ public class TalkGroupCsvImporter
 
         return new ImportResult(created, updated, skipped, rows.Count);
     }
+
+    /// <summary>
+    /// Names that carry no real information — typically the system name stamped by
+    /// the upload path (e.g. "DaneCom") before the CSV import had a chance to run.
+    /// </summary>
+    private static readonly HashSet<string> GenericSystemNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "DaneCom", "Dane County", "DaneCom System", "Unknown", "N/A", "System"
+    };
+
+    private static bool IsGenericSystemName(string? name)
+        => !string.IsNullOrWhiteSpace(name) && GenericSystemNames.Contains(name.Trim());
 
     private record CsvRow(string Number, string? AlphaTag, string? Description, string? Tag, string? Category, int? Priority);
 

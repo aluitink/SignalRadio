@@ -30,20 +30,23 @@ function pickBucketMinutes(windowMinutes: number): number {
   )
 }
 
-// Distinct, dark-theme-friendly palette for per-talkgroup color coding.
-const PALETTE = [
-  '#4d9fff', // blue
-  '#3ddc84', // green
-  '#ffb454', // amber
-  '#c792ea', // purple
-  '#ff6b9d', // pink
-  '#4dd0e1', // cyan
-  '#ffd54f', // yellow
-  '#a1887f', // brown
-]
-
-export function talkGroupColor(index: number): string {
-  return PALETTE[index % PALETTE.length]
+/**
+ * Deterministic per-talkgroup color, derived from the talk group id.
+ *
+ * Uses a small FNV-1a hash of the id to pick a hue, then renders it in HSL
+ * with fixed saturation/lightness tuned for the dark theme. The same id
+ * always yields the same color (across reloads and pages), so call cards,
+ * chart segments, and legends stay in sync without any shared state.
+ */
+export function talkGroupColor(talkGroupId: number): string {
+  // FNV-1a 32-bit hash — cheap, well-distributed for small integer inputs.
+  let h = 0x811c9dc5
+  for (let i = 0; i < 4; i++) {
+    h ^= (talkGroupId >>> (i * 8)) & 0xff
+    h = Math.imul(h, 0x01000193) >>> 0
+  }
+  const hue = h % 360
+  return `hsl(${hue}, 70%, 62%)`
 }
 
 interface CallVolumeChartProps {
@@ -62,7 +65,7 @@ interface CallVolumeChartProps {
 export default function CallVolumeChart({
   talkGroupId,
   title,
-  initialMinutes = 1440,
+  initialMinutes = 60,
   refreshKey = 0,
   barColor,
 }: CallVolumeChartProps) {
@@ -203,17 +206,50 @@ export default function CallVolumeChart({
  */
 export function CallVolumeStackedChart({
   title,
-  initialMinutes = 1440,
+  initialMinutes = 60,
   refreshKey = 0,
+  selected,
+  onToggleGroup,
+  onClear,
 }: {
   title?: string
   initialMinutes?: number
   refreshKey?: number
+  /** Talk group ids selected via the legend. Empty = show all groups. */
+  selected?: Set<number>
+  onToggleGroup?: (id: number) => void
+  onClear?: () => void
 }) {
   const [minutes, setMinutes] = useState<number>(initialMinutes)
   const [data, setData] = useState<CallVolumeByTalkGroupDto[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [hover, setHover] = useState<number | null>(null)
+  // Internal selection used when the filter is not controlled by the parent.
+  const [internalSelected, setInternalSelected] = useState<Set<number>>(new Set())
+
+  const isControlled = selected !== undefined
+  const activeSelected = isControlled ? selected! : internalSelected
+
+  const toggleGroup = (id: number) => {
+    if (isControlled) {
+      onToggleGroup?.(id)
+      return
+    }
+    setInternalSelected((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const clearSelection = () => {
+    if (isControlled) {
+      onClear?.()
+      return
+    }
+    setInternalSelected(new Set())
+  }
 
   const bucketMinutes = useMemo(() => pickBucketMinutes(minutes), [minutes])
 
@@ -230,9 +266,9 @@ export function CallVolumeStackedChart({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [minutes, refreshKey])
 
-  // Stable talk-group ordering: by total call count (desc) so the most active
-  // groups get the first (most visible) palette colors.
-  const groupOrder = useMemo(() => {
+  // All talk groups present in the data, by total call count (desc).
+  // Used by the legend so every option stays visible while multi-selecting.
+  const allGroups = useMemo(() => {
     if (!data) return [] as { id: number; number: string; name: string | null }[]
     const totals = new Map<number, { number: string; name: string | null; count: number }>()
     for (const bucket of data) {
@@ -247,9 +283,17 @@ export function CallVolumeStackedChart({
       .map(([id, v]) => ({ id, number: v.number, name: v.name }))
   }, [data])
 
+  // Groups actually rendered in the chart: the legend filter applied.
+  const groupOrder = useMemo(
+    () => allGroups.filter((g) => activeSelected.size === 0 || activeSelected.has(g.id)),
+    [allGroups, activeSelected],
+  )
+
   const { totals, maxTotal, labels } = useMemo(() => {
     if (!data || data.length === 0) return { totals: [] as number[], maxTotal: 0, labels: [] as string[] }
-    const totalsArr = data.map((b) => b.talkGroups.reduce((s, tg) => s + tg.callCount, 0))
+    const totalsArr = data.map((b) =>
+      b.talkGroups.reduce((s, tg) => (activeSelected.size === 0 || activeSelected.has(tg.talkGroupId) ? s + tg.callCount : s), 0),
+    )
     const max = Math.max(1, ...totalsArr)
     const fmt = (iso: string) => {
       const d = new Date(iso)
@@ -259,7 +303,7 @@ export function CallVolumeStackedChart({
     const step = Math.max(1, Math.ceil(data.length / 6))
     const lbls = data.map((d, i) => (i % step === 0 ? fmt(d.bucketStart) : ''))
     return { totals: totalsArr, maxTotal: max, labels: lbls }
-  }, [data, bucketMinutes])
+  }, [data, bucketMinutes, activeSelected])
 
   const totalCalls = useMemo(() => totals.reduce((s, n) => s + n, 0), [totals])
 
@@ -272,8 +316,10 @@ export function CallVolumeStackedChart({
             hour: '2-digit',
             minute: '2-digit',
           }),
-          total: data[hover].talkGroups.reduce((s, tg) => s + tg.callCount, 0),
-          groups: [...data[hover].talkGroups].sort((a, b) => b.callCount - a.callCount),
+          total: totals[hover] ?? 0,
+          groups: [...data[hover].talkGroups]
+            .filter((tg) => activeSelected.size === 0 || activeSelected.has(tg.talkGroupId))
+            .sort((a, b) => b.callCount - a.callCount),
         }
       : null
 
@@ -319,7 +365,7 @@ export function CallVolumeStackedChart({
                     onMouseEnter={() => setHover(i)}
                   >
                     {total > 0 &&
-                      groupOrder.map((g, gi) => {
+                      groupOrder.map((g) => {
                         const tg = bucket.talkGroups.find((t) => t.talkGroupId === g.id)
                         if (!tg || tg.callCount === 0) return null
                         const h = (tg.callCount / maxTotal) * 100
@@ -329,7 +375,7 @@ export function CallVolumeStackedChart({
                             className="volume-bar-segment"
                             style={{
                               height: `${h}%`,
-                              background: talkGroupColor(gi),
+                              background: talkGroupColor(g.id),
                             }}
                           />
                         )
@@ -348,19 +394,16 @@ export function CallVolumeStackedChart({
                 <span>
                   {tooltip.total} call{tooltip.total === 1 ? '' : 's'}
                 </span>
-                {tooltip.groups.slice(0, 5).map((tg) => {
-                  const gi = groupOrder.findIndex((g) => g.id === tg.talkGroupId)
-                  return (
-                    <span key={tg.talkGroupId} className="volume-tooltip-row">
-                      <span
-                        className="volume-tooltip-swatch"
-                        style={{ background: talkGroupColor(gi) }}
-                        aria-hidden="true"
-                      />
-                      TG {tg.talkGroupNumber}: {tg.callCount}
-                    </span>
-                  )
-                })}
+                {tooltip.groups.slice(0, 5).map((tg) => (
+                  <span key={tg.talkGroupId} className="volume-tooltip-row">
+                    <span
+                      className="volume-tooltip-swatch"
+                      style={{ background: talkGroupColor(tg.talkGroupId) }}
+                      aria-hidden="true"
+                    />
+                    TG {tg.talkGroupNumber}: {tg.callCount}
+                  </span>
+                ))}
                 {tooltip.groups.length > 5 && (
                   <span className="volume-tooltip-more">
                     +{tooltip.groups.length - 5} more
@@ -374,23 +417,47 @@ export function CallVolumeStackedChart({
               <span key={i}>{l}</span>
             ))}
           </div>
-          {groupOrder.length > 0 && (
-            <div className="volume-legend" aria-label="Talk group colors">
-              {groupOrder.map((g, gi) => (
-                <span key={g.id} className="volume-legend-item">
-                  <span
-                    className="volume-legend-swatch"
-                    style={{ background: talkGroupColor(gi) }}
-                    aria-hidden="true"
-                  />
-                  TG {g.number}
-                  {g.name ? ` · ${g.name}` : ''}
-                </span>
-              ))}
+          {allGroups.length > 0 && (
+            <div className="volume-legend-wrap">
+              <div className="volume-legend" aria-label="Talk group colors — click to filter">
+                {allGroups.map((g) => {
+                  const isSel = activeSelected.has(g.id)
+                  const isDim = activeSelected.size > 0 && !isSel
+                  return (
+                    <button
+                      key={g.id}
+                      type="button"
+                      className={`volume-legend-item${isSel ? ' selected' : ''}${isDim ? ' dimmed' : ''}`}
+                      onClick={() => toggleGroup(g.id)}
+                      aria-pressed={isSel}
+                      title={isSel ? 'Click to show all groups' : 'Click to filter to this group'}
+                    >
+                      <span
+                        className="volume-legend-swatch"
+                        style={{ background: talkGroupColor(g.id) }}
+                        aria-hidden="true"
+                      />
+                      {g.name ?? `TG ${g.number}`}
+                    </button>
+                  )
+                })}
+              </div>
+              {activeSelected.size > 0 && (
+                <button
+                  type="button"
+                  className="volume-legend-clear"
+                  onClick={clearSelection}
+                >
+                  Clear ({activeSelected.size})
+                </button>
+              )}
             </div>
           )}
           <div className="volume-chart-footer">
-            <span>{totalCalls} calls · {groupOrder.length} talk groups</span>
+            <span>
+              {totalCalls} calls · {groupOrder.length} talk group{groupOrder.length === 1 ? '' : 's'}
+              {activeSelected.size > 0 ? ' · filtered' : ''}
+            </span>
           </div>
         </>
       )}

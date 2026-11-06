@@ -3,7 +3,7 @@ import type { CallDto } from '../types/dtos'
 import { getRecentCallsPaged, getFinalTranscription } from '../api'
 import { useSignalR } from '../hooks/useSignalR'
 import CallCard from '../components/CallCard'
-import { CallVolumeStackedChart } from '../components/CallVolumeChart'
+import { CallVolumeStackedChart, talkGroupColor } from '../components/CallVolumeChart'
 
 const PAGE_SIZE = 20
 
@@ -16,8 +16,21 @@ export default function CallStreamPage() {
   const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [volumeRefresh, setVolumeRefresh] = useState(0)
+  // Talk group ids selected via the chart legend. Empty = show all groups.
+  const [selectedGroups, setSelectedGroups] = useState<Set<number>>(new Set())
   const sentinelRef = useRef<HTMLDivElement | null>(null)
   const loadingRef = useRef(false)
+
+  const toggleGroup = useCallback((id: number) => {
+    setSelectedGroups((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }, [])
+
+  const clearGroups = useCallback(() => setSelectedGroups(new Set()), [])
 
   const fetchTranscripts = useCallback(async (items: CallDto[]) => {
     const withRecording = items.filter((c) => c.latestRecordingId)
@@ -45,7 +58,8 @@ export default function CallStreamPage() {
     if (loadingRef.current) return
     loadingRef.current = true
     try {
-      const data = await getRecentCallsPaged(p, PAGE_SIZE)
+      const ids = selectedGroups.size > 0 ? [...selectedGroups] : undefined
+      const data = await getRecentCallsPaged(p, PAGE_SIZE, ids)
       setCalls((prev) => {
         if (!append) return data.items
         const existing = new Set(prev.map((c) => c.id))
@@ -62,9 +76,13 @@ export default function CallStreamPage() {
       setLoading(false)
       setLoadingMore(false)
     }
-  }, [fetchTranscripts])
+  }, [fetchTranscripts, selectedGroups])
 
+  // Reload from the top whenever the talk group filter changes.
   useEffect(() => {
+    setPage(1)
+    setHasMore(true)
+    setLoading(true)
     void load(1, false)
   }, [load])
 
@@ -87,7 +105,7 @@ export default function CallStreamPage() {
     return () => observer.disconnect()
   }, [hasMore, page, load])
 
-  const status = useSignalR(null, {
+  useSignalR(null, {
     onNewCall: (payload) => {
       // Prepend the new call to the top of the list (de-duplicated).
       const call = typeof payload === 'number' ? null : payload
@@ -109,15 +127,13 @@ export default function CallStreamPage() {
 
   return (
     <div>
-      <div className="page-header">
-        <h1>Live Calls</h1>
-        <span className="live">
-          <span className={`status-dot ${status}`} aria-hidden="true" />
-          {status === 'connected' ? 'Live' : status === 'connecting' ? 'Connecting…' : 'Offline'}
-        </span>
-      </div>
-
-      <CallVolumeStackedChart title="Call volume · all talk groups" refreshKey={volumeRefresh} />
+      <CallVolumeStackedChart
+        title="Call volume · all talk groups"
+        refreshKey={volumeRefresh}
+        selected={selectedGroups}
+        onToggleGroup={toggleGroup}
+        onClear={clearGroups}
+      />
 
       {loading ? (
         <div aria-busy="true">
@@ -133,11 +149,15 @@ export default function CallStreamPage() {
           </div>
         </div>
       ) : calls.length === 0 ? (
-        <div className="empty-state">No calls yet. Waiting for the simulator…</div>
+        <div className="empty-state">
+          {selectedGroups.size > 0
+            ? 'No calls for the selected talk groups.'
+            : 'No calls yet. Waiting for the simulator…'}
+        </div>
       ) : (
         <div>
           {calls.map((c) => (
-            <CallCard key={c.id} call={c} transcript={transcripts.get(c.id)} />
+            <CallCard key={c.id} call={c} transcript={transcripts.get(c.id)} accentColor={talkGroupColor(c.talkGroupId)} />
           ))}
           <div ref={sentinelRef} className="scroll-sentinel" />
           {loadingMore && <div className="loading-more">Loading more…</div>}

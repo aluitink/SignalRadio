@@ -74,7 +74,7 @@ export default function TalkGroupPage() {
     void load(page)
   }, [load, page])
 
-  const status = useSignalR(Number.isFinite(talkGroupId) ? talkGroupId : null, {
+  useSignalR(Number.isFinite(talkGroupId) ? talkGroupId : null, {
     onNewCall: (payload) => {
       const call = typeof payload === 'number' ? null : payload
       if (call) {
@@ -121,10 +121,6 @@ export default function TalkGroupPage() {
           >
             {isSubscribed(talkGroupId) ? '✓ Subscribed' : '＋ Subscribe'}
           </button>
-          <span className="live">
-            <span className={`status-dot ${status}`} aria-hidden="true" />
-            {status === 'connected' ? 'Live' : status === 'connecting' ? 'Connecting…' : 'Offline'}
-          </span>
         </div>
       </div>
 
@@ -155,7 +151,7 @@ export default function TalkGroupPage() {
       ) : (
         <>
           {result.items.map((c) => (
-            <CallCard key={c.id} call={c} transcript={transcripts.get(c.id)} />
+            <CallCard key={c.id} call={c} transcript={transcripts.get(c.id)} accentColor={talkGroupColor(talkGroupId)} />
           ))}
           {result.totalPages > 1 && (
             <Pagination

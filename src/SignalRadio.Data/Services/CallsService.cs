@@ -70,9 +70,18 @@ public class CallsService(SignalRadioDbContext db) : ICallsService
             .ToListAsync(ct);
     }
 
-    public async Task<PagedResult<CallDto>> GetRecentPagedAsync(int page, int pageSize, CancellationToken ct = default)
+    public async Task<PagedResult<CallDto>> GetRecentPagedAsync(int page, int pageSize, IEnumerable<int>? talkGroupIds = null, CancellationToken ct = default)
     {
-        var query = db.Calls.OrderByDescending(c => c.RecordingTime);
+        var query = db.Calls.AsQueryable();
+        if (talkGroupIds != null)
+        {
+            var idList = talkGroupIds.ToList();
+            if (idList.Count > 0)
+            {
+                query = query.Where(c => idList.Contains(c.TalkGroupId));
+            }
+        }
+        query = query.OrderByDescending(c => c.RecordingTime);
         var totalCount = await query.CountAsync(ct);
         var items = await query
             .Skip((page - 1) * pageSize)

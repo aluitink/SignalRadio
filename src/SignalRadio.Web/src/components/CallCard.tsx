@@ -9,9 +9,12 @@ import { useNow } from '../hooks/useNow'
 export default function CallCard({
   call,
   transcript,
+  accentColor,
 }: {
   call: CallDto
   transcript?: string | null
+  /** Optional per-talkgroup accent color (matches the call-volume histogram). */
+  accentColor?: string
 }) {
   const { nowPlaying, isPlaying, play } = useAudioPlayer()
   const { isSubscribed, toggleSubscription } = useSubscriptions()
@@ -37,6 +40,11 @@ export default function CallCard({
   return (
     <div
       className={`card clickable call-card${playing ? ' playing' : ''}`}
+      style={accentColor ? ({
+        '--tg-accent': accentColor,
+        // ~15% tint of the accent over transparent, works with any color format (hsl, hex, …)
+        '--tg-accent-soft': `color-mix(in srgb, ${accentColor} 15%, transparent)`,
+      } as React.CSSProperties) : undefined}
       role="button"
       tabIndex={0}
       aria-label={`Play call on talk group ${call.talkGroupNumber} at ${formatDateTime(call.recordingTime)}`}
@@ -59,8 +67,7 @@ export default function CallCard({
             to={`/talkgroup/${call.talkGroupId}`}
             onClick={(e) => e.stopPropagation()}
           >
-            TG {call.talkGroupNumber}
-            {call.talkGroupName ? ` · ${call.talkGroupName}` : ''}
+            {call.talkGroupName ?? `TG ${call.talkGroupNumber}`}
           </Link>
           <span className="row-end">
             <span className="time" title={formatDateTime(call.recordingTime)}>

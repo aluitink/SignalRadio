@@ -17,8 +17,15 @@ public class CallsController(ICallsService calls, IRecordingsService recordings,
         Ok(await calls.GetRecentAsync(count, ct));
 
     [HttpGet("recent-paged")]
-    public async Task<IActionResult> GetRecentPaged([FromQuery] int page = 1, [FromQuery] int pageSize = 20, CancellationToken ct = default) =>
-        Ok(await calls.GetRecentPagedAsync(page, pageSize, ct));
+    public async Task<IActionResult> GetRecentPaged([FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] string[]? talkGroupIds = null, CancellationToken ct = default)
+    {
+        var ids = talkGroupIds?
+            .Select(s => int.TryParse(s, out var v) ? v : (int?)null)
+            .Where(v => v.HasValue)
+            .Select(v => v!.Value)
+            .ToList();
+        return Ok(await calls.GetRecentPagedAsync(page, pageSize, ids, ct));
+    }
 
     [HttpGet("volume")]
     public async Task<IActionResult> GetVolume(

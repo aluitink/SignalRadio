@@ -30,11 +30,13 @@ public class RecordingsService(SignalRadioDbContext db, IStorageService storage)
     }
     public async Task<(RecordingDto Recording, CallDto Call)> CreateWithFileAsync(Stream content, string fileName, RecordingUploadRequest request, CancellationToken ct = default)
     {
-        // Upsert talk group by number
+        // Upsert talk group by number. Leave Name empty when unknown — the CSV
+        // import (TalkGroupCsvImporter) enriches it with the real description.
+        // Stamping the system name here (e.g. "DaneCom") would block that enrichment.
         var talkGroup = await db.TalkGroups.FirstOrDefaultAsync(t => t.Number == request.TalkgroupId, ct);
         if (talkGroup == null)
         {
-            talkGroup = new TalkGroup { Number = request.TalkgroupId, Name = request.SystemName };
+            talkGroup = new TalkGroup { Number = request.TalkgroupId, Name = string.Empty };
             db.TalkGroups.Add(talkGroup);
             await db.SaveChangesAsync(ct);
         }

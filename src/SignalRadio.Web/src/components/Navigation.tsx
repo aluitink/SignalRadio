@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import SummaryTicker from './SummaryTicker'
+import { useConnectionStatus } from '../contexts/ConnectionStatusContext'
 
 const links = [
   { to: '/', label: 'Live', end: true },
@@ -10,6 +11,7 @@ const links = [
 
 export default function Navigation() {
   const [open, setOpen] = useState(false)
+  const status = useConnectionStatus()
 
   const linkClass = ({ isActive }: { isActive: boolean }) =>
     `nav-link${isActive ? ' active' : ''}`
@@ -18,7 +20,11 @@ export default function Navigation() {
     <header className={`nav${open ? ' open' : ''}`} role="banner">
       <div className="nav-inner">
         <NavLink to="/" className="brand" aria-label="SignalRadio home">
-          <span className="brand-dot" aria-hidden="true" />
+          <span
+            className={`brand-dot status-dot ${status}`}
+            role="status"
+            aria-label={status === 'connected' ? 'Live' : status === 'connecting' ? 'Connecting' : 'Offline'}
+          />
           SignalRadio
         </NavLink>
 
