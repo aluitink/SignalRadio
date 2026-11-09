@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { CallDto } from '../types/dtos'
 import { getCallsCursor, getFinalTranscription } from '../api'
 import { useSignalR } from '../hooks/useSignalR'
+import { useSubscriptions } from '../contexts/SubscriptionsContext'
 import CallCard from './CallCard'
 import { talkGroupColor } from './CallVolumeChart'
 
@@ -17,6 +18,10 @@ export interface CallStreamProps {
   subscribedIds?: number[]
   /** Message shown when the (filtered) list is empty. */
   emptyMessage?: string
+  /** Optional callback to open the investigation prompt modal for a call. */
+  onInvestigate?: (call: CallDto) => void
+  /** Optional callback to filter the stream to a call's talk group. */
+  onFilterTalkGroup?: (talkGroupId: number) => void
 }
 
 /**
@@ -31,6 +36,8 @@ export default function CallStream({
   subscribedOnly = false,
   subscribedIds = [],
   emptyMessage = 'No calls yet.',
+  onInvestigate,
+  onFilterTalkGroup,
 }: CallStreamProps) {
   const [calls, setCalls] = useState<CallDto[]>([])
   const [transcripts, setTranscripts] = useState<Map<number, string>>(new Map())
@@ -42,8 +49,18 @@ export default function CallStream({
   const [error, setError] = useState<string | null>(null)
   const sentinelRef = useRef<HTMLDivElement | null>(null)
   const loadingRef = useRef(false)
+  const { updateSessionStream } = useSubscriptions()
 
   const subscribedSet = new Set(subscribedIds)
+
+  // A call's filter button is "lit" whenever the stream is filtered to a set
+  // of talk groups that includes this call's group (single-group filter from a
+  // call card, or a multi-group selection from the histogram legend).
+  const filteredGroupSet = talkGroupId != null
+    ? new Set([talkGroupId])
+    : talkGroupIds && talkGroupIds.length > 0
+      ? new Set(talkGroupIds)
+      : null
 
   const fetchTranscripts = useCallback(async (items: CallDto[]) => {
     const withRecording = items.filter((c) => c.latestRecordingId)
@@ -155,6 +172,12 @@ export default function CallStream({
 
   const visibleCalls = subscribedOnly ? calls.filter((c) => subscribedSet.has(c.talkGroupId)) : calls
 
+  // Keep the active playback session's stream reference up to date so it
+  // picks up calls that arrive after the initial click.
+  useEffect(() => {
+    updateSessionStream(visibleCalls)
+  }, [visibleCalls, updateSessionStream])
+
   return (
     <div>
       {loading ? (
@@ -181,6 +204,9 @@ export default function CallStream({
               transcript={transcripts.get(c.id)}
               accentColor={talkGroupColor(c.talkGroupId)}
               stream={visibleCalls}
+              onInvestigate={onInvestigate}
+              onFilterTalkGroup={onFilterTalkGroup}
+              filterActive={filteredGroupSet?.has(c.talkGroupId) ?? false}
             />
           ))}
           <div ref={sentinelRef} className="scroll-sentinel" />

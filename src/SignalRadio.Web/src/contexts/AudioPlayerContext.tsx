@@ -18,6 +18,12 @@ export interface NowPlaying {
 interface AudioPlayerValue {
   nowPlaying: NowPlaying | null
   isPlaying: boolean
+  /**
+   * True when the user explicitly paused playback (as opposed to the call
+   * ending naturally). The queue engine uses this to hold the queue instead
+   * of advancing to the next call.
+   */
+  isPaused: boolean
   currentTime: number
   duration: number
   play: (np: NowPlaying) => void
@@ -38,6 +44,7 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const [nowPlaying, setNowPlaying] = useState<NowPlaying | null>(null)
   const [isPlaying, setIsPlaying] = useState(false)
+  const [isPaused, setIsPaused] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
 
@@ -47,9 +54,20 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
     audio.preload = 'auto'
     audioRef.current = audio
 
-    const onPlay = () => setIsPlaying(true)
-    const onPause = () => setIsPlaying(false)
-    const onEnded = () => setIsPlaying(false)
+    const onPlay = () => {
+      setIsPlaying(true)
+      setIsPaused(false)
+    }
+    const onPause = () => {
+      setIsPlaying(false)
+      // Only a user-initiated pause (audio.paused without ended) counts as
+      // paused; 'ended' also sets paused=true but is handled by onEnded.
+      if (!audio.ended) setIsPaused(true)
+    }
+    const onEnded = () => {
+      setIsPlaying(false)
+      setIsPaused(false)
+    }
     const onTimeUpdate = () => setCurrentTime(audio.currentTime)
     const onLoadedMetadata = () => setDuration(audio.duration || 0)
 
@@ -82,6 +100,7 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
     setNowPlaying(np)
     setCurrentTime(0)
     setDuration(0)
+    setIsPaused(false)
     audio.src = np.url
     void audio.play().catch(() => { /* autoplay may be blocked */ })
   }, [nowPlaying])
@@ -95,6 +114,7 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
       setDuration(0)
       audio.src = np.url
     }
+    setIsPaused(false)
     void audio.play().catch(() => { /* autoplay may be blocked */ })
   }, [nowPlaying])
 
@@ -112,6 +132,7 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
     audio.currentTime = 0
     setNowPlaying(null)
     setIsPlaying(false)
+    setIsPaused(false)
     setCurrentTime(0)
     setDuration(0)
   }, [])
@@ -124,8 +145,8 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const value = useMemo<AudioPlayerValue>(
-    () => ({ nowPlaying, isPlaying, currentTime, duration, play, playFromCall, toggle, stop, seek }),
-    [nowPlaying, isPlaying, currentTime, duration, play, playFromCall, toggle, stop, seek],
+    () => ({ nowPlaying, isPlaying, isPaused, currentTime, duration, play, playFromCall, toggle, stop, seek }),
+    [nowPlaying, isPlaying, isPaused, currentTime, duration, play, playFromCall, toggle, stop, seek],
   )
 
   return <AudioPlayerContext.Provider value={value}>{children}</AudioPlayerContext.Provider>

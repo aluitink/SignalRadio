@@ -10,6 +10,7 @@ public class TranscriptSummary
     public int TranscriptCount { get; set; }
     public double TotalDurationSeconds { get; set; }
     public string Summary { get; set; } = string.Empty;
+    public int? Severity { get; set; }
     public DateTime GeneratedAt { get; set; } = DateTime.UtcNow;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
@@ -18,4 +19,5 @@ public class TranscriptSummary
 
     public ICollection<TranscriptSummaryTopic> TranscriptSummaryTopics { get; set; } = new List<TranscriptSummaryTopic>();
     public ICollection<TranscriptSummaryNotableIncident> TranscriptSummaryNotableIncidents { get; set; } = new List<TranscriptSummaryNotableIncident>();
+    public ICollection<TranscriptSummaryCall> TranscriptSummaryCalls { get; set; } = new List<TranscriptSummaryCall>();
 }

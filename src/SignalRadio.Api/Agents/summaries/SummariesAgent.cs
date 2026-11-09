@@ -21,7 +21,20 @@ public class SummariesAgent : IAgentDefinition
 
     public AIAgent BuildAgent(IChatClient chatClient, string instructions, Func<AIFunction[]> tools)
     {
-        return new ChatClientAgent(chatClient, instructions: instructions, name: Name, tools: tools());
+        // Constrain the model to return a JSON object matching SummaryReport. The OpenAI
+        // provider maps this to response_format=json_schema, so the output is guaranteed to be
+        // parseable. The orchestrator (SummariesAgentService) reads the result via RunAsync<SummaryReport>.
+        var options = new ChatClientAgentOptions
+        {
+            Name = Name,
+            ChatOptions = new ChatOptions
+            {
+                Instructions = instructions,
+                ResponseFormat = ChatResponseFormat.ForJsonSchema<SummaryReport>(),
+                Tools = tools().Select(t => (AITool)t).ToList(),
+            },
+        };
+        return new ChatClientAgent(chatClient, options);
     }
 
     /// <summary>

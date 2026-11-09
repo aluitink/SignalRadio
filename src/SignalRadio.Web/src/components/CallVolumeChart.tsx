@@ -52,8 +52,6 @@ export function talkGroupColor(talkGroupId: number): string {
 interface CallVolumeChartProps {
   /** When set, only this talk group's volume is shown (single color). */
   talkGroupId?: number
-  /** Optional title override. */
-  title?: string
   /** Initial window in minutes (must match one of SPANS). */
   initialMinutes?: number
   /** Bump to force a refresh (e.g. when a new call arrives via SignalR). */
@@ -64,7 +62,6 @@ interface CallVolumeChartProps {
 
 export default function CallVolumeChart({
   talkGroupId,
-  title,
   initialMinutes = 60,
   refreshKey = 0,
   barColor,
@@ -125,9 +122,8 @@ export default function CallVolumeChart({
       : null
 
   return (
-    <section className="card volume-chart" aria-label={title ?? 'Call volume'}>
+    <section className="card volume-chart" aria-label="Call volume">
       <div className="volume-chart-header">
-        <h3>{title ?? 'Call volume'}</h3>
         <div className="volume-chart-controls">
           <select
             className="volume-resolution"
@@ -205,20 +201,23 @@ export default function CallVolumeChart({
  * Stacked bar chart of call volume across all talk groups, color-coded per group.
  */
 export function CallVolumeStackedChart({
-  title,
   initialMinutes = 60,
   refreshKey = 0,
   selected,
   onToggleGroup,
   onClear,
+  subscribedOnly,
+  onSubscribedOnlyChange,
 }: {
-  title?: string
   initialMinutes?: number
   refreshKey?: number
   /** Talk group ids selected via the legend. Empty = show all groups. */
   selected?: Set<number>
   onToggleGroup?: (id: number) => void
   onClear?: () => void
+  /** When provided, renders a "Subscribed only" toggle in the header (left side). */
+  subscribedOnly?: boolean
+  onSubscribedOnlyChange?: (value: boolean) => void
 }) {
   const [minutes, setMinutes] = useState<number>(initialMinutes)
   const [data, setData] = useState<CallVolumeByTalkGroupDto[] | null>(null)
@@ -226,6 +225,8 @@ export function CallVolumeStackedChart({
   const [hover, setHover] = useState<number | null>(null)
   // Internal selection used when the filter is not controlled by the parent.
   const [internalSelected, setInternalSelected] = useState<Set<number>>(new Set())
+  // Legend is collapsed by default; expand to filter by talk group.
+  const [legendOpen, setLegendOpen] = useState(false)
 
   const isControlled = selected !== undefined
   const activeSelected = isControlled ? selected! : internalSelected
@@ -324,9 +325,22 @@ export function CallVolumeStackedChart({
       : null
 
   return (
-    <section className="card volume-chart" aria-label={title ?? 'Call volume'}>
+    <section className="card volume-chart" aria-label="Call volume">
       <div className="volume-chart-header">
-        <h3>{title ?? 'Call volume'}</h3>
+        {subscribedOnly !== undefined && onSubscribedOnlyChange && (
+          <label className="toggle-switch">
+            <input
+              type="checkbox"
+              checked={subscribedOnly}
+              onChange={(e) => onSubscribedOnlyChange(e.target.checked)}
+              aria-label="Show subscribed talk groups only"
+            />
+            <span className="toggle-track" aria-hidden="true">
+              <span className="toggle-thumb" />
+            </span>
+            <span className="toggle-label">Subscribed only</span>
+          </label>
+        )}
         <div className="volume-chart-controls">
           <select
             className="volume-resolution"
@@ -419,37 +433,54 @@ export function CallVolumeStackedChart({
           </div>
           {allGroups.length > 0 && (
             <div className="volume-legend-wrap">
-              <div className="volume-legend" aria-label="Talk group colors — click to filter">
-                {allGroups.map((g) => {
-                  const isSel = activeSelected.has(g.id)
-                  const isDim = activeSelected.size > 0 && !isSel
-                  return (
+              <button
+                type="button"
+                className="volume-legend-toggle"
+                onClick={() => setLegendOpen((o) => !o)}
+                aria-expanded={legendOpen}
+                aria-controls="volume-legend"
+              >
+                <span className={`volume-legend-caret${legendOpen ? ' open' : ''}`} aria-hidden="true" />
+                Talk groups ({allGroups.length})
+                {activeSelected.size > 0 && (
+                  <span className="volume-legend-filtered-badge">{activeSelected.size} selected</span>
+                )}
+              </button>
+              {legendOpen && (
+                <div id="volume-legend" className="volume-legend-body">
+                  <div className="volume-legend" aria-label="Talk group colors — click to filter">
+                    {allGroups.map((g) => {
+                      const isSel = activeSelected.has(g.id)
+                      const isDim = activeSelected.size > 0 && !isSel
+                      return (
+                        <button
+                          key={g.id}
+                          type="button"
+                          className={`volume-legend-item${isSel ? ' selected' : ''}${isDim ? ' dimmed' : ''}`}
+                          onClick={() => toggleGroup(g.id)}
+                          aria-pressed={isSel}
+                          title={isSel ? 'Click to show all groups' : 'Click to filter to this group'}
+                        >
+                          <span
+                            className="volume-legend-swatch"
+                            style={{ background: talkGroupColor(g.id) }}
+                            aria-hidden="true"
+                          />
+                          {g.name ?? `TG ${g.number}`}
+                        </button>
+                      )
+                    })}
+                  </div>
+                  {activeSelected.size > 0 && (
                     <button
-                      key={g.id}
                       type="button"
-                      className={`volume-legend-item${isSel ? ' selected' : ''}${isDim ? ' dimmed' : ''}`}
-                      onClick={() => toggleGroup(g.id)}
-                      aria-pressed={isSel}
-                      title={isSel ? 'Click to show all groups' : 'Click to filter to this group'}
+                      className="volume-legend-clear"
+                      onClick={clearSelection}
                     >
-                      <span
-                        className="volume-legend-swatch"
-                        style={{ background: talkGroupColor(g.id) }}
-                        aria-hidden="true"
-                      />
-                      {g.name ?? `TG ${g.number}`}
+                      Clear ({activeSelected.size})
                     </button>
-                  )
-                })}
-              </div>
-              {activeSelected.size > 0 && (
-                <button
-                  type="button"
-                  className="volume-legend-clear"
-                  onClick={clearSelection}
-                >
-                  Clear ({activeSelected.size})
-                </button>
+                  )}
+                </div>
               )}
             </div>
           )}

@@ -24,10 +24,13 @@ public sealed class StubChatClient : IChatClient, IDisposable
         var first = lines.FirstOrDefault() ?? "";
         var last = lines.LastOrDefault() ?? "";
 
+        // Return a JSON object matching the SummaryReport shape so the structured-output
+        // pipeline (AsObject<SummaryReport>) works end-to-end in simulation.
         var summary = $"[stub summary] {count} transcript(s) processed. First: {Truncate(first, 120)} Last: {Truncate(last, 120)}";
+        var json = $$"""{"summary": {{JsonEscape(summary)}}, "severity": 3, "headline": "", "notableIncidents": []}""";
 
         return Task.FromResult(new ChatResponse(
-            [new ChatMessage(ChatRole.Assistant, summary)]));
+            [new ChatMessage(ChatRole.Assistant, json)]));
     }
 
     public IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(
@@ -43,6 +46,9 @@ public sealed class StubChatClient : IChatClient, IDisposable
     public void Dispose() { }
 
     private static string Truncate(string s, int max) => s.Length <= max ? s : s[..max] + "…";
+
+    private static string JsonEscape(string s) =>
+        System.Text.Json.JsonSerializer.Serialize(s)[1..^1];
 }
 
 /// <summary>

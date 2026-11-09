@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { CallDto } from '../types/dtos'
 import { useAudioPlayer } from '../contexts/AudioPlayerContext'
@@ -11,16 +12,29 @@ export default function CallCard({
   transcript,
   accentColor,
   stream,
+  onInvestigate,
+  onFilterTalkGroup,
+  filterActive = false,
+  showTranscript = true,
 }: {
   call: CallDto
   transcript?: string | null
   /** Optional per-talkgroup accent color (matches the call-volume histogram). */
   accentColor?: string
   stream?: CallDto[]
+  /** Optional callback to open the investigation prompt modal for this call. */
+  onInvestigate?: (call: CallDto) => void
+  /** Optional callback to filter the stream to this call's talk group (toggle). */
+  onFilterTalkGroup?: (talkGroupId: number) => void
+  /** When true, the stream is currently filtered to this call's talk group. */
+  filterActive?: boolean
+  /** When false, hide the transcript snippet (compact cards for long lists). */
+  showTranscript?: boolean
 }) {
   const { nowPlaying, isPlaying } = useAudioPlayer()
   const { isSubscribed, toggleSubscription, playFromCall } = useSubscriptions()
   const now = useNow()
+  const [expanded, setExpanded] = useState(false)
   const url = recordingDownloadUrlByCall(call.id)
   const isThis = nowPlaying?.url === url
   const playing = isThis && isPlaying
@@ -77,6 +91,32 @@ export default function CallCard({
             <span className="time" title={formatDateTime(call.recordingTime)}>
               {formatRelativeTime(call.recordingTime, now)}
             </span>
+            {onInvestigate && (
+              <button
+                className="investigate-icon"
+                onClick={(e) => { e.stopPropagation(); onInvestigate(call) }}
+                aria-label={`Investigate call on talk group ${call.talkGroupNumber}`}
+                title="AI investigation"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <circle cx="11" cy="11" r="8" />
+                  <path d="m21 21-4.35-4.35" />
+                </svg>
+              </button>
+            )}
+            {onFilterTalkGroup && (
+              <button
+                className={`filter-icon${filterActive ? ' active' : ''}`}
+                onClick={(e) => { e.stopPropagation(); onFilterTalkGroup(call.talkGroupId) }}
+                aria-pressed={filterActive}
+                aria-label={filterActive ? `Clear talk group ${call.talkGroupNumber} filter` : `Filter stream to talk group ${call.talkGroupNumber}`}
+                title={filterActive ? 'Clear talk group filter' : 'Filter stream to this talk group'}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+                </svg>
+              </button>
+            )}
             <button
               className={`subscribe-icon${subscribed ? ' subscribed' : ''}`}
               onClick={handleSubscribe}
@@ -106,8 +146,17 @@ export default function CallCard({
           </span>
         </div>
 
-        {transcript ? (
-          <p className="transcript">{transcript}</p>
+        {showTranscript && transcript ? (
+          <p
+            className={`transcript${expanded ? ' expanded' : ''}`}
+            onClick={(e) => {
+              e.stopPropagation()
+              setExpanded((v) => !v)
+            }}
+            title={expanded ? 'Collapse transcript' : 'Expand transcript'}
+          >
+            {transcript}
+          </p>
         ) : null}
       </div>
     </div>

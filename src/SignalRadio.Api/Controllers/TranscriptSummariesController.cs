@@ -23,6 +23,11 @@ public class TranscriptSummariesController(ITranscriptSummariesService summaries
         return result == null ? NotFound() : Ok(result);
     }
 
+    // The calls that made up this summary (oldest first), for review and playback.
+    [HttpGet("{id:long}/calls")]
+    public async Task<IActionResult> GetCalls(long id, CancellationToken ct) =>
+        Ok(await summaries.GetCallsAsync(id, ct));
+
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateTranscriptSummaryRequest request, CancellationToken ct) =>
         CreatedAtAction(nameof(GetById), new { id = (await summaries.CreateAsync(request, ct)).Id }, null);

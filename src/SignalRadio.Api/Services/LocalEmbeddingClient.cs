@@ -106,23 +106,22 @@ public class LocalEmbeddingClient : IAiClient
     private sealed class TokenizerData
     {
         private readonly Dictionary<string, int> _vocab;
-        private readonly Dictionary<(string, string), int> _mergeOrder;
         private readonly int _clsId;
         private readonly int _sepId;
         private readonly int _unkId;
         private readonly int _maxWordLen;
+        private readonly string _subwordPrefix;
 
         private TokenizerData(
             Dictionary<string, int> vocab,
-            Dictionary<(string, string), int> mergeOrder,
-            int clsId, int sepId, int unkId, int maxWordLen)
+            int clsId, int sepId, int unkId, int maxWordLen, string subwordPrefix)
         {
             _vocab = vocab;
-            _mergeOrder = mergeOrder;
             _clsId = clsId;
             _sepId = sepId;
             _unkId = unkId;
             _maxWordLen = maxWordLen;
+            _subwordPrefix = subwordPrefix;
         }
 
         public static TokenizerData Load(string path)
@@ -132,7 +131,6 @@ public class LocalEmbeddingClient : IAiClient
             var root = doc.RootElement;
 
             var vocab = new Dictionary<string, int>(StringComparer.Ordinal);
-            var mergeOrder = new Dictionary<(string, string), int>();
 
             if (root.TryGetProperty("model", out var model))
             {
@@ -142,22 +140,13 @@ public class LocalEmbeddingClient : IAiClient
                         vocab[prop.Name] = prop.Value.GetInt32();
                 }
 
-                if (model.TryGetProperty("merges", out var merges))
-                {
-                    var idx = 0;
-                    foreach (var merge in merges.EnumerateArray())
-                    {
-                        var s = merge.GetString() ?? "";
-                        var parts = s.Split(' ', 2);
-                        if (parts.Length == 2)
-                            mergeOrder[(parts[0], parts[1])] = idx;
-                        idx++;
-                    }
-                }
-
                 int maxWordLen = 20;
-                if (model.TryGetProperty("max_word_len", out var mwl))
+                if (model.TryGetProperty("max_input_chars_per_word", out var mwl))
                     maxWordLen = mwl.GetInt32();
+
+                string subwordPrefix = "##";
+                if (model.TryGetProperty("continuing_subword_prefix", out var prefix))
+                    subwordPrefix = prefix.GetString() ?? "##";
 
                 int clsId = 101, sepId = 102, unkId = 100;
                 if (root.TryGetProperty("added_tokens", out var added))
@@ -172,10 +161,10 @@ public class LocalEmbeddingClient : IAiClient
                     }
                 }
 
-                return new TokenizerData(vocab, mergeOrder, clsId, sepId, unkId, maxWordLen);
+                return new TokenizerData(vocab, clsId, sepId, unkId, maxWordLen, subwordPrefix);
             }
 
-            throw new InvalidDataException($"tokenizer.json at {path} does not contain a BPE model section.");
+            throw new InvalidDataException($"tokenizer.json at {path} does not contain a model section.");
         }
 
         public (long[] inputIds, long[] attentionMask) Encode(string text, int maxTokens)
@@ -206,6 +195,8 @@ public class LocalEmbeddingClient : IAiClient
 
         private static List<string> PreTokenize(string text)
         {
+            // BertPreTokenizer: split on non-alphanumeric characters,
+            // keeping each symbol as its own token.
             var result = new List<string>();
             var lower = text.ToLowerInvariant();
             var current = new System.Text.StringBuilder();
@@ -239,56 +230,44 @@ public class LocalEmbeddingClient : IAiClient
             if (word.Length > _maxWordLen)
                 return [_unkId];
 
-            // BPE: start with individual characters, apply merges
-            var pieces = new List<string>();
-            foreach (var c in word)
-                pieces.Add(c.ToString());
+            // Greedy WordPiece: longest-prefix matching with ## continuation.
+            var ids = new List<int>();
+            var start = 0;
 
-            if (pieces.Count == 0)
-                return [_unkId];
-
-            // Apply merges in priority order
-            var merged = true;
-            while (merged && pieces.Count > 1)
+            while (start < word.Length)
             {
-                merged = false;
-                int bestIdx = -1;
-                int bestOrder = int.MaxValue;
+                var end = word.Length;
+                int foundId = -1;
 
-                for (var i = 0; i < pieces.Count - 1; i++)
+                while (end > start)
                 {
-                    if (_mergeOrder.TryGetValue((pieces[i], pieces[i + 1]), out var order) &&
-                        order < bestOrder)
+                    var piece = word[start..end];
+                    var key = start == 0 ? piece : _subwordPrefix + piece;
+                    if (_vocab.TryGetValue(key, out var id))
                     {
-                        bestOrder = order;
-                        bestIdx = i;
+                        foundId = id;
+                        break;
                     }
+                    end--;
                 }
 
-                if (bestIdx >= 0)
+                if (foundId < 0)
                 {
-                    var newPiece = pieces[bestIdx] + pieces[bestIdx + 1];
-                    pieces.RemoveAt(bestIdx);
-                    pieces[bestIdx] = newPiece;
-                    merged = true;
-                }
-            }
-
-            // Convert to IDs
-            var ids = new List<int>(pieces.Count);
-            for (var p = 0; p < pieces.Count; p++)
-            {
-                var piece = pieces[p];
-                var key = p == 0 ? piece : "##" + piece;
-                if (_vocab.TryGetValue(key, out var id))
-                    ids.Add(id);
-                else if (_vocab.TryGetValue(piece, out id))
-                    ids.Add(id);
-                else
+                    // No subword found from this position — emit [UNK] and advance one char.
                     ids.Add(_unkId);
+                    start++;
+                }
+                else
+                {
+                    ids.Add(foundId);
+                    start = end;
+                }
+
+                if (ids.Count >= maxSubTokens)
+                    break;
             }
 
-            return ids.Count > maxSubTokens ? ids[..maxSubTokens] : ids;
+            return ids;
         }
     }
 }

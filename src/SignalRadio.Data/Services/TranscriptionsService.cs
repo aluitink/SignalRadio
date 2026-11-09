@@ -22,7 +22,9 @@ public class TranscriptionsService(SignalRadioDbContext db) : ITranscriptionsSer
         };
         db.Transcriptions.Add(entity);
         await db.SaveChangesAsync(ct);
-        return new TranscriptionDto(entity.Id, entity.RecordingId, entity.Service, entity.Language, entity.FullText, entity.Confidence, entity.AdditionalDataJson, entity.CreatedAt, entity.IsFinal);
+        var duration = entity.Recording?.Call?.DurationSeconds ?? 0.0;
+        var callId = entity.Recording?.CallId ?? 0;
+        return new TranscriptionDto(entity.Id, entity.RecordingId, callId, entity.Service, entity.Language, entity.FullText, entity.Confidence, entity.AdditionalDataJson, entity.CreatedAt, entity.IsFinal, duration);
     }
 
     public async Task<IReadOnlyList<TranscriptionDto>> GetByRecordingIdAsync(long recordingId, CancellationToken ct = default)
@@ -30,7 +32,7 @@ public class TranscriptionsService(SignalRadioDbContext db) : ITranscriptionsSer
         return await db.Transcriptions
             .Where(t => t.RecordingId == recordingId)
             .OrderByDescending(t => t.CreatedAt)
-            .Select(t => new TranscriptionDto(t.Id, t.RecordingId, t.Service, t.Language, t.FullText, t.Confidence, t.AdditionalDataJson, t.CreatedAt, t.IsFinal))
+            .Select(t => new TranscriptionDto(t.Id, t.RecordingId, t.Recording!.CallId, t.Service, t.Language, t.FullText, t.Confidence, t.AdditionalDataJson, t.CreatedAt, t.IsFinal, t.Recording.Call!.DurationSeconds))
             .ToListAsync(ct);
     }
 
@@ -40,7 +42,10 @@ public class TranscriptionsService(SignalRadioDbContext db) : ITranscriptionsSer
             .Where(t => t.RecordingId == recordingId && t.IsFinal)
             .OrderByDescending(t => t.CreatedAt)
             .FirstOrDefaultAsync(ct);
-        return t == null ? null : new TranscriptionDto(t.Id, t.RecordingId, t.Service, t.Language, t.FullText, t.Confidence, t.AdditionalDataJson, t.CreatedAt, t.IsFinal);
+        if (t == null) return null;
+        var duration = t.Recording?.Call?.DurationSeconds ?? 0.0;
+        var callId = t.Recording?.CallId ?? 0;
+        return new TranscriptionDto(t.Id, t.RecordingId, callId, t.Service, t.Language, t.FullText, t.Confidence, t.AdditionalDataJson, t.CreatedAt, t.IsFinal, duration);
     }
 
     public async Task<IReadOnlyList<TranscriptionDto>> GetFinalByTalkGroupSinceAsync(int talkGroupId, DateTime since, int limit, CancellationToken ct = default)
@@ -53,7 +58,7 @@ public class TranscriptionsService(SignalRadioDbContext db) : ITranscriptionsSer
             .Where(t => t.Recording.Call.RecordingTime > sinceOffset)
             .OrderBy(t => t.Recording.Call.RecordingTime)
             .Take(limit)
-            .Select(t => new TranscriptionDto(t.Id, t.RecordingId, t.Service, t.Language, t.FullText, t.Confidence, t.AdditionalDataJson, t.CreatedAt, t.IsFinal))
+            .Select(t => new TranscriptionDto(t.Id, t.RecordingId, t.Recording!.CallId, t.Service, t.Language, t.FullText, t.Confidence, t.AdditionalDataJson, t.CreatedAt, t.IsFinal, t.Recording.Call!.DurationSeconds))
             .ToListAsync(ct);
     }
 

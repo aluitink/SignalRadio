@@ -9,6 +9,12 @@ public interface ITranscriptSummariesService
     Task<TranscriptSummaryDto?> GetByIdAsync(long id, CancellationToken ct = default);
 
     /// <summary>
+    /// The calls that made up a summary (oldest first), with enough metadata
+    /// to render call cards and play the audio.
+    /// </summary>
+    Task<IReadOnlyList<SummaryCallDto>> GetCallsAsync(long summaryId, CancellationToken ct = default);
+
+    /// <summary>
     /// The talkgroup's most recent prior summary (by EndTime), or null if none.
     /// Used by the summaries agent to note what is new versus ongoing.
     /// </summary>

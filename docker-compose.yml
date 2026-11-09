@@ -8,7 +8,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - /mnt/sda/volumes/SignalRadio2/pgdata:/var/lib/postgresql/data
       - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U signalradio"]
@@ -61,7 +61,7 @@ services:
       # Talk group CSV import (rich talkgroup info for the UI)
       - TalkGroups__CsvPath=/app/config/danecom-talkgroups.csv
     volumes:
-      - recordings:/data/recordings
+      - /mnt/sda/volumes/SignalRadio2/recordings:/data/recordings
       - ./models:/models:ro
       - ./config:/app/config:ro
     depends_on:
@@ -99,8 +99,6 @@ services:
       - api
 
 volumes:
-  pgdata:
-  recordings:
   trunk-recordings:
   temp:
   logs:

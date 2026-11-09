@@ -1,38 +1,164 @@
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
-import type { SearchResultsDto } from '../types/dtos'
-import { search } from '../api'
-import { formatDateTime } from '../utils/format'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import type { CallDto, SearchResultsDto, TranscriptSummaryDto } from '../types/dtos'
+import { search, searchSummariesPaged } from '../api'
+import CallCard from '../components/CallCard'
+import SummaryCard from '../components/SummaryCard'
+import InvestigationPromptModal from '../components/InvestigationPromptModal'
+import { talkGroupColor } from '../components/CallVolumeChart'
 
 const PAGE_SIZE = 20
 
+type SearchMode = 'keyword' | 'semantic' | 'hybrid'
+type ResultTab = 'calls' | 'summaries'
+
 export default function SearchPage() {
   const [q, setQ] = useState('')
-  const [semantic, setSemantic] = useState(false)
-  const [results, setResults] = useState<SearchResultsDto | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [searched, setSearched] = useState(false)
+  const [mode, setMode] = useState<SearchMode>('keyword')
+  const [tab, setTab] = useState<ResultTab>('calls')
+  const [investigateCall, setInvestigateCall] = useState<CallDto | null>(null)
 
-  const runSearch = async (query: string, p: number) => {
-    if (!query.trim()) return
-    setLoading(true)
-    setError(null)
-    try {
-      const data = await search(query, p, PAGE_SIZE, semantic)
-      setResults(data)
-      setSearched(true)
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Search failed')
-    } finally {
-      setLoading(false)
-    }
-  }
+  // ---- Calls (transcripts) results ----
+  const [calls, setCalls] = useState<CallDto[]>([])
+  const [callTranscripts, setCallTranscripts] = useState<Map<number, string>>(new Map())
+  const [callsTotal, setCallsTotal] = useState(0)
+  const [callsPage, setCallsPage] = useState(1)
+  const [callsHasMore, setCallsHasMore] = useState(false)
+  const [callsLoading, setCallsLoading] = useState(false)
+  const [callsLoadingMore, setCallsLoadingMore] = useState(false)
+  const [callsError, setCallsError] = useState<string | null>(null)
+
+  // ---- Summaries results ----
+  const [summaries, setSummaries] = useState<TranscriptSummaryDto[]>([])
+  const [summariesCursor, setSummariesCursor] = useState<{ time: string; id: number } | null>(null)
+  const [summariesHasMore, setSummariesHasMore] = useState(false)
+  const [summariesLoading, setSummariesLoading] = useState(false)
+  const [summariesLoadingMore, setSummariesLoadingMore] = useState(false)
+  const [summariesError, setSummariesError] = useState<string | null>(null)
+
+  const [searched, setSearched] = useState(false)
+  const callsLoadingRef = useRef(false)
+  const summariesLoadingRef = useRef(false)
+  const callsSentinelRef = useRef<HTMLDivElement | null>(null)
+  const summariesSentinelRef = useRef<HTMLDivElement | null>(null)
+
+  const activeQuery = q.trim()
+
+  // ---- Calls: load a page (append = infinite scroll) ----
+  const loadCalls = useCallback(
+    async (page: number, append: boolean) => {
+      if (callsLoadingRef.current || !activeQuery) return
+      callsLoadingRef.current = true
+      if (append) setCallsLoadingMore(true)
+      else setCallsLoading(true)
+      setCallsError(null)
+      try {
+        const data: SearchResultsDto = await search(activeQuery, page, PAGE_SIZE, mode === 'semantic', mode === 'hybrid')
+        const newCalls: CallDto[] = data.transcriptions.map((t) => ({
+          id: t.callId,
+          talkGroupId: t.talkGroupId,
+          talkGroupNumber: t.talkGroupNumber,
+          talkGroupName: t.talkGroupName,
+          recordingTime: t.recordingTime,
+          frequencyHz: 0,
+          durationSeconds: 0,
+          createdAt: t.recordingTime,
+          recordingCount: 0,
+          latestRecordingId: t.recordingId,
+        }))
+        setCalls((prev) => {
+          if (!append) return newCalls
+          const existing = new Set(prev.map((c) => c.id))
+          return [...prev, ...newCalls.filter((c) => !existing.has(c.id))]
+        })
+        setCallTranscripts((prev) => {
+          const next = new Map(prev)
+          for (const t of data.transcriptions) next.set(t.callId, t.fullText)
+          return next
+        })
+        setCallsTotal(data.totalCount)
+        setCallsPage(page)
+        setCallsHasMore(page * PAGE_SIZE < data.totalCount)
+      } catch (e) {
+        setCallsError(e instanceof Error ? e.message : 'Search failed')
+      } finally {
+        callsLoadingRef.current = false
+        setCallsLoading(false)
+        setCallsLoadingMore(false)
+      }
+    },
+    [activeQuery, mode],
+  )
+
+  // ---- Summaries: load a page (cursor-based infinite scroll) ----
+  const loadSummaries = useCallback(
+    async (before: { time: string; id: number } | null, append: boolean) => {
+      if (summariesLoadingRef.current || !activeQuery) return
+      summariesLoadingRef.current = true
+      if (append) setSummariesLoadingMore(true)
+      else setSummariesLoading(true)
+      setSummariesError(null)
+      try {
+        const data = await searchSummariesPaged(activeQuery, PAGE_SIZE, before)
+        setSummaries((prev) => (append ? [...prev, ...data.summaries] : data.summaries))
+        setSummariesCursor(
+          data.hasMore && data.nextCursorTime && data.nextCursorId != null
+            ? { time: data.nextCursorTime, id: data.nextCursorId }
+            : null,
+        )
+        setSummariesHasMore(data.hasMore)
+      } catch (e) {
+        setSummariesError(e instanceof Error ? e.message : 'Search failed')
+      } finally {
+        summariesLoadingRef.current = false
+        setSummariesLoading(false)
+        setSummariesLoadingMore(false)
+      }
+    },
+    [activeQuery],
+  )
+
+  // Run both searches when the query or mode changes.
+  useEffect(() => {
+    if (!activeQuery) return
+    setSearched(true)
+    setCalls([])
+    setCallTranscripts(new Map())
+    setCallsPage(1)
+    setCallsHasMore(false)
+    setSummaries([])
+    setSummariesCursor(null)
+    setSummariesHasMore(false)
+    void loadCalls(1, false)
+    void loadSummaries(null, false)
+  }, [activeQuery, mode, loadCalls, loadSummaries])
+
+  // Infinite scroll: observe the active tab's sentinel.
+  useEffect(() => {
+    const sentinel = tab === 'calls' ? callsSentinelRef.current : summariesSentinelRef.current
+    if (!sentinel) return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries[0].isIntersecting) return
+        if (tab === 'calls') {
+          if (callsHasMore && !callsLoadingRef.current) void loadCalls(callsPage + 1, true)
+        } else {
+          if (summariesHasMore && !summariesLoadingRef.current) void loadSummaries(summariesCursor, true)
+        }
+      },
+      { rootMargin: '200px' },
+    )
+    observer.observe(sentinel)
+    return () => observer.disconnect()
+  }, [tab, callsHasMore, callsPage, summariesHasMore, summariesCursor, loadCalls, loadSummaries])
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    void runSearch(q, 1)
+    // The effect above reacts to `q` changes; submitting just ensures the
+    // latest input value is committed.
   }
+
+  const showCalls = tab === 'calls'
+  const showSummaries = tab === 'summaries'
 
   return (
     <div>
@@ -44,111 +170,121 @@ export default function SearchPage() {
         <input
           className="input"
           type="search"
-          placeholder="Search transcripts…"
+          placeholder="Search transcripts and summaries…"
           value={q}
           onChange={(e) => setQ(e.target.value)}
           aria-label="Search query"
         />
-        <label className="semantic-toggle">
-          <input
-            type="checkbox"
-            checked={semantic}
-            onChange={(e) => setSemantic(e.target.checked)}
-          />
-          Semantic
-        </label>
-        <button className="btn primary" type="submit" disabled={loading || !q.trim()}>
-          {loading ? 'Searching…' : 'Search'}
+        <select
+          className="input mode-select"
+          value={mode}
+          onChange={(e) => setMode(e.target.value as SearchMode)}
+          aria-label="Search mode"
+        >
+          <option value="keyword">Keyword</option>
+          <option value="semantic">Semantic</option>
+          <option value="hybrid">Hybrid</option>
+        </select>
+        <button className="btn primary" type="submit" disabled={!q.trim()}>
+          Search
         </button>
       </form>
 
-      {error && <div className="error-state" role="alert">{error}</div>}
-
-      {loading && (
-        <div aria-busy="true">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="skeleton skeleton-card" />
-          ))}
+      {searched && (
+        <div className="result-tabs" role="tablist" aria-label="Search results">
+          <button
+            role="tab"
+            aria-selected={showCalls}
+            className={`result-tab${showCalls ? ' active' : ''}`}
+            onClick={() => setTab('calls')}
+          >
+            Calls{callsTotal > 0 ? ` (${callsTotal})` : ''}
+          </button>
+          <button
+            role="tab"
+            aria-selected={showSummaries}
+            className={`result-tab${showSummaries ? ' active' : ''}`}
+            onClick={() => setTab('summaries')}
+          >
+            Summaries{summaries.length > 0 ? ` (${summaries.length})` : ''}
+          </button>
         </div>
       )}
 
-      {!loading && searched && results && (
-        <>
-          <p className="result-count" aria-live="polite">
-            {results.totalCount} result{results.totalCount === 1 ? '' : 's'}
-          </p>
+      {showCalls && (
+        <section className="result-section" role="tabpanel" aria-label="Call results">
+          {callsError && <div className="error-state" role="alert">{callsError}</div>}
 
-          {results.transcriptions.length > 0 && (
-            <section className="result-section">
-              <h2>Transcripts</h2>
-              {results.transcriptions.map((t) => (
-                <div key={t.transcriptionId} className="card result-item">
-                  <div className="result-meta">
-                    <Link to={`/talkgroup/${t.talkGroupId}`} className="tg-link">
-                      TG {t.talkGroupNumber}
-                    </Link>
-                    <span className="sub">{formatDateTime(t.recordingTime)}</span>
-                    {t.service && <span className="badge">{t.service}</span>}
-                  </div>
-                  <p className="transcript">{t.fullText}</p>
-                </div>
+          {callsLoading && (
+            <div aria-busy="true">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="skeleton skeleton-card" />
               ))}
-            </section>
-          )}
-
-          {results.summaries.length > 0 && (
-            <section className="result-section">
-              <h2>Summaries</h2>
-              {results.summaries.map((s) => (
-                <div key={s.id} className="card result-item">
-                  <div className="result-meta">
-                    <Link to={`/talkgroup/${s.talkGroupId}`} className="tg-link">
-                      TG {s.talkGroupNumber}
-                    </Link>
-                    <span className="sub">
-                      {formatDateTime(s.startTime)} – {formatDateTime(s.endTime)}
-                    </span>
-                  </div>
-                  <p className="transcript">{s.summary}</p>
-                </div>
-              ))}
-            </section>
-          )}
-
-          {results.incidents.length > 0 && (
-            <section className="result-section">
-              <h2>Notable Incidents</h2>
-              {results.incidents.map((n) => (
-                <div key={n.id} className="card result-item">
-                  <p className="transcript">{n.description}</p>
-                </div>
-              ))}
-            </section>
-          )}
-
-          {results.totalCount === 0 && (
-            <div className="empty-state">No results found.</div>
-          )}
-
-          {results.totalCount > results.page * results.pageSize && (
-            <div className="pagination">
-              <button
-                className="btn ghost"
-                disabled={results.page <= 1}
-                onClick={() => void runSearch(q, results.page - 1)}
-              >
-                ← Prev
-              </button>
-              <span className="page-info">Page {results.page}</span>
-              <button
-                className="btn ghost"
-                onClick={() => void runSearch(q, results.page + 1)}
-              >
-                Next →
-              </button>
             </div>
           )}
-        </>
+
+          {!callsLoading && !callsError && calls.length === 0 && (
+            <div className="empty-state">No matching calls.</div>
+          )}
+
+          {!callsLoading && calls.length > 0 && (
+            <div>
+              {calls.map((c) => (
+                <CallCard
+                  key={c.id}
+                  call={c}
+                  transcript={callTranscripts.get(c.id)}
+                  accentColor={talkGroupColor(c.talkGroupId)}
+                  onInvestigate={setInvestigateCall}
+                />
+              ))}
+              <div ref={callsSentinelRef} className="scroll-sentinel" />
+              {callsLoadingMore && <div className="loading-more">Loading more…</div>}
+              {!callsHasMore && (
+                <div className="end-of-list">
+                  {callsTotal} call{callsTotal === 1 ? '' : 's'} found
+                </div>
+              )}
+            </div>
+          )}
+        </section>
+      )}
+
+      {showSummaries && (
+        <section className="result-section" role="tabpanel" aria-label="Summary results">
+          {summariesError && <div className="error-state" role="alert">{summariesError}</div>}
+
+          {summariesLoading && (
+            <div aria-busy="true">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="skeleton skeleton-card" />
+              ))}
+            </div>
+          )}
+
+          {!summariesLoading && !summariesError && summaries.length === 0 && (
+            <div className="empty-state">No matching summaries.</div>
+          )}
+
+          {!summariesLoading && summaries.length > 0 && (
+            <div>
+              {summaries.map((s) => (
+                <SummaryCard key={s.id} summary={s} to={`/summary/${s.id}?from=search`} />
+              ))}
+              <div ref={summariesSentinelRef} className="scroll-sentinel" />
+              {summariesLoadingMore && <div className="loading-more">Loading more…</div>}
+              {!summariesHasMore && <div className="end-of-list">You're all caught up</div>}
+            </div>
+          )}
+        </section>
+      )}
+
+      {investigateCall && (
+        <InvestigationPromptModal
+          call={investigateCall}
+          onClose={() => setInvestigateCall(null)}
+          onCreated={() => { /* investigation queued, ticker will show it */ }}
+        />
       )}
     </div>
   )

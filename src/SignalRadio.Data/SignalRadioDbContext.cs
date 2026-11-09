@@ -17,7 +17,9 @@ public class SignalRadioDbContext : DbContext
     public DbSet<StorageLocation> StorageLocations => Set<StorageLocation>();
     public DbSet<TranscriptSummaryTopic> TranscriptSummaryTopics => Set<TranscriptSummaryTopic>();
     public DbSet<TranscriptSummaryNotableIncident> TranscriptSummaryNotableIncidents => Set<TranscriptSummaryNotableIncident>();
+    public DbSet<TranscriptSummaryCall> TranscriptSummaryCalls => Set<TranscriptSummaryCall>();
     public DbSet<NotableIncidentCall> NotableIncidentCalls => Set<NotableIncidentCall>();
+    public DbSet<Investigation> Investigations => Set<Investigation>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -131,6 +133,22 @@ public class SignalRadioDbContext : DbContext
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
+        // TranscriptSummaryCall (join)
+        modelBuilder.Entity<TranscriptSummaryCall>(entity =>
+        {
+            entity.HasKey(e => new { e.TranscriptSummaryId, e.CallId });
+            // Support lookups of summaries by call (composite key leads with TranscriptSummaryId).
+            entity.HasIndex(e => e.CallId);
+            entity.HasOne(e => e.TranscriptSummary)
+                .WithMany(t => t.TranscriptSummaryCalls)
+                .HasForeignKey(e => e.TranscriptSummaryId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.Call)
+                .WithMany()
+                .HasForeignKey(e => e.CallId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
         // NotableIncidentCall (join)
         modelBuilder.Entity<NotableIncidentCall>(entity =>
         {
@@ -145,6 +163,24 @@ public class SignalRadioDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(e => e.CallId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Investigation
+        modelBuilder.Entity<Investigation>(entity =>
+        {
+            entity.HasIndex(e => e.Status);
+            entity.HasIndex(e => e.CreatedAt);
+            entity.HasIndex(e => new { e.CallId, e.CreatedAt });
+            // SessionJson holds the serialized MAF AgentSession (chat history) — can be large.
+            entity.Property(e => e.SessionJson).HasColumnType("text");
+            entity.HasOne(e => e.Call)
+                .WithMany()
+                .HasForeignKey(e => e.CallId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.ParentInvestigation)
+                .WithMany(p => p.FollowUps)
+                .HasForeignKey(e => e.ParentInvestigationId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
     }
 }

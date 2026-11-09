@@ -5,6 +5,7 @@ public record CallDto(
     int TalkGroupId,
     string TalkGroupNumber,
     string? TalkGroupName,
+    string? TalkGroupDescription,
     DateTimeOffset RecordingTime,
     double FrequencyHz,
     double DurationSeconds,

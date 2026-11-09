@@ -67,7 +67,12 @@ public static class DatabaseInitializer
             "CREATE INDEX IF NOT EXISTS \"IX_Transcriptions_Embedding\" ON \"Transcriptions\" USING hnsw (\"Embedding\" vector_cosine_ops)",
             $"ALTER TABLE \"TranscriptSummaries\" ADD COLUMN IF NOT EXISTS \"Embedding\" vector({EmbeddingDimension})",
             "CREATE INDEX IF NOT EXISTS \"IX_TranscriptSummaries_Embedding\" ON \"TranscriptSummaries\" USING hnsw (\"Embedding\" vector_cosine_ops)",
-            "CREATE UNIQUE INDEX IF NOT EXISTS \"UX_Transcriptions_FinalPerRecording\" ON \"Transcriptions\" (\"RecordingId\") WHERE \"IsFinal\""
+            "CREATE UNIQUE INDEX IF NOT EXISTS \"UX_Transcriptions_FinalPerRecording\" ON \"Transcriptions\" (\"RecordingId\") WHERE \"IsFinal\"",
+            // Join table linking summaries to the calls that made them up.
+            "CREATE TABLE IF NOT EXISTS \"TranscriptSummaryCalls\" (\"TranscriptSummaryId\" bigint NOT NULL, \"CallId\" bigint NOT NULL, PRIMARY KEY (\"TranscriptSummaryId\", \"CallId\"))",
+            "DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'FK_TranscriptSummaryCalls_TranscriptSummaries_TranscriptSummaryId') THEN ALTER TABLE \"TranscriptSummaryCalls\" ADD CONSTRAINT \"FK_TranscriptSummaryCalls_TranscriptSummaries_TranscriptSummaryId\" FOREIGN KEY (\"TranscriptSummaryId\") REFERENCES \"TranscriptSummaries\" (\"Id\") ON DELETE CASCADE; END IF; END $$",
+            "DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'FK_TranscriptSummaryCalls_Calls_CallId') THEN ALTER TABLE \"TranscriptSummaryCalls\" ADD CONSTRAINT \"FK_TranscriptSummaryCalls_Calls_CallId\" FOREIGN KEY (\"CallId\") REFERENCES \"Calls\" (\"Id\") ON DELETE CASCADE; END IF; END $$",
+            "CREATE INDEX IF NOT EXISTS \"IX_TranscriptSummaryCalls_CallId\" ON \"TranscriptSummaryCalls\" (\"CallId\")"
         };
 
         try

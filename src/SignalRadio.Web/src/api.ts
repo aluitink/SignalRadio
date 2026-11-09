@@ -7,8 +7,11 @@ import type {
   CallVolumeByTalkGroupDto,
   CallVolumeDto,
   CursorPagedResult,
+  InvestigationDto,
+  PagedSummarySearchResult,
   RecordingDto,
   SearchResultsDto,
+  SummaryCallDto,
   TalkGroupDto,
   TranscriptionDto,
   TranscriptSummaryDto,
@@ -118,8 +121,19 @@ export function getTalkGroup(id: number) {
 }
 
 // ---- Search ----
-export function search(q: string, page = 1, pageSize = 20, semantic = false) {
-  return apiGet<SearchResultsDto>(`/search${qs({ q, page, pageSize, semantic })}`)
+export function search(q: string, page = 1, pageSize = 20, semantic = false, hybrid = false) {
+  return apiGet<SearchResultsDto>(`/search${qs({ q, page, pageSize, semantic, hybrid })}`)
+}
+// Cursor-paged summary search (newest first). Pass the previous page's
+// cursor (beforeTime + beforeId) to fetch the next page.
+export function searchSummariesPaged(
+  q: string,
+  pageSize = 20,
+  before?: { time: string; id: number } | null,
+) {
+  return apiGet<PagedSummarySearchResult>(
+    `/search/summaries/paged${qs({ q, pageSize, beforeTime: before?.time, beforeId: before?.id })}`,
+  )
 }
 
 // ---- Transcript Summaries ----
@@ -133,6 +147,39 @@ export function getSummariesForTalkGroup(talkGroupId: number, startTime?: string
 }
 export function getSummary(id: number) {
   return apiGet<TranscriptSummaryDto>(`/transcript-summaries/${id}`)
+}
+// The calls that made up a summary (oldest first), for review and playback.
+export function getSummaryCalls(id: number) {
+  return apiGet<SummaryCallDto[]>(`/transcript-summaries/${id}/calls`)
+}
+
+// ---- Background Investigations ----
+export function createInvestigation(callId: number, prompt: string, windowMinutes = 30, talkGroupId?: number, parentInvestigationId?: number) {
+  return apiPost<InvestigationDto>('/investigations', {
+    callId,
+    prompt,
+    windowMinutes,
+    talkGroupId: talkGroupId ?? null,
+    parentInvestigationId: parentInvestigationId ?? null,
+  })
+}
+export function getInvestigations(status?: string, callId?: number, includeViewed = true, limit = 50) {
+  return apiGet<InvestigationDto[]>(`/investigations${qs({ status, callId, includeViewed, limit })}`)
+}
+export function getUnviewedInvestigations(limit = 10) {
+  return apiGet<InvestigationDto[]>(`/investigations/unviewed${qs({ limit })}`)
+}
+export function getInvestigation(id: number) {
+  return apiGet<InvestigationDto>(`/investigations/${id}`)
+}
+export function sendInvestigationChat(id: number, message: string) {
+  return apiPost<void>(`/investigations/${id}/chat`, { message })
+}
+export function markInvestigationViewed(id: number) {
+  return apiPost<void>(`/investigations/${id}/view`)
+}
+export function deleteInvestigation(id: number) {
+  return apiDelete<void>(`/investigations/${id}`)
 }
 
 // ---- Low-level helpers ----

@@ -33,4 +33,28 @@ Use the tools only when they help; do not call them if the transcript bundle is 
 
 ## Output
 
-Return ONLY the summary text — no preamble, no labels, no markdown.
+You MUST return a single JSON object with exactly these fields:
+
+- `summary` (string): 3–6 sentences of plain, objective prose. No markdown, no labels, no
+  preamble. This is the human-readable summary.
+- `severity` (integer 0–10): overall severity of the traffic in the window. 0 = routine/quiet,
+  5 = moderate activity, 10 = major emergency or critical incident.
+- `headline` (string): a short one-line headline for the most significant event, or an empty
+  string if the traffic was routine.
+- `notableIncidents` (array): notable incidents worth flagging, most important first. Each item
+  has `description` (string) and `importanceScore` (integer 0–10). Use an empty array if none.
+
+Example:
+
+```json
+{
+  "summary": "Unit 42 responded to a vehicle collision at the intersection of Main St and 5th Ave. Two units were dispatched and the scene was cleared within 15 minutes. Remaining traffic was routine check-ins.",
+  "severity": 7,
+  "headline": "Vehicle collision at Main St and 5th Ave",
+  "notableIncidents": [
+    { "description": "Vehicle collision at Main St and 5th Ave, two units dispatched", "importanceScore": 8 }
+  ]
+}
+```
+
+Return ONLY the JSON object — no preamble, no labels, no markdown fences.

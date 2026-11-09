@@ -35,7 +35,7 @@ export default function TalkGroupsPage() {
         <h1>Talk Groups</h1>
       </div>
 
-      <CallVolumeStackedChart title="Call volume · all talk groups" />
+      <CallVolumeStackedChart />
 
       {loading ? (
         <div aria-busy="true">
@@ -51,7 +51,6 @@ export default function TalkGroupsPage() {
         <div className="tg-list">
           {groups.map((g) => (
             <Link key={g.id} to={`/talkgroup/${g.id}`} className="tg-item">
-              <span className="tg-num">TG {g.number}</span>
               <span className="tg-name">{g.name ?? g.alphaTag ?? '—'}</span>
               {g.category && <span className="badge">{g.category}</span>}
             </Link>

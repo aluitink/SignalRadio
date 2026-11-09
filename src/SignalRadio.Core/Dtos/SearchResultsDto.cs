@@ -6,7 +6,12 @@ public record SearchResultsDto(
     IReadOnlyList<NotableIncidentDto> Incidents,
     int TotalCount,
     int Page,
-    int PageSize);
+    int PageSize,
+    // Summary result paging (cursor over EndTime/Id, newest first).
+    int SummaryTotalCount,
+    DateTimeOffset? SummaryNextCursorTime,
+    long? SummaryNextCursorId,
+    bool SummaryHasMore);
 
 public record TranscriptionSearchResultDto(
     long TranscriptionId,

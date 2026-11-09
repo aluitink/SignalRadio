@@ -53,7 +53,7 @@ public class RecordingsService(SignalRadioDbContext db, IStorageService storage)
         await db.SaveChangesAsync(ct);
 
         var callDto = new CallDto(
-            call.Id, call.TalkGroupId, talkGroup.Number, talkGroup.Name,
+            call.Id, call.TalkGroupId, talkGroup.Number, talkGroup.Name, talkGroup.Description,
             call.RecordingTime, call.FrequencyHz, call.DurationSeconds, call.CreatedAt,
             1, null);
 

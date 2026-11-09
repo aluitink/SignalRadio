@@ -1,0 +1,39 @@
+# Override mappings for local development. This file binds the named 'recordings'
+# volume to a host directory so recorded files are visible on the host.
+
+volumes:
+  api-recordings:
+    driver: local
+    driver_opts:
+      type: none
+      device: ${API_RECORDINGS_HOST_PATH:-./data/recordings}
+      o: bind
+services:
+  sqlserver:
+    ports:
+      - "1434:1433"
+  webclient:
+    environment:
+      VIRTUAL_HOST: radio.luit.ink
+      VIRTUAL_PORT: 80
+      LETSENCRYPT_HOST: radio.luit.ink
+      LETSENCRYPT_EMAIL: aluitink@gmail.com
+      ADMIN_PASSWORD: Password1
+    networks:
+      - signalradio-network
+      - nginx-proxy
+    external_links:
+      - nginx-proxy
+  whisper-asr:
+    #image: whisper-asr-webservice:latest
+    environment:
+      - HF_TOKEN=${HF_TOKEN}
+      # Number of model instances (default: 1 for backward compatibility)
+      - MODEL_POOL_SIZE=2
+      # Max seconds to wait for an available model (default: 30)
+      - MODEL_POOL_TIMEOUT=60
+      # Seconds before idle models are unloaded (default: 0 = never)
+      - MODEL_IDLE_TIMEOUT=300
+networks:
+  nginx-proxy:
+    external: true

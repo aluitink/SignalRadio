@@ -15,7 +15,7 @@ public class CallsService(SignalRadioDbContext db) : ICallsService
             .FirstOrDefaultAsync(c => c.Id == id, ct);
         if (call == null) return null;
         var latestRecordingId = call.Recordings.OrderByDescending(r => r.ReceivedAt).Select(r => r.Id).FirstOrDefault();
-        return new CallDto(call.Id, call.TalkGroupId, call.TalkGroup!.Number, call.TalkGroup.Name,
+        return new CallDto(call.Id, call.TalkGroupId, call.TalkGroup!.Number, call.TalkGroup.Name, call.TalkGroup.Description,
             call.RecordingTime, call.FrequencyHz, call.DurationSeconds, call.CreatedAt, call.Recordings.Count, latestRecordingId);
     }
 
@@ -32,7 +32,7 @@ public class CallsService(SignalRadioDbContext db) : ICallsService
         db.Calls.Add(entity);
         await db.SaveChangesAsync(ct);
         var tg = await db.TalkGroups.FindAsync([request.TalkGroupId], ct);
-        return new CallDto(entity.Id, entity.TalkGroupId, tg!.Number, tg.Name,
+        return new CallDto(entity.Id, entity.TalkGroupId, tg!.Number, tg.Name, tg.Description,
             entity.RecordingTime, entity.FrequencyHz, entity.DurationSeconds, entity.CreatedAt, 0);
     }
 
@@ -43,7 +43,7 @@ public class CallsService(SignalRadioDbContext db) : ICallsService
             .OrderByDescending(c => c.RecordingTime)
             .Take(count)
             .Select(c => new CallDto(
-                c.Id, c.TalkGroupId, c.TalkGroup!.Number, c.TalkGroup.Name,
+                c.Id, c.TalkGroupId, c.TalkGroup!.Number, c.TalkGroup.Name, c.TalkGroup.Description,
                 c.RecordingTime, c.FrequencyHz, c.DurationSeconds, c.CreatedAt,
                 c.Recordings.Count,
                 c.Recordings.OrderByDescending(r => r.ReceivedAt).Select(r => r.Id).FirstOrDefault()))
@@ -80,7 +80,7 @@ public class CallsService(SignalRadioDbContext db) : ICallsService
         var items = await query
             .Take(pageSize + 1)
             .Select(c => new CallDto(
-                c.Id, c.TalkGroupId, c.TalkGroup!.Number, c.TalkGroup.Name,
+                c.Id, c.TalkGroupId, c.TalkGroup!.Number, c.TalkGroup.Name, c.TalkGroup.Description,
                 c.RecordingTime, c.FrequencyHz, c.DurationSeconds, c.CreatedAt,
                 c.Recordings.Count,
                 c.Recordings.OrderByDescending(r => r.ReceivedAt).Select(r => r.Id).FirstOrDefault()))

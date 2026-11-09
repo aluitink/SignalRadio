@@ -103,13 +103,21 @@ public class SummariesAgentService : BackgroundService
                 var bundle = BuildTranscriptBundle(transcripts);
                 var prompt = $"Summarize the following {transcripts.Count} radio calls on talkgroup {tg.Id} ({tg.Name}) that occurred since {since:yyyy-MM-dd HH:mm} UTC:\n\n{bundle}";
 
-                var response = await agent.RunAsync(prompt, cancellationToken: ct);
-                var summaryText = response?.ToString()?.Trim();
-                if (string.IsNullOrWhiteSpace(summaryText)) continue;
+                var response = await agent.RunAsync<SummaryReport>(prompt, cancellationToken: ct);
+                var report = response?.Result;
+                if (report == null || string.IsNullOrWhiteSpace(report.Summary)) continue;
 
-                var first = transcripts[0];
-                var lastT = transcripts[^1];
-                var totalDuration = transcripts.Sum(t => 0.0); // duration not in TranscriptionDto; use 0
+                var summaryText = report.Summary.Trim();
+                var totalDuration = transcripts.Sum(t => t.DurationSeconds);
+
+                // Record the calls that made up this summary so the UI can list
+                // and play them back. De-duplicated, oldest first.
+                var callIds = transcripts
+                    .Select(t => t.CallId)
+                    .Where(id => id > 0)
+                    .Distinct()
+                    .OrderBy(id => id)
+                    .ToList();
 
                 var created = await summaries.CreateAsync(new CreateTranscriptSummaryRequest(
                     tg.Id,
@@ -118,8 +126,10 @@ public class SummariesAgentService : BackgroundService
                     transcripts.Count,
                     totalDuration,
                     summaryText,
+                    report.Severity,
                     Array.Empty<int>(),
-                    Array.Empty<long>()), ct);
+                    Array.Empty<long>(),
+                    callIds), ct);
 
                 if (_features.Embeddings && ai.AreEmbeddingsEnabled)
                 {

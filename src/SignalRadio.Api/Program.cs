@@ -32,7 +32,11 @@ builder.Services.AddDataAccess(connectionString);
 // --- Core Services ---
 // Scoped: LocalStorageService resolves the base path from the StorageLocation row via the DbContext.
 builder.Services.AddScoped<IStorageService, LocalStorageService>();
+builder.Services.AddScoped<IInvestigationsService, SignalRadio.Data.Services.InvestigationsService>();
 builder.Services.AddSingleton<ICallNotifier, SignalRCallNotifier>();
+// Investigation chat: runs the investigate agent as a resumable, streaming session and
+// relays events to the UI over SignalR. Singleton — it creates its own scopes per turn.
+builder.Services.AddSingleton<InvestigationChatService>();
 
 // ASR provider: "stub" (default) or "whisper" (openai-whisper-asr-webservice, POST /asr).
 var asrProvider = config["ASR:Provider"] ?? "stub";
@@ -81,6 +85,7 @@ builder.Services.AddControllers();
 
 // --- AI agent infrastructure (MAF) ---
 builder.Services.AddSingleton<IAgentDefinition, SummariesAgent>();
+builder.Services.AddSingleton<IAgentDefinition, InvestigateAgent>();
 builder.Services.AddSingleton<AgentRegistry>(sp =>
 {
     var registry = new AgentRegistry(
@@ -104,6 +109,7 @@ if (simulatorEnabled)
 }
 builder.Services.AddHostedService<CallProcessingPipeline>();
 builder.Services.AddHostedService<SummariesAgentService>();
+builder.Services.AddHostedService<InvestigationWorker>();
 // NOTE: TranscriptionPipeline (legacy, ungated) was removed — CallProcessingPipeline supersedes it.
 
 var app = builder.Build();

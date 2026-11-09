@@ -8,10 +8,10 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import { HubConnectionBuilder } from '@microsoft/signalr'
-import type { CallDto } from '../types/dtos'
-import { getCall, recordingDownloadUrlByCall } from '../api'
+import type { CallDto, TranscriptSummaryDto } from '../types/dtos'
+import { getCall, getCallsCursor, recordingDownloadUrlByCall } from '../api'
 import { useAudioPlayer } from './AudioPlayerContext'
+import { useSignalRBus } from './SignalRBusContext'
 import { formatDateTime } from '../utils/format'
 
 /**
@@ -52,6 +52,19 @@ interface SubscriptionsValue {
    * visible (filtered) list, so only filtered calls are played.
    */
   playFromCall: (call: CallDto, stream: CallDto[]) => void
+  /**
+   * Start a playback session from a summary: fetch the calls belonging to
+   * the summary's talk group within its time window, play them in
+   * chronological order, then continue with newer calls on that talk group
+   * (like "start listening from here").
+   */
+  playSummarySession: (summary: TranscriptSummaryDto) => Promise<void>
+  /**
+   * Update the stream reference used by an active playback session. Called by
+   * the stream component whenever new calls arrive, so the session's
+   * re-evaluation picks up calls that arrived after the initial click.
+   */
+  updateSessionStream: (stream: CallDto[]) => void
   /** Remove a queued call (e.g. user clicked it and it's now playing manually). */
   removeFromQueue: (callId: number) => void
   /** Clear the whole queue. */
@@ -72,7 +85,7 @@ function loadSubscriptions(): number[] {
 }
 
 export function SubscriptionsProvider({ children }: { children: ReactNode }) {
-  const { playFromCall, nowPlaying, isPlaying } = useAudioPlayer()
+  const { playFromCall, nowPlaying, isPlaying, isPaused } = useAudioPlayer()
   const [subscribedIds, setSubscribedIds] = useState<number[]>(loadSubscriptions)
   const [queue, setQueue] = useState<CallDto[]>([])
   const [current, setCurrent] = useState<CallDto | null>(null)
@@ -138,15 +151,17 @@ export function SubscriptionsProvider({ children }: { children: ReactNode }) {
 
     playFromCall({
       url: recordingDownloadUrlByCall(next.id),
-      title: `TG ${next.talkGroupNumber} · ${formatDateTime(next.recordingTime)}`,
+      title: `${next.talkGroupDescription || `TG ${next.talkGroupNumber}`} · ${formatDateTime(next.recordingTime)}`,
       callId: next.id,
     })
   }, [playFromCall])
 
   // When the current queued call finishes (or is stopped), advance the queue.
+  // While the user has paused, hold the queue on the current call.
   useEffect(() => {
     if (!current) return
     if (isPlaying) return // still playing
+    if (isPaused) return // user paused — stay on this call
     // Give the audio element a tick to settle after 'ended' before advancing.
     const t = setTimeout(() => {
       if (currentRef.current?.id === current.id) {
@@ -154,7 +169,7 @@ export function SubscriptionsProvider({ children }: { children: ReactNode }) {
       }
     }, 250)
     return () => clearTimeout(t)
-  }, [current, isPlaying, startNext])
+  }, [current, isPlaying, isPaused, startNext])
 
   // If the queue is non-empty but nothing is playing, resume — either because
   // the user paused mid-session, or because new calls arrived while idle.
@@ -163,26 +178,33 @@ export function SubscriptionsProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (queue.length === 0 || current) return
     if (playingRef.current) return
+    if (isPaused) return // user paused — don't steal queued calls
     if (sessionActiveRef.current) return
     if (sessionResumeRef.current < sessionStartRef.current) {
       // A manual session was started and never finished — user paused it.
       sessionResumeRef.current = sessionStartRef.current
     }
     startNext()
-  }, [queue, current, startNext])
-
-  // When the session's queue drains (the clicked call is still playing), the
-  // resume effect takes over and plays the remaining queued calls (e.g.
-  // subscribed calls that arrived during the session).
-  useEffect(() => {
-    if (queue.length === 0) sessionActiveRef.current = false
-  }, [queue])
+  }, [queue, current, isPaused, startNext])
 
   // ---- Manual playback sessions ----
+
+  // The stream (visible, filtered list, newest first) captured when the
+  // session started. Re-evaluated on every call completion so calls that
+  // arrive mid-session are picked up.
+  const sessionStreamRef = useRef<CallDto[] | null>(null)
+  // The clicked call's recording time — the session plays everything newer.
+  const sessionAnchorRef = useRef<string | null>(null)
+  // All call IDs that have been played or are in the queue during this
+  // session. Prevents re-adding calls that have already been consumed.
+  const sessionPlayedRef = useRef<Set<number>>(new Set())
 
   const playFromCallSession = useCallback((call: CallDto, stream: CallDto[]) => {
     sessionStartRef.current += 1
     sessionActiveRef.current = true
+    sessionStreamRef.current = stream
+    sessionAnchorRef.current = call.recordingTime
+    sessionPlayedRef.current = new Set([call.id])
     // The session plays the clicked call, then the consecutive calls in the
     // visible (filtered) stream that are newer than it, up to the top.
     const sessionCalls = stream.filter((c) => c.id !== call.id && c.recordingTime > call.recordingTime)
@@ -191,33 +213,134 @@ export function SubscriptionsProvider({ children }: { children: ReactNode }) {
     const merged = [...queueRef.current, ...sessionCalls]
     const seen = new Set<number>()
     const deduped = merged.filter((c) => (seen.has(c.id) ? false : (seen.add(c.id), true)))
-    deduped.sort((a, b) => a.recordingTime.localeCompare(b.recordingTime))
+    deduped.sort((a, b) => new Date(a.recordingTime).getTime() - new Date(b.recordingTime).getTime())
+    // Track all queued calls as "played" so they aren't re-added later.
+    for (const c of deduped) sessionPlayedRef.current.add(c.id)
     setQueue(deduped)
-    setCurrent(null)
-    // Start the clicked call immediately; the resume effect advances the queue.
+    // Track the clicked call as `current` so the advance effect hands off to
+    // the queue when it ends.
+    setCurrent(call)
     playFromCall({
       url: recordingDownloadUrlByCall(call.id),
-      title: `TG ${call.talkGroupNumber} · ${formatDateTime(call.recordingTime)}`,
+      title: `${call.talkGroupDescription || `TG ${call.talkGroupNumber}`} · ${formatDateTime(call.recordingTime)}`,
       callId: call.id,
     })
   }, [playFromCall])
 
-  // ---- Global SignalR connection for new calls ----
+  // ---- Summary playback sessions ----
+
+  const playSummarySession = useCallback(async (summary: TranscriptSummaryDto) => {
+    // Fetch calls for this talk group, newest first, and filter to the
+    // summary's time window. We page back until we're past the start time.
+    const calls: CallDto[] = []
+    let before: { time: string; id: number } | null = null
+    const startTime = new Date(summary.startTime).getTime()
+    const endTime = new Date(summary.endTime).getTime()
+
+    for (let page = 0; page < 20; page++) {
+      const result = await getCallsCursor(50, before, summary.talkGroupId)
+      for (const c of result.items) {
+        const t = new Date(c.recordingTime).getTime()
+        if (t > endTime) continue // newer than the summary window
+        if (t < startTime) break // older than the summary window — stop paging
+        calls.push(c)
+      }
+      // Stop paging if we've gone past the start time or there are no more.
+      if (!result.hasMore) break
+      const oldest = result.items[result.items.length - 1]
+      if (oldest && new Date(oldest.recordingTime).getTime() < startTime) break
+      before = { time: result.nextCursorTime!, id: result.nextCursorId! }
+    }
+
+    if (calls.length === 0) return
+
+    // Sort chronologically (oldest first) for playback order.
+    calls.sort((a, b) => new Date(a.recordingTime).getTime() - new Date(b.recordingTime).getTime())
+
+    // Start the session: play the first call, queue the rest, then continue
+    // with newer calls on this talk group (anchor = summary end time).
+    sessionStartRef.current += 1
+    sessionActiveRef.current = true
+    sessionStreamRef.current = calls
+    sessionAnchorRef.current = summary.endTime
+    sessionPlayedRef.current = new Set(calls.map((c) => c.id))
+
+    const first = calls[0]
+    const rest = calls.slice(1)
+
+    // Merge with existing queue (subscribed auto-play calls), de-duplicated
+    // and sorted chronologically.
+    const merged = [...queueRef.current, ...rest]
+    const seen = new Set<number>()
+    const deduped = merged.filter((c) => (seen.has(c.id) ? false : (seen.add(c.id), true)))
+    deduped.sort((a, b) => new Date(a.recordingTime).getTime() - new Date(b.recordingTime).getTime())
+    for (const c of deduped) sessionPlayedRef.current.add(c.id)
+    setQueue(deduped)
+
+    setCurrent(first)
+    playFromCall({
+      url: recordingDownloadUrlByCall(first.id),
+      title: `${first.talkGroupDescription || `TG ${first.talkGroupNumber}`} · ${formatDateTime(first.recordingTime)}`,
+      callId: first.id,
+    })
+  }, [playFromCall])
+
+  // Re-evaluate the session's stream on every call completion: pick up calls
+  // that arrived since the session started (or since the last re-evaluation)
+  // and add them to the queue if they're newer than the anchor and haven't
+  // been played yet.
+  useEffect(() => {
+    if (!current) return
+    if (isPlaying) return // still playing
+    const t = setTimeout(() => {
+      if (currentRef.current?.id !== current.id) return
+      if (!sessionActiveRef.current) return
+      const stream = sessionStreamRef.current
+      const anchor = sessionAnchorRef.current
+      if (!stream || !anchor) return
+      const newCalls = stream.filter(
+        (c) => !sessionPlayedRef.current.has(c.id) && c.recordingTime > anchor,
+      )
+      if (newCalls.length > 0) {
+        for (const c of newCalls) sessionPlayedRef.current.add(c.id)
+        setQueue((prev) => {
+          const merged = [...prev, ...newCalls]
+          merged.sort((a, b) => new Date(a.recordingTime).getTime() - new Date(b.recordingTime).getTime())
+          return merged
+        })
+      }
+    }, 250)
+    return () => clearTimeout(t)
+  }, [current, isPlaying])
+
+  // Once the session's queue drains (current is null and the queue is empty),
+  // the session is over — clear the flag so the resume effect can pick up any
+  // calls that arrived during the session.
+  useEffect(() => {
+    if (!current && queue.length === 0) {
+      sessionActiveRef.current = false
+      sessionStreamRef.current = null
+      sessionAnchorRef.current = null
+      sessionPlayedRef.current = new Set()
+    }
+  }, [current, queue])
+
+  // Update the session's stream reference. Called by the stream component
+  // whenever new calls arrive, so the re-evaluation effect sees the latest
+  // list of calls.
+  const updateSessionStream = useCallback((stream: CallDto[]) => {
+    if (sessionActiveRef.current) {
+      sessionStreamRef.current = stream
+    }
+  }, [])
+
+  // ---- New calls for subscribed talk groups (via the shared SignalR bus) ----
+
+  const { subscribe } = useSignalRBus()
 
   useEffect(() => {
-    let connection: import('@microsoft/signalr').HubConnection | null = null
-    let disposed = false
-    let reconnectTimer: ReturnType<typeof setTimeout> | null = null
-
-    const start = async () => {
-      if (disposed) return
-      connection = new HubConnectionBuilder()
-        .withUrl('/hubs/talkgroups')
-        .withAutomaticReconnect()
-        .configureLogging(0)
-        .build()
-
-      connection.on('NewCall', async (payload: CallDto | number) => {
+    return subscribe({
+      onNewCall: async (payload: CallDto | number) => {
         let call: CallDto | null = null
         if (typeof payload === 'number') {
           // Legacy numeric form: fetch the call.
@@ -236,29 +359,9 @@ export function SubscriptionsProvider({ children }: { children: ReactNode }) {
         if (queueRef.current.some((c) => c.id === call.id)) return
         if (currentRef.current?.id === call.id) return
         setQueue((prev) => (prev.some((c) => c.id === call.id) ? prev : [...prev, call]))
-      })
-
-      connection.onclose(() => {
-        if (!disposed) {
-          reconnectTimer = setTimeout(start, 3000)
-        }
-      })
-
-      try {
-        await connection.start()
-      } catch {
-        if (!disposed) reconnectTimer = setTimeout(start, 3000)
-      }
-    }
-
-    void start()
-
-    return () => {
-      disposed = true
-      if (reconnectTimer) clearTimeout(reconnectTimer)
-      connection?.stop().catch(() => { /* ignore */ })
-    }
-  }, [])
+      },
+    })
+  }, [subscribe])
 
   const value = useMemo<SubscriptionsValue>(
     () => ({
@@ -268,10 +371,12 @@ export function SubscriptionsProvider({ children }: { children: ReactNode }) {
       queue,
       current,
       playFromCall: playFromCallSession,
+      playSummarySession,
+      updateSessionStream,
       removeFromQueue,
       clearQueue,
     }),
-    [subscribedIds, isSubscribed, toggleSubscription, queue, current, playFromCallSession, removeFromQueue, clearQueue],
+    [subscribedIds, isSubscribed, toggleSubscription, queue, current, playFromCallSession, playSummarySession, updateSessionStream, removeFromQueue, clearQueue],
   )
 
   return <SubscriptionsContext.Provider value={value}>{children}</SubscriptionsContext.Provider>

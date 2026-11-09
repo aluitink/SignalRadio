@@ -100,6 +100,7 @@ public class SimulatorService(
         var totalDuration = recent.Items.Sum(c => c.DurationSeconds);
 
         var summaryText = PickMockSummary(group, recent.Items.Count);
+        var severity = Random.Shared.Next(0, 11);
         var created = await summaries.CreateAsync(new CreateTranscriptSummaryRequest(
             group.Id,
             start,
@@ -107,8 +108,10 @@ public class SimulatorService(
             recent.Items.Count,
             totalDuration,
             summaryText,
+            severity,
             Array.Empty<int>(),
-            Array.Empty<long>()), ct);
+            Array.Empty<long>(),
+            recent.Items.Select(c => c.Id).ToList()), ct);
 
         await notifier.NotifyNewSummaryAsync(group.Id, created.Id, ct);
         logger.LogInformation("Simulated summary {SummaryId} for talk group {Group}.", created.Id, group.Number);

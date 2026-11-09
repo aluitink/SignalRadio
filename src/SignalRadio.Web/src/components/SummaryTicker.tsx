@@ -5,12 +5,14 @@ import { getRecentSummaries } from '../api'
 import { useSignalR } from '../hooks/useSignalR'
 import { formatRelativeTime, formatDuration } from '../utils/format'
 import { useNow } from '../hooks/useNow'
+import { useSubscriptions } from '../contexts/SubscriptionsContext'
 
 const MAX_ITEMS = 10
 
-// Derive a 0-5 "rating" from the summary's notable incidents.
-// Uses the highest importance score (0-10 scale) mapped onto 5 stars.
+// Derive a 0-5 "rating" from the summary's severity (0-10) or, as a fallback, the highest
+// notable-incident importance score.
 function ratingFor(s: TranscriptSummaryDto): number {
+  if (s.severity != null) return Math.round((s.severity / 10) * 5)
   if (!s.notableIncidents || s.notableIncidents.length === 0) return 0
   const max = Math.max(...s.notableIncidents.map((n) => n.importanceScore ?? 0))
   return Math.round((max / 10) * 5)
@@ -32,6 +34,7 @@ export default function SummaryTicker() {
   const [open, setOpen] = useState(false)
   const now = useNow(30000)
   const rootRef = useRef<HTMLDivElement | null>(null)
+  const { playSummarySession } = useSubscriptions()
 
   const load = useCallback(async () => {
     try {
@@ -79,14 +82,11 @@ export default function SummaryTicker() {
         aria-haspopup="true"
         onClick={() => setOpen((v) => !v)}
       >
-        <span className="ticker-label" aria-hidden="true">
-          <span className="ticker-spark">✦</span> AI
-        </span>
         <div className="ticker-viewport">
           <div className="ticker-track">
             {[...summaries, ...summaries].map((s, i) => (
               <span key={`${s.id}-${i}`} className="ticker-item" aria-hidden={i >= summaries.length}>
-                <span className="ticker-tg">TG {s.talkGroupNumber}</span>
+                <span className="ticker-tg">{s.talkGroupDescription || `TG ${s.talkGroupNumber}`}</span>
                 <span className="ticker-text">{s.summary}</span>
                 <span className="ticker-time">{formatRelativeTime(s.generatedAt, now)}</span>
               </span>
@@ -98,35 +98,46 @@ export default function SummaryTicker() {
 
       {open && (
         <div className="ticker-dropdown" role="menu" aria-label="Recent AI summaries">
-          <div className="ticker-dropdown-head">
-            <span>Recent AI summaries</span>
-            <span className="ticker-dropdown-count">{summaries.length}</span>
-          </div>
           <ul className="ticker-dropdown-list">
-            {summaries.map((s) => (
+            {[...summaries].sort((a, b) => (b.severity ?? 0) - (a.severity ?? 0)).map((s) => (
               <li key={s.id} role="none">
-                <Link
-                  to={`/talkgroup/${s.talkGroupId}`}
-                  className="ticker-row"
-                  role="menuitem"
-                  onClick={() => setOpen(false)}
-                >
-                  <div className="ticker-row-top">
-                    <span className="ticker-tg">TG {s.talkGroupNumber}</span>
-                    {s.talkGroupName && <span className="ticker-row-name">{s.talkGroupName}</span>}
-                    <span className="ticker-row-time">{formatRelativeTime(s.generatedAt, now)}</span>
-                  </div>
-                  <p className="ticker-row-summary">{s.summary}</p>
-                  <div className="ticker-row-meta">
-                    <span className="ticker-row-stat">
-                      <span className="stat-label">Calls</span> {s.transcriptCount}
-                    </span>
-                    <span className="ticker-row-stat">
-                      <span className="stat-label">Duration</span> {formatDuration(s.totalDurationSeconds)}
-                    </span>
-                    <Stars value={ratingFor(s)} />
-                  </div>
-                </Link>
+                <div className="ticker-row" role="menuitem">
+                  <Link
+                    to={`/talkgroup/${s.talkGroupId}`}
+                    className="ticker-row-link"
+                    onClick={() => setOpen(false)}
+                  >
+                    <div className="ticker-row-top">
+                      <span className="ticker-tg">{s.talkGroupDescription || `TG ${s.talkGroupNumber}`}</span>
+                      <span className="ticker-row-time">{formatRelativeTime(s.generatedAt, now)}</span>
+                    </div>
+                    <p className="ticker-row-summary">{s.summary}</p>
+                    <div className="ticker-row-meta">
+                      <span className="ticker-row-stat">
+                        <span className="stat-label">Calls</span> {s.transcriptCount}
+                      </span>
+                      <span className="ticker-row-stat">
+                        <span className="stat-label">Duration</span> {formatDuration(s.totalDurationSeconds)}
+                      </span>
+                      <Stars value={ratingFor(s)} />
+                    </div>
+                  </Link>
+                  <button
+                    type="button"
+                    className="ticker-row-play"
+                    title="Play calls from this summary"
+                    aria-label={`Play calls from summary: ${s.summary.slice(0, 50)}`}
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      setOpen(false)
+                      void playSummarySession(s)
+                    }}
+                  >
+                    <span className="ticker-row-play-icon" aria-hidden="true">▶</span>
+                    <span className="ticker-row-play-label">Play</span>
+                  </button>
+                </div>
               </li>
             ))}
           </ul>
