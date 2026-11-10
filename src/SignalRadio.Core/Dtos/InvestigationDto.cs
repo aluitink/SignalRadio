@@ -13,9 +13,9 @@ public record InvestigationDto(
     DateTime CreatedAt,
     DateTime? StartedAt,
     DateTime? CompletedAt,
-    string? ResultJson,
     string? Error,
-    bool IsViewed);
+    bool IsViewed,
+    IReadOnlyList<InvestigationChatMessageDto> Messages);
 
 public record CreateInvestigationRequest(
     long CallId,

@@ -5,6 +5,7 @@ import { getCall, getFinalTranscription } from '../api'
 import { useSubscriptions } from '../contexts/SubscriptionsContext'
 import { useSignalR } from '../hooks/useSignalR'
 import { formatDuration, formatFrequency, formatDateTime } from '../utils/format'
+import './CallDetailPage.css'
 
 export default function CallDetailPage() {
   const { id } = useParams<{ id: string }>()

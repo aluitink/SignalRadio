@@ -26,6 +26,16 @@ public class InvestigationsService(SignalRadioDbContext db) : IInvestigationsSer
             Call = call,
         };
 
+        // Persist the user's prompt as the chat's first message so it shows up in the thread
+        // immediately (and in history if the turn fails).
+        investigation.Messages.Add(new InvestigationChatMessage
+        {
+            Index = 1,
+            Role = "user",
+            Text = request.Prompt,
+            CreatedAt = DateTime.UtcNow,
+        });
+
         db.Investigations.Add(investigation);
         await db.SaveChangesAsync(ct);
 
@@ -37,6 +47,7 @@ public class InvestigationsService(SignalRadioDbContext db) : IInvestigationsSer
         var inv = await db.Investigations
             .Include(i => i.Call)
             .ThenInclude(c => c!.TalkGroup)
+            .Include(i => i.Messages)
             .FirstOrDefaultAsync(i => i.Id == id, ct);
         return inv is null ? null : ToDto(inv);
     }
@@ -120,7 +131,20 @@ public class InvestigationsService(SignalRadioDbContext db) : IInvestigationsSer
         i.CreatedAt,
         i.StartedAt,
         i.CompletedAt,
-        i.ResultJson,
         i.Error,
-        i.IsViewed);
+        i.IsViewed,
+        i.Messages
+            .OrderBy(m => m.Index)
+            .Select(m => new InvestigationChatMessageDto(
+                m.Id,
+                m.Index,
+                m.Role,
+                m.Text,
+                m.ToolName,
+                m.ToolArgs,
+                m.ToolResult,
+                m.ToolCallId,
+                m.Error,
+                m.CreatedAt))
+            .ToList());
 }

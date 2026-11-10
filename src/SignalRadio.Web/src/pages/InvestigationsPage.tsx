@@ -1,15 +1,15 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import type { InvestigationDto, InvestigationReport } from '../types/dtos'
+import type { InvestigationDto } from '../types/dtos'
 import {
   deleteInvestigation,
   getInvestigations,
   markInvestigationViewed,
 } from '../api'
 import { useSignalR } from '../hooks/useSignalR'
-import InvestigationReportView from '../components/InvestigationReportView'
 import { formatRelativeTime } from '../utils/format'
 import { useNow } from '../hooks/useNow'
+import './InvestigationsPage.css'
 
 type StatusFilter = '' | 'Pending' | 'Running' | 'Completed' | 'Failed'
 
@@ -54,13 +54,13 @@ export default function InvestigationsPage() {
     setInvestigations(prev => prev.filter(i => i.id !== id))
   }
 
-  const parseReport = (json?: string | null): InvestigationReport | null => {
-    if (!json) return null
-    try {
-      return JSON.parse(json) as InvestigationReport
-    } catch {
-      return null
+  // The agent's summary is the last assistant message in the investigation's chat.
+  const getSummary = (inv: InvestigationDto): string | null => {
+    for (let i = inv.messages.length - 1; i >= 0; i--) {
+      const m = inv.messages[i]
+      if (m.role === 'assistant' && m.text) return m.text
     }
+    return null
   }
 
   return (
@@ -99,7 +99,7 @@ export default function InvestigationsPage() {
       {!loading && investigations.length > 0 && (
         <div className="investigations-list">
           {investigations.map(inv => {
-            const report = parseReport(inv.resultJson)
+            const summary = getSummary(inv)
             const isExpanded = expandedId === inv.id
             return (
               <div key={inv.id} className={`card investigation-item ${inv.status.toLowerCase()}${!inv.isViewed && inv.status === 'Completed' ? ' unviewed' : ''}`}>
@@ -124,12 +124,12 @@ export default function InvestigationsPage() {
                     {inv.status === 'Running' && <p className="sub">Agent is analyzing…</p>}
                     {inv.status === 'Failed' && <div className="error-state">{inv.error ?? 'Unknown error'}</div>}
 
-                    {inv.status === 'Completed' && report && (
-                      <InvestigationReportView report={report} />
+                    {inv.status === 'Completed' && summary && (
+                      <p className="investigation-summary">{summary}</p>
                     )}
 
-                    {inv.status === 'Completed' && !report && (
-                      <p className="sub">No structured result available.</p>
+                    {inv.status === 'Completed' && !summary && (
+                      <p className="sub">No summary available.</p>
                     )}
                   </div>
                 )}

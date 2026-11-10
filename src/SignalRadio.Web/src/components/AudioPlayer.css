@@ -1,0 +1,198 @@
+/* Audio player (fixed bottom) with queue popover. */
+
+.audio-player {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  background: rgba(10, 20, 40, 0.92);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid var(--border-strong);
+  padding: 10px var(--space-2);
+}
+.audio-player .ap-inner {
+  max-width: 960px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.audio-player .ap-play-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 16px;
+  flex-shrink: 0;
+  background: var(--accent-soft);
+  color: var(--accent);
+  border: 1px solid var(--border-strong);
+}
+.audio-player .ap-play-btn:hover {
+  background: var(--accent);
+  color: #06121f;
+}
+.audio-player .ap-title {
+  font-size: 13px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 25%;
+  flex-shrink: 1;
+}
+.audio-player .ap-seek {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+.audio-player .ap-time {
+  font-size: 12px;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  min-width: 36px;
+  text-align: center;
+}
+.audio-player .ap-seek-bar {
+  flex: 1;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+.audio-player .ap-seek-bar::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+}
+.audio-player .ap-seek-bar::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+  border: none;
+}
+.audio-player .ap-queue-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+.audio-player .ap-queue-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 15px;
+  padding: 6px 10px;
+}
+.audio-player .ap-queue-count {
+  background: var(--accent);
+  color: #06121f;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  padding: 2px 6px;
+  border-radius: 10px;
+}
+.audio-player .ap-queue-pop {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  right: 0;
+  width: 320px;
+  max-width: calc(100vw - 32px);
+  max-height: 320px;
+  overflow-y: auto;
+  background: rgba(10, 20, 40, 0.98);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.5);
+  padding: var(--space-2);
+  z-index: 60;
+}
+.audio-player .ap-queue-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-faint);
+  padding-bottom: var(--space-1);
+  margin-bottom: var(--space-1);
+  border-bottom: 1px solid var(--border);
+}
+.audio-player .ap-queue-clear {
+  font-size: 12px;
+  padding: 2px 8px;
+}
+.audio-player .ap-queue-empty {
+  font-size: 13px;
+  color: var(--text-faint);
+  padding: var(--space-2);
+  text-align: center;
+}
+.audio-player .ap-queue-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.audio-player .ap-queue-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 6px 8px;
+  border-radius: 6px;
+}
+.audio-player .ap-queue-item:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+.audio-player .ap-queue-item-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.audio-player .ap-queue-item-title {
+  font-size: 13px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.audio-player .ap-queue-item-meta {
+  font-size: 11px;
+  color: var(--text-faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.audio-player .ap-queue-item-remove {
+  flex-shrink: 0;
+  font-size: 12px;
+  padding: 2px 6px;
+  opacity: 0.6;
+}
+.audio-player .ap-queue-item-remove:hover {
+  opacity: 1;
+}
+
+@media (max-width: 767px) {
+  .audio-player .ap-title { max-width: 30%; }
+}

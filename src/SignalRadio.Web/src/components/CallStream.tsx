@@ -22,6 +22,8 @@ export interface CallStreamProps {
   onInvestigate?: (call: CallDto) => void
   /** Optional callback to filter the stream to a call's talk group. */
   onFilterTalkGroup?: (talkGroupId: number) => void
+  /** When true, hide the per-card subscribe button (the page has its own). */
+  hideSubscribe?: boolean
 }
 
 /**
@@ -38,6 +40,7 @@ export default function CallStream({
   emptyMessage = 'No calls yet.',
   onInvestigate,
   onFilterTalkGroup,
+  hideSubscribe = false,
 }: CallStreamProps) {
   const [calls, setCalls] = useState<CallDto[]>([])
   const [transcripts, setTranscripts] = useState<Map<number, string>>(new Map())
@@ -207,6 +210,7 @@ export default function CallStream({
               onInvestigate={onInvestigate}
               onFilterTalkGroup={onFilterTalkGroup}
               filterActive={filteredGroupSet?.has(c.talkGroupId) ?? false}
+              hideSubscribe={hideSubscribe}
             />
           ))}
           <div ref={sentinelRef} className="scroll-sentinel" />

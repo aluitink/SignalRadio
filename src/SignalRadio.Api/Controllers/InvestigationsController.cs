@@ -94,10 +94,10 @@ public class InvestigationsController(IInvestigationsService investigations, Inv
 
     /// <summary>
     /// POST /api/investigations/{id}/chat
-    /// Send a message to the investigation's chat session. Runs the agent turn in the
-    /// background (streaming events to the UI over SignalR) and returns immediately.
-    /// The session is resumed from the persisted MAF AgentSession, so this works for the
-    /// initial investigation and any follow-up question.
+    /// Send a message to the investigation's chat. Runs the agent turn in the background
+    /// (streaming events to the UI over SignalR) and returns immediately. The agent session
+    /// is resumed from the persisted MAF AgentSession, so this works for any follow-up
+    /// question.
     /// </summary>
     [HttpPost("{id:long}/chat")]
     public async Task<IActionResult> Chat(long id, [FromBody] InvestigationChatRequest request, CancellationToken ct)
@@ -118,7 +118,7 @@ public class InvestigationsController(IInvestigationsService investigations, Inv
             }
             catch (Exception ex)
             {
-                // RunTurnAsync already handles + notifies errors; this is a safety net.
+                // RunTurnAsync already handles + notifies errors; safety net.
                 System.Diagnostics.Debug.WriteLine($"Investigation chat turn failed: {ex}");
             }
         }, CancellationToken.None);

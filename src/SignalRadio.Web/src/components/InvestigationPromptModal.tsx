@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import type { CallDto } from '../types/dtos'
 import { createInvestigation } from '../api'
 import { formatDateTime } from '../utils/format'
+import './InvestigationPromptModal.css'
 
 interface Props {
   call: CallDto

@@ -156,37 +156,6 @@ export interface SearchResultsDto {
   summaryHasMore: boolean
 }
 
-// ---- Investigation ----
-export interface EntityMention {
-  name: string
-  kind: string // 'unit' | 'location' | 'person' | 'call-type' | 'other'
-  mentionCount: number
-}
-
-export interface TimelineEvent {
-  time: string // ISO 8601 or empty
-  description: string
-  talkGroupNumber: string
-}
-
-export interface RelatedCall {
-  callId: number
-  talkGroupNumber: string
-  talkGroupName: string
-  recordingTime: string // ISO
-  relevance: string
-  transcript: string
-}
-
-export interface InvestigationReport {
-  narrative: string
-  relatedCalls?: RelatedCall[]
-  entities?: EntityMention[]
-  timeline?: TimelineEvent[]
-  followUpQuestions?: string[]
-  significance?: number // 0-10
-}
-
 // ---- Background Investigations ----
 export interface InvestigationDto {
   id: number
@@ -201,9 +170,9 @@ export interface InvestigationDto {
   createdAt: string // ISO
   startedAt?: string | null
   completedAt?: string | null
-  resultJson?: string | null
   error?: string | null
   isViewed: boolean
+  messages: InvestigationChatMessageDto[]
 }
 
 /** A single event streamed from the investigation agent during a chat turn. */
@@ -213,7 +182,7 @@ export interface InvestigationChatEvent {
   toolName?: string | null
   toolArgs?: string | null
   toolResult?: string | null
-  reportJson?: string | null
+  toolCallId?: string | null
   error?: string | null
 }
 
@@ -225,7 +194,21 @@ export interface ChatMessage {
   toolName?: string
   toolArgs?: string
   toolResult?: string
-  reportJson?: string
+  toolCallId?: string
   error?: string
   streaming?: boolean
+}
+
+/** A single persisted message in an investigation's chat (camelCase JSON). */
+export interface InvestigationChatMessageDto {
+  id: number
+  index: number
+  role: string // 'user' | 'assistant' | 'tool'
+  text?: string | null
+  toolName?: string | null
+  toolArgs?: string | null
+  toolResult?: string | null
+  toolCallId?: string | null
+  error?: string | null
+  createdAt: string // ISO
 }

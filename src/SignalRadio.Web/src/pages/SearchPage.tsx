@@ -5,6 +5,7 @@ import CallCard from '../components/CallCard'
 import SummaryCard from '../components/SummaryCard'
 import InvestigationPromptModal from '../components/InvestigationPromptModal'
 import { talkGroupColor } from '../components/CallVolumeChart'
+import './SearchPage.css'
 
 const PAGE_SIZE = 20
 

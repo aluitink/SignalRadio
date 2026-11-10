@@ -1,0 +1,31 @@
+/* Summary detail page. */
+
+.summary-detail-card {
+  border-left: 3px solid var(--tg-accent, transparent);
+  margin-bottom: var(--space-3);
+}
+.summary-detail-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  flex-wrap: wrap;
+  font-size: 13px;
+  color: var(--text-dim);
+  margin-bottom: var(--space-1);
+}
+.summary-detail-meta .dot { color: var(--text-faint); }
+.summary-detail-text {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--text);
+  white-space: pre-wrap;
+}
+.summary-calls-heading {
+  margin-bottom: var(--space-1);
+}
+.summary-calls-heading .sub {
+  font-size: 13px;
+  color: var(--text-faint);
+  font-weight: 400;
+}

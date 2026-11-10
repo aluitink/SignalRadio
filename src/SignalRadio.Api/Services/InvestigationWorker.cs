@@ -6,10 +6,11 @@ using SignalRadio.Data.Entities;
 namespace SignalRadio.Api.Services;
 
 /// <summary>
-/// Background worker that processes queued investigations. Polls the database for
-/// pending investigations and runs the investigate agent as a streaming chat turn via
-/// <see cref="InvestigationChatService"/> (which persists the resumable MAF session and
-/// relays events to the UI over SignalR).
+/// Background worker that processes queued investigations. Polls the database for pending
+/// investigations and runs the investigation agent's first turn (the user's investigation
+/// prompt) as a streaming chat turn via <see cref="InvestigationChatService"/> (which
+/// persists the resumable MAF session, the rendered messages, and relays events to the UI
+/// over SignalR).
 ///
 /// Uses a SemaphoreSlim to limit concurrent agent runs (AI calls are expensive).
 /// </summary>
@@ -61,7 +62,7 @@ public class InvestigationWorker : BackgroundService
 
     private async Task ProcessPendingAsync(CancellationToken ct)
     {
-        // Find pending investigations (oldest first).
+        // Find pending investigations (oldest first) — the first turn of a new investigation.
         List<Investigation> pending;
         using (var scope = _scopeFactory.CreateScope())
         {
@@ -96,22 +97,30 @@ public class InvestigationWorker : BackgroundService
     {
         _logger.LogInformation("Processing investigation {Id}.", investigationId);
 
-        // Mark as running.
+        // Mark as running and notify the UI.
+        long callId = 0;
+        string prompt = "";
         using (var scope = _scopeFactory.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<SignalRadioDbContext>();
-            var inv = await db.Investigations.FindAsync(new object[] { investigationId }, ct);
+            var inv = await db.Investigations
+                .Include(i => i.Call)
+                .FirstOrDefaultAsync(i => i.Id == investigationId, ct);
             if (inv is null || inv.Status != InvestigationStatus.Pending) return;
 
             inv.Status = InvestigationStatus.Running;
             inv.StartedAt = DateTime.UtcNow;
+            callId = inv.CallId;
+            prompt = inv.Prompt;
             await db.SaveChangesAsync(ct);
         }
 
-        await _notifier.NotifyInvestigationStartedAsync(investigationId, 0, ct);
+        await _notifier.NotifyInvestigationStartedAsync(investigationId, callId, ct);
 
-        // Run the agent as a streaming chat turn. The chat service persists the resumable
-        // MAF session, stores the structured report, and relays events to the UI.
-        await _chat.RunTurnAsync(investigationId, "Investigate this call and determine what event it is part of.", ct);
+        // Run the agent's first turn as a streaming chat turn. The chat service persists the
+        // resumable MAF session and the rendered messages, and relays events to the UI. The
+        // investigation's own prompt is the user message (the first message was already
+        // persisted when the investigation was created).
+        await _chat.RunTurnAsync(investigationId, prompt, ct);
     }
 }

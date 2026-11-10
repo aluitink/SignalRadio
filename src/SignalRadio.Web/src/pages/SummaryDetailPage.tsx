@@ -7,6 +7,7 @@ import { useSignalR } from '../hooks/useSignalR'
 import CallCard from '../components/CallCard'
 import { talkGroupColor } from '../components/CallVolumeChart'
 import { formatDateTime, formatDuration } from '../utils/format'
+import './SummaryDetailPage.css'
 
 const PAGE_SIZE = 20
 

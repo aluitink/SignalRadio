@@ -7,6 +7,7 @@ import CallStream from '../components/CallStream'
 import SummaryCard from '../components/SummaryCard'
 import CallVolumeChart, { talkGroupColor } from '../components/CallVolumeChart'
 import InvestigationPromptModal from '../components/InvestigationPromptModal'
+import './TalkGroupPage.css'
 
 type Tab = 'calls' | 'summaries'
 
@@ -131,6 +132,7 @@ export default function TalkGroupPage() {
           talkGroupId={talkGroupId}
           onInvestigate={setInvestigateCall}
           emptyMessage="No calls for this talk group yet."
+          hideSubscribe
         />
       ) : (
         <section role="tabpanel" aria-label="Summaries">

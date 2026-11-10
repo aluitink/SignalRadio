@@ -1,0 +1,13 @@
+/* Search page: search bar. (Result tabs + result items live in base.css.) */
+
+.search-bar {
+  display: flex;
+  gap: var(--space-1);
+  margin-bottom: var(--space-2);
+}
+.search-bar .input[type='search'] { flex: 1; }
+.search-bar .mode-select { width: auto; flex-shrink: 0; }
+@media (max-width: 767px) {
+  .search-bar { flex-wrap: wrap; }
+  .search-bar .mode-select { width: 100%; }
+}

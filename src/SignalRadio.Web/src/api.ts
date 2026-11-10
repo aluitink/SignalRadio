@@ -172,6 +172,7 @@ export function getUnviewedInvestigations(limit = 10) {
 export function getInvestigation(id: number) {
   return apiGet<InvestigationDto>(`/investigations/${id}`)
 }
+// Send a follow-up message to the investigation's chat.
 export function sendInvestigationChat(id: number, message: string) {
   return apiPost<void>(`/investigations/${id}/chat`, { message })
 }

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import type { TalkGroupDto } from '../types/dtos'
 import { getTalkGroups } from '../api'
 import { CallVolumeStackedChart } from '../components/CallVolumeChart'
+import './TalkGroupsPage.css'
 
 export default function TalkGroupsPage() {
   const [groups, setGroups] = useState<TalkGroupDto[]>([])

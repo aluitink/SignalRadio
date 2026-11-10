@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useAudioPlayer } from '../contexts/AudioPlayerContext'
 import { useSubscriptions } from '../contexts/SubscriptionsContext'
 import { formatDuration, formatDateTime } from '../utils/format'
+import './AudioPlayer.css'
 
 export default function AudioPlayer() {
   const { nowPlaying, isPlaying, currentTime, duration, toggle, stop, seek } = useAudioPlayer()

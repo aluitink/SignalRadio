@@ -1,0 +1,55 @@
+/* Summary result card (search results + talk group summaries tab). */
+
+.summary-card {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+  border-left: 3px solid var(--tg-accent, transparent);
+  margin-bottom: var(--space-1);
+}
+.summary-card:hover { text-decoration: none; }
+.summary-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+.summary-card-tg {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text);
+}
+.summary-card-time {
+  font-size: 13px;
+  color: var(--text-faint);
+  white-space: nowrap;
+}
+.summary-card-text {
+  margin: 0 0 var(--space-1);
+  font-size: 14px;
+  color: var(--text-dim);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.summary-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 12px;
+  color: var(--text-dim);
+  flex-wrap: wrap;
+}
+.summary-card-stat .stat-label {
+  color: var(--text-faint);
+  margin-right: 4px;
+}
+.summary-card-play {
+  margin-left: auto;
+  padding: 4px 10px;
+  font-size: 12px;
+}

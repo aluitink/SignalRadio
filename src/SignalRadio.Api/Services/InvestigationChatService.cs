@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json;
 using Microsoft.Agents.AI;
 using Microsoft.EntityFrameworkCore;
@@ -16,8 +17,7 @@ namespace SignalRadio.Api.Services;
 /// <item><c>text</c> — a streamed assistant text delta (append to the current message).</item>
 /// <item><c>tool_call</c> — the agent invoked a tool (name + arguments).</item>
 /// <item><c>tool_result</c> — a tool returned a result (truncated for display).</item>
-/// <item><c>run_finished</c> — the agent turn completed; <see cref="ReportJson"/> carries the
-///     structured <c>InvestigationReport</c> (if the final message parsed as JSON).</item>
+/// <item><c>run_finished</c> — the agent turn completed.</item>
 /// <item><c>run_failed</c> — the agent turn failed; <see cref="Error"/> has the message.</item>
 /// </list>
 /// </summary>
@@ -27,22 +27,30 @@ public record InvestigationChatEvent(
     string? ToolName = null,
     string? ToolArgs = null,
     string? ToolResult = null,
-    string? ReportJson = null,
+    string? ToolCallId = null,
     string? Error = null);
 
 /// <summary>
-/// Runs the investigate agent as a resumable, streaming chat session.
+/// Runs the investigation agent as a single, resumable, streaming chat per investigation.
+///
+/// An investigation is a chat with one agent. The first turn is the user's investigation
+/// prompt (anchor call + timeframe + generalized request); the agent performs the
+/// investigation and produces a summary. Subsequent turns are the user's follow-up
+/// questions. The user's prompt and inputs are visible in the thread as their part of the
+/// conversation.
 ///
 /// The conversation state is a MAF <see cref="AgentSession"/> whose chat history is
 /// serialized (via <c>AIAgent.SerializeSessionAsync</c>) and persisted to the
-/// <c>Investigations.SessionJson</c> column after every turn. A new turn deserializes the
-/// stored session, appends the user's message, and streams the agent's response — so the
-/// chat can be reloaded from the database and continued across requests and restarts.
+/// investigation row's <c>SessionJson</c> column after every turn. A new turn deserializes
+/// the stored session, appends the user's message, and streams the agent's response — so
+/// the chat can be reloaded from the database and continued across requests and restarts.
+///
+/// Every rendered message (user input, assistant text, tool calls/results, errors) is also
+/// persisted as an <see cref="InvestigationChatMessage"/> row so the full thread can be
+/// reloaded when the user navigates back into the chat.
 ///
 /// Streaming events (text deltas, tool calls, tool results, run finished/failed) are relayed
-/// to the UI in real time over SignalR to the investigation's group. The structured
-/// <c>InvestigationReport</c> is still extracted from the final message and stored in
-/// <c>ResultJson</c> (the "report"), while the full chat history lives in <c>SessionJson</c>.
+/// to the UI in real time over SignalR to the investigation's group.
 /// </summary>
 public class InvestigationChatService(
     IServiceScopeFactory scopeFactory,
@@ -57,9 +65,10 @@ public class InvestigationChatService(
     };
 
     /// <summary>
-    /// Runs one agent turn for the investigation, streaming events to the UI and persisting
-    /// the updated session + report. Safe to call for the initial investigation or any
-    /// follow-up question — the session is loaded from the DB (or created fresh) each time.
+    /// Runs one agent turn for the investigation's chat, streaming events to the UI and
+    /// persisting the updated session state + rendered messages. Safe to call for the
+    /// initial investigation prompt or any follow-up question — the agent session is loaded
+    /// from the DB (or created fresh) each time.
     /// </summary>
     public async Task RunTurnAsync(long investigationId, string userMessage, CancellationToken ct)
     {
@@ -69,6 +78,7 @@ public class InvestigationChatService(
         var transcriptions = scope.ServiceProvider.GetRequiredService<ITranscriptionsService>();
 
         var inv = await db.Investigations
+            .Include(i => i.Messages)
             .Include(i => i.Call)
             .ThenInclude(c => c!.TalkGroup)
             .Include(i => i.Call)
@@ -76,47 +86,50 @@ public class InvestigationChatService(
             .FirstOrDefaultAsync(i => i.Id == investigationId, ct)
             ?? throw new InvalidOperationException($"Investigation {investigationId} not found.");
 
-        // Build the agent (tools capture scoped services in a closure).
-        var agent = agents.Build("investigate", chatClient, () => InvestigateAgent.CreateTools(scope.ServiceProvider));
+        // Build the investigation agent. The first turn (no persisted session yet) is
+        // grounded in the anchor call + surrounding window as a system message; later
+        // turns resume the persisted session, which already carries that context.
+        var isFirstTurn = string.IsNullOrWhiteSpace(inv.SessionJson);
+        var context = isFirstTurn
+            ? await BuildContextAsync(inv, calls, transcriptions, ct)
+            : null;
 
-        // Load or create the session.
-        AgentSession session;
-        if (!string.IsNullOrWhiteSpace(inv.SessionJson))
+        var agent = agents.Build("investigate", chatClient,
+            () => InvestigationTools.CreateDataTools(scope.ServiceProvider), context);
+
+        AgentSession agentSession;
+        if (isFirstTurn)
         {
-            try
-            {
-                var element = JsonSerializer.Deserialize<JsonElement>(inv.SessionJson);
-                session = await agent.DeserializeSessionAsync(element, cancellationToken: ct);
-            }
-            catch (Exception ex)
-            {
-                logger.LogWarning(ex, "Investigation {Id}: failed to restore session, starting fresh.", investigationId);
-                session = await agent.CreateSessionAsync(ct);
-            }
+            agentSession = await agent.CreateSessionAsync(ct);
         }
         else
         {
-            session = await agent.CreateSessionAsync(ct);
+            try
+            {
+                var element = JsonSerializer.Deserialize<JsonElement>(inv.SessionJson!);
+                agentSession = await agent.DeserializeSessionAsync(element, cancellationToken: ct);
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Investigation {Id}: failed to restore agent session, starting fresh.", investigationId);
+                agentSession = await agent.CreateSessionAsync(ct);
+            }
         }
 
-        // For the first turn, prepend the investigation context (anchor call + surrounding
-        // window) as a system message so the agent has the data it needs. Subsequent turns
-        // already have this context in the restored session history.
-        var isFirstTurn = string.IsNullOrWhiteSpace(inv.SessionJson);
-        var messages = new List<ChatMessage>();
-        if (isFirstTurn)
+        var messages = new List<ChatMessage>
         {
-            var context = await BuildContextAsync(inv, calls, transcriptions, ct);
-            if (!string.IsNullOrWhiteSpace(context))
-                messages.Add(new ChatMessage(ChatRole.System, context));
-        }
-        messages.Add(new ChatMessage(ChatRole.User, userMessage));
+            new(ChatRole.User, userMessage),
+        };
+
+        // Persist the user's message before running the turn so it shows up in history
+        // even if the turn fails.
+        await AppendMessageAsync(db, inv, "user", text: userMessage);
 
         // Stream the agent's response, relaying events to the UI.
-        var textBuilder = new System.Text.StringBuilder();
+        var textBuilder = new StringBuilder();
         try
         {
-            await foreach (var update in agent.RunStreamingAsync(messages, session, cancellationToken: ct))
+            await foreach (var update in agent.RunStreamingAsync(messages, agentSession, cancellationToken: ct))
             {
                 foreach (var content in update.Contents)
                 {
@@ -133,42 +146,47 @@ public class InvestigationChatService(
                             break;
 
                         case FunctionCallContent fc:
+                            await AppendMessageAsync(db, inv, "tool",
+                                toolName: fc.Name, toolArgs: FormatArguments(fc.Arguments), toolCallId: fc.CallId);
                             await notifier.NotifyInvestigationChatEventAsync(
                                 investigationId,
                                 new InvestigationChatEvent(
                                     "tool_call",
                                     ToolName: fc.Name,
-                                    ToolArgs: FormatArguments(fc.Arguments)), ct);
+                                    ToolArgs: FormatArguments(fc.Arguments),
+                                    ToolCallId: fc.CallId), ct);
                             break;
 
                         case FunctionResultContent fr:
+                            await AttachToolResultAsync(db, inv, fr.CallId, Truncate(fr.Result?.ToString(), 2000), ct);
                             await notifier.NotifyInvestigationChatEventAsync(
                                 investigationId,
                                 new InvestigationChatEvent(
                                     "tool_result",
-                                    ToolResult: Truncate(fr.Result?.ToString(), 2000)), ct);
+                                    ToolResult: Truncate(fr.Result?.ToString(), 2000),
+                                    ToolCallId: fr.CallId), ct);
                             break;
                     }
                 }
             }
 
-            // Extract the structured report from the final text (if it parses as JSON).
             var finalText = textBuilder.ToString().Trim();
-            string? reportJson = TryParseReport(finalText);
 
-            // Persist the updated session + report and mark completed.
-            var serialized = await agent.SerializeSessionAsync(session, cancellationToken: ct);
+            await AppendMessageAsync(db, inv, "assistant",
+                text: string.IsNullOrEmpty(finalText) ? null : finalText);
+
+            // Persist the updated agent session and mark the investigation completed.
+            var serialized = await agent.SerializeSessionAsync(agentSession, cancellationToken: ct);
             inv.SessionJson = serialized.GetRawText();
-            if (reportJson is not null)
-                inv.ResultJson = reportJson;
             inv.Status = InvestigationStatus.Completed;
             inv.CompletedAt = DateTime.UtcNow;
             inv.Error = null;
+
             await db.SaveChangesAsync(ct);
 
             await notifier.NotifyInvestigationChatEventAsync(
                 investigationId,
-                new InvestigationChatEvent("run_finished", ReportJson: reportJson), ct);
+                new InvestigationChatEvent("run_finished"), ct);
             await notifier.NotifyInvestigationCompletedAsync(investigationId, inv.CallId, "Completed", ct);
             logger.LogInformation("Investigation {Id} turn completed ({Chars} chars).", investigationId, finalText.Length);
         }
@@ -179,7 +197,7 @@ public class InvestigationChatService(
             // Persist whatever session state we have so the chat is still resumable.
             try
             {
-                var serialized = await agent.SerializeSessionAsync(session, cancellationToken: ct);
+                var serialized = await agent.SerializeSessionAsync(agentSession, cancellationToken: ct);
                 inv.SessionJson = serialized.GetRawText();
             }
             catch { /* best effort */ }
@@ -187,6 +205,9 @@ public class InvestigationChatService(
             inv.Status = InvestigationStatus.Failed;
             inv.CompletedAt = DateTime.UtcNow;
             inv.Error = ex.Message;
+
+            await AppendMessageAsync(db, inv, "assistant", error: ex.Message);
+
             await db.SaveChangesAsync(ct);
 
             await notifier.NotifyInvestigationChatEventAsync(
@@ -197,9 +218,8 @@ public class InvestigationChatService(
     }
 
     /// <summary>
-    /// Builds the initial investigation context (anchor call + surrounding window) used as the
-    /// system message for the first turn. Reuses the same prompt-building logic as the legacy
-    /// worker so the agent sees identical data.
+    /// Builds the initial investigation context (anchor call + surrounding window) used as
+    /// the system message for the first turn.
     /// </summary>
     private static async Task<string> BuildContextAsync(
         Investigation inv, ICallsService calls, ITranscriptionsService transcriptions, CancellationToken ct)
@@ -230,7 +250,7 @@ public class InvestigationChatService(
         var windowEnd = anchor.RecordingTime.AddMinutes(inv.WindowMinutes);
         var surroundingCalls = await FetchCallsInWindowAsync(calls, transcriptions, windowStart, windowEnd, inv.TalkGroupId, ct);
 
-        var sb = new System.Text.StringBuilder();
+        var sb = new StringBuilder();
         sb.AppendLine("## Anchor Call");
         sb.AppendLine($"Call ID: {anchor.Id}");
         sb.AppendLine($"Time: {anchor.RecordingTime:yyyy-MM-dd HH:mm:ss} UTC");
@@ -293,43 +313,6 @@ public class InvestigationChatService(
         return results.OrderBy(r => r.Call.RecordingTime).ToList();
     }
 
-    /// <summary>
-    /// Attempts to parse the agent's final text as an <see cref="InvestigationReport"/>.
-    /// Returns the camelCase JSON if it parses, otherwise null (the text is still shown as a
-    /// plain chat message). Tolerates markdown code fences around the JSON.
-    /// </summary>
-    private static string? TryParseReport(string text)
-    {
-        if (string.IsNullOrWhiteSpace(text)) return null;
-        var candidate = text.Trim();
-
-        // Strip a leading/trailing markdown code fence if present.
-        if (candidate.StartsWith("```", StringComparison.Ordinal))
-        {
-            var firstNewline = candidate.IndexOf('\n');
-            if (firstNewline >= 0) candidate = candidate[(firstNewline + 1)..];
-            if (candidate.EndsWith("```", StringComparison.Ordinal)) candidate = candidate[..^3];
-            candidate = candidate.Trim();
-        }
-
-        // Find the outermost JSON object.
-        var start = candidate.IndexOf('{');
-        var end = candidate.LastIndexOf('}');
-        if (start < 0 || end <= start) return null;
-        candidate = candidate[start..(end + 1)];
-
-        try
-        {
-            var report = JsonSerializer.Deserialize<InvestigationReport>(candidate, JsonOpts);
-            if (report is null) return null;
-            return JsonSerializer.Serialize(report, JsonOpts);
-        }
-        catch (JsonException)
-        {
-            return null;
-        }
-    }
-
     private static string FormatArguments(IDictionary<string, object?>? args)
     {
         if (args is null || args.Count == 0) return "{}";
@@ -341,4 +324,40 @@ public class InvestigationChatService(
 
     private static string? Truncate(string? s, int max) =>
         string.IsNullOrEmpty(s) ? s : (s.Length <= max ? s : s[..max] + "…");
+
+    /// <summary>Appends a rendered message to the investigation's chat and saves it.</summary>
+    private static async Task AppendMessageAsync(
+        SignalRadioDbContext db, Investigation inv, string role,
+        string? text = null, string? toolName = null, string? toolArgs = null,
+        string? toolResult = null, string? toolCallId = null,
+        string? error = null, CancellationToken ct = default)
+    {
+        var nextIndex = inv.Messages.Count > 0 ? inv.Messages.Max(m => m.Index) + 1 : 1;
+        inv.Messages.Add(new InvestigationChatMessage
+        {
+            Index = nextIndex,
+            Role = role,
+            Text = text,
+            ToolName = toolName,
+            ToolArgs = toolArgs,
+            ToolResult = toolResult,
+            ToolCallId = toolCallId,
+            Error = error,
+            CreatedAt = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync(ct);
+    }
+
+    /// <summary>Attaches a tool result to the matching pending tool-call message and saves it.</summary>
+    private static async Task AttachToolResultAsync(
+        SignalRadioDbContext db, Investigation inv, string? toolCallId, string? toolResult, CancellationToken ct)
+    {
+        InvestigationChatMessage? target = null;
+        if (!string.IsNullOrEmpty(toolCallId))
+            target = inv.Messages.FirstOrDefault(m => m.Role == "tool" && m.ToolCallId == toolCallId && m.ToolResult == null);
+        target ??= inv.Messages.LastOrDefault(m => m.Role == "tool" && m.ToolResult == null);
+        if (target is null) return;
+        target.ToolResult = toolResult;
+        await db.SaveChangesAsync(ct);
+    }
 }

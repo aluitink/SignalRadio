@@ -13,9 +13,18 @@ public interface IAgentDefinition
     string Name { get; }
 
     /// <summary>
+    /// The prompt file name inside the agent's folder. Defaults to <c>PROMPT.md</c>; agents
+    /// with a non-default prompt file override this.
+    /// </summary>
+    string PromptFileName => "PROMPT.md";
+
+    /// <summary>
     /// Build the AIAgent. <paramref name="chatClient"/> is the OpenAI-compatible chat client;
     /// <paramref name="instructions"/> is the contents of the agent's PROMPT.md;
-    /// <paramref name="tools"/> returns the agent's function tools (built with scoped services).
+    /// <paramref name="tools"/> returns the agent's function tools (built with scoped services);
+    /// <paramref name="extraSystemMessage"/> is optional per-run context that must be sent as a
+    /// system message BEFORE the base instructions (some providers reject system messages that
+    /// are not at the start of the conversation).
     /// </summary>
-    AIAgent BuildAgent(IChatClient chatClient, string instructions, Func<AIFunction[]> tools);
+    AIAgent BuildAgent(IChatClient chatClient, string instructions, Func<AIFunction[]> tools, string? extraSystemMessage = null);
 }

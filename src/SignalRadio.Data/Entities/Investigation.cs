@@ -47,13 +47,9 @@ public class Investigation
     /// <summary>When the investigation completed (or failed).</summary>
     public DateTime? CompletedAt { get; set; }
 
-    /// <summary>The agent's narrative response (JSON-serialized InvestigationReport).</summary>
-    public string? ResultJson { get; set; }
-
     /// <summary>
-    /// The serialized MAF <c>AgentSession</c> (JSON) holding the full chat history for this
-    /// investigation. Persisted so the investigation chat can be reloaded and continued
-    /// (resumable). Written by the InvestigationChatService after each agent turn.
+    /// The serialized MAF <c>AgentSession</c> (JSON) for this investigation's chat. Persisted
+    /// after every turn so the chat can be reloaded and continued across requests and restarts.
     /// </summary>
     public string? SessionJson { get; set; }
 
@@ -65,6 +61,9 @@ public class Investigation
 
     /// <summary>Follow-up investigations that reference this one as parent.</summary>
     public ICollection<Investigation> FollowUps { get; set; } = new List<Investigation>();
+
+    /// <summary>The investigation's chat messages, in order.</summary>
+    public ICollection<InvestigationChatMessage> Messages { get; set; } = new List<InvestigationChatMessage>();
 }
 
 public enum InvestigationStatus

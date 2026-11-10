@@ -6,6 +6,7 @@ import { useSubscriptions } from '../contexts/SubscriptionsContext'
 import { recordingDownloadUrlByCall } from '../api'
 import { formatDuration, formatDateTime, formatFrequency, formatRelativeTime } from '../utils/format'
 import { useNow } from '../hooks/useNow'
+import './CallCard.css'
 
 export default function CallCard({
   call,
@@ -16,6 +17,7 @@ export default function CallCard({
   onFilterTalkGroup,
   filterActive = false,
   showTranscript = true,
+  hideSubscribe = false,
 }: {
   call: CallDto
   transcript?: string | null
@@ -30,6 +32,8 @@ export default function CallCard({
   filterActive?: boolean
   /** When false, hide the transcript snippet (compact cards for long lists). */
   showTranscript?: boolean
+  /** When true, hide the per-card subscribe button (e.g. the page has its own). */
+  hideSubscribe?: boolean
 }) {
   const { nowPlaying, isPlaying } = useAudioPlayer()
   const { isSubscribed, toggleSubscription, playFromCall } = useSubscriptions()
@@ -117,6 +121,7 @@ export default function CallCard({
                 </svg>
               </button>
             )}
+            {!hideSubscribe && (
             <button
               className={`subscribe-icon${subscribed ? ' subscribed' : ''}`}
               onClick={handleSubscribe}
@@ -135,6 +140,7 @@ export default function CallCard({
                 </svg>
               )}
             </button>
+            )}
           </span>
         </div>
 

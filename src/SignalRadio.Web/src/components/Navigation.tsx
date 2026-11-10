@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { NavLink } from 'react-router-dom'
 import SummaryTicker from './SummaryTicker'
 import { useConnectionStatus } from '../contexts/ConnectionStatusContext'
+import './Navigation.css'
 
 const links = [
   { to: '/', label: 'Live', end: true },

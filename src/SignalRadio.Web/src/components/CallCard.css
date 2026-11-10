@@ -1,0 +1,191 @@
+/* Call card: clickable card with play button, transcript, and action icons. */
+
+.call-card {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--space-2);
+  align-items: start;
+}
+
+/* Per-talkgroup accent (matches the call-volume histogram color).
+   Set via the `--tg-accent` CSS variable on the card element. */
+.call-card {
+  border-left: 3px solid var(--tg-accent, transparent);
+}
+.call-card .play-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid var(--border-strong);
+  background: var(--tg-accent-soft, var(--accent-soft));
+  color: var(--tg-accent, var(--accent));
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+.call-card .play-btn.playing {
+  background: var(--tg-accent, var(--accent));
+  color: #06121f;
+}
+
+.call-card .card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.call-card .card-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.call-card .tg-link {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.call-card .row-end {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.call-card .time {
+  font-size: 13px;
+  color: var(--text-faint);
+  white-space: nowrap;
+}
+
+.call-card .card-row.sub {
+  justify-content: flex-start;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+.call-card .card-row.sub .dot { color: var(--text-faint); }
+
+.call-card .subscribe-icon {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  color: var(--text-faint);
+  flex-shrink: 0;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.call-card .subscribe-icon:hover {
+  background: var(--card-bg-hover);
+  border-color: var(--border-strong);
+  color: var(--text-dim);
+}
+.call-card .subscribe-icon.subscribed {
+  background: var(--accent-soft);
+  border-color: var(--accent-dim);
+  color: var(--accent);
+}
+
+.call-card .transcript {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-dim);
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  cursor: pointer;
+}
+.call-card .transcript.expanded {
+  display: block;
+  -webkit-line-clamp: unset;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Spacing between call cards */
+.call-card + .call-card {
+  margin-top: var(--space-1);
+}
+
+/* ---- Investigation Icon ---- */
+.call-card .investigate-icon {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  color: var(--text-faint);
+  flex-shrink: 0;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.call-card .investigate-icon:hover {
+  background: var(--card-bg-hover);
+  border-color: var(--border-strong);
+  color: var(--text-dim);
+}
+
+/* ---- Filter Icon ---- */
+.call-card .filter-icon {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  color: var(--text-faint);
+  flex-shrink: 0;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.call-card .filter-icon:hover {
+  background: var(--card-bg-hover);
+  border-color: var(--border-strong);
+  color: var(--text-dim);
+}
+.call-card .filter-icon.active {
+  background: var(--accent-soft);
+  border-color: var(--accent-dim);
+  color: var(--accent);
+}
+
+@media (max-width: 767px) {
+  .call-card .card-row {
+    flex-wrap: nowrap;
+    gap: 8px;
+  }
+  .call-card .row-end {
+    gap: 6px;
+  }
+  .call-card .tg-link {
+    font-size: 13px;
+  }
+  .call-card .time {
+    font-size: 12px;
+  }
+  .call-card .investigate-icon,
+  .call-card .filter-icon,
+  .call-card .subscribe-icon {
+    width: 28px;
+    height: 28px;
+  }
+  .call-card .investigate-icon svg,
+  .call-card .filter-icon svg,
+  .call-card .subscribe-icon svg {
+    width: 15px;
+    height: 15px;
+  }
+}

@@ -1,0 +1,10 @@
+/* Pagination: prev/next + page info. */
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+.pagination .page-info { color: var(--text-dim); font-size: 14px; }

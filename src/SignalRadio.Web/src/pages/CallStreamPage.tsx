@@ -44,9 +44,26 @@ export default function CallStreamPage() {
         selected={selectedGroups}
         onToggleGroup={toggleGroup}
         onClear={clearGroups}
-        subscribedOnly={subscribedOnly}
-        onSubscribedOnlyChange={setSubscribedOnly}
       />
+
+      <div className="result-tabs" role="tablist" aria-label="Call stream scope">
+        <button
+          role="tab"
+          aria-selected={!subscribedOnly}
+          className={`result-tab${!subscribedOnly ? ' active' : ''}`}
+          onClick={() => setSubscribedOnly(false)}
+        >
+          All
+        </button>
+        <button
+          role="tab"
+          aria-selected={subscribedOnly}
+          className={`result-tab${subscribedOnly ? ' active' : ''}`}
+          onClick={() => setSubscribedOnly(true)}
+        >
+          Subscribed
+        </button>
+      </div>
 
       <CallStream
         talkGroupIds={selectedGroups.size > 0 ? [...selectedGroups] : undefined}

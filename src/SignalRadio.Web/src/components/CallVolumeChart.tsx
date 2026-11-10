@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import type { CallVolumeByTalkGroupDto, CallVolumeDto } from '../types/dtos'
 import { getCallVolume, getCallVolumeByTalkGroup } from '../api'
 import { formatDuration } from '../utils/format'
+import './CallVolumeChart.css'
 
 // Time-span options for the dropdown. `minutes` drives the query window.
 const SPANS = [
@@ -70,6 +71,8 @@ export default function CallVolumeChart({
   const [data, setData] = useState<CallVolumeDto[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [hover, setHover] = useState<number | null>(null)
+  // Chart body is collapsed by default to maximize screen space for the stream.
+  const [collapsed, setCollapsed] = useState(true)
 
   const bucketMinutes = useMemo(() => pickBucketMinutes(minutes), [minutes])
 
@@ -122,8 +125,24 @@ export default function CallVolumeChart({
       : null
 
   return (
-    <section className="card volume-chart" aria-label="Call volume">
+    <section className={`card volume-chart${collapsed ? ' collapsed' : ''}`} aria-label="Call volume">
       <div className="volume-chart-header">
+        <button
+          type="button"
+          className="volume-collapse-toggle"
+          onClick={() => setCollapsed((c) => !c)}
+          aria-expanded={!collapsed}
+          aria-controls="volume-chart-body"
+        >
+          <span className={`volume-legend-caret${collapsed ? '' : ' open'}`} aria-hidden="true" />
+          Call volume
+        </button>
+        {collapsed && data && (
+          <span className="volume-chart-collapsed-stats">
+            {totalCalls} calls · {formatDuration(totalDuration)} talk time
+          </span>
+        )}
+        {!collapsed && (
         <div className="volume-chart-controls">
           <select
             className="volume-resolution"
@@ -138,8 +157,11 @@ export default function CallVolumeChart({
             ))}
           </select>
         </div>
+        )}
       </div>
 
+      {!collapsed && (
+      <div id="volume-chart-body">
       {error ? (
         <div className="error-state" role="alert">{error}</div>
       ) : !data ? (
@@ -193,6 +215,8 @@ export default function CallVolumeChart({
           </div>
         </>
       )}
+      </div>
+      )}
     </section>
   )
 }
@@ -206,8 +230,6 @@ export function CallVolumeStackedChart({
   selected,
   onToggleGroup,
   onClear,
-  subscribedOnly,
-  onSubscribedOnlyChange,
 }: {
   initialMinutes?: number
   refreshKey?: number
@@ -215,9 +237,6 @@ export function CallVolumeStackedChart({
   selected?: Set<number>
   onToggleGroup?: (id: number) => void
   onClear?: () => void
-  /** When provided, renders a "Subscribed only" toggle in the header (left side). */
-  subscribedOnly?: boolean
-  onSubscribedOnlyChange?: (value: boolean) => void
 }) {
   const [minutes, setMinutes] = useState<number>(initialMinutes)
   const [data, setData] = useState<CallVolumeByTalkGroupDto[] | null>(null)
@@ -227,6 +246,8 @@ export function CallVolumeStackedChart({
   const [internalSelected, setInternalSelected] = useState<Set<number>>(new Set())
   // Legend is collapsed by default; expand to filter by talk group.
   const [legendOpen, setLegendOpen] = useState(false)
+  // Chart body is collapsed by default to maximize screen space for the stream.
+  const [collapsed, setCollapsed] = useState(true)
 
   const isControlled = selected !== undefined
   const activeSelected = isControlled ? selected! : internalSelected
@@ -325,22 +346,24 @@ export function CallVolumeStackedChart({
       : null
 
   return (
-    <section className="card volume-chart" aria-label="Call volume">
+    <section className={`card volume-chart${collapsed ? ' collapsed' : ''}`} aria-label="Call volume">
       <div className="volume-chart-header">
-        {subscribedOnly !== undefined && onSubscribedOnlyChange && (
-          <label className="toggle-switch">
-            <input
-              type="checkbox"
-              checked={subscribedOnly}
-              onChange={(e) => onSubscribedOnlyChange(e.target.checked)}
-              aria-label="Show subscribed talk groups only"
-            />
-            <span className="toggle-track" aria-hidden="true">
-              <span className="toggle-thumb" />
-            </span>
-            <span className="toggle-label">Subscribed only</span>
-          </label>
+        <button
+          type="button"
+          className="volume-collapse-toggle"
+          onClick={() => setCollapsed((c) => !c)}
+          aria-expanded={!collapsed}
+          aria-controls="volume-chart-body"
+        >
+          <span className={`volume-legend-caret${collapsed ? '' : ' open'}`} aria-hidden="true" />
+          Call volume
+        </button>
+        {collapsed && data && (
+          <span className="volume-chart-collapsed-stats">
+            {totalCalls} calls · {groupOrder.length} talk group{groupOrder.length === 1 ? '' : 's'}
+          </span>
         )}
+        {!collapsed && (
         <div className="volume-chart-controls">
           <select
             className="volume-resolution"
@@ -355,8 +378,11 @@ export function CallVolumeStackedChart({
             ))}
           </select>
         </div>
+        )}
       </div>
 
+      {!collapsed && (
+      <div id="volume-chart-body">
       {error ? (
         <div className="error-state" role="alert">{error}</div>
       ) : !data ? (
@@ -491,6 +517,8 @@ export function CallVolumeStackedChart({
             </span>
           </div>
         </>
+      )}
+      </div>
       )}
     </section>
   )

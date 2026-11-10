@@ -3,6 +3,7 @@ import type { TranscriptSummaryDto } from '../types/dtos'
 import { useSubscriptions } from '../contexts/SubscriptionsContext'
 import { formatDateTime, formatDuration } from '../utils/format'
 import { talkGroupColor } from './CallVolumeChart'
+import './SummaryCard.css'
 
 /**
  * A search-result card for a transcript summary. Clicking the card opens the

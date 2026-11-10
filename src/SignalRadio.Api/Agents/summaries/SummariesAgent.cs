@@ -19,7 +19,7 @@ public class SummariesAgent : IAgentDefinition
 {
     public string Name => "summaries";
 
-    public AIAgent BuildAgent(IChatClient chatClient, string instructions, Func<AIFunction[]> tools)
+    public AIAgent BuildAgent(IChatClient chatClient, string instructions, Func<AIFunction[]> tools, string? extraSystemMessage = null)
     {
         // Constrain the model to return a JSON object matching SummaryReport. The OpenAI
         // provider maps this to response_format=json_schema, so the output is guaranteed to be

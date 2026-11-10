@@ -6,6 +6,7 @@ import { useSignalR } from '../hooks/useSignalR'
 import { formatRelativeTime, formatDuration } from '../utils/format'
 import { useNow } from '../hooks/useNow'
 import { useSubscriptions } from '../contexts/SubscriptionsContext'
+import './SummaryTicker.css'
 
 const MAX_ITEMS = 10
 

@@ -1,3 +1,5 @@
+import './Pagination.css'
+
 export default function Pagination({
   page,
   totalPages,

@@ -1,0 +1,18 @@
+/* Talk group list. */
+
+.tg-list {
+  display: grid;
+  gap: var(--space-1);
+}
+.tg-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+.tg-item .tg-num {
+  font-weight: 600;
+  font-size: 18px;
+  color: var(--text);
+}
+.tg-item .tg-name { color: var(--text-dim); font-size: 14px; }
