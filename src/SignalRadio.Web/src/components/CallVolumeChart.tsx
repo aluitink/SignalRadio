@@ -135,7 +135,7 @@ export default function CallVolumeChart({
           aria-controls="volume-chart-body"
         >
           <span className={`volume-legend-caret${collapsed ? '' : ' open'}`} aria-hidden="true" />
-          Call volume
+          {collapsed ? 'Show' : 'Hide'}
         </button>
         {collapsed && data && (
           <span className="volume-chart-collapsed-stats">
@@ -356,7 +356,7 @@ export function CallVolumeStackedChart({
           aria-controls="volume-chart-body"
         >
           <span className={`volume-legend-caret${collapsed ? '' : ' open'}`} aria-hidden="true" />
-          Call volume
+          {collapsed ? 'Show' : 'Hide'}
         </button>
         {collapsed && data && (
           <span className="volume-chart-collapsed-stats">

@@ -1,0 +1,286 @@
+/* ==========================================================================
+   CallVolumeChart.css — call volume chart card (single + stacked variants).
+   Restored from the original index.css (commit 1a84ab0), extended with the
+   collapse-toggle header added in the v2 UI.
+   ========================================================================== */
+
+.volume-chart {
+  margin-bottom: var(--space-2);
+}
+.volume-chart-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-1);
+  flex-wrap: wrap;
+}
+
+/* Collapse toggle (v2 addition) */
+.volume-collapse-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-family: inherit;
+  color: var(--text-dim);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 2px 10px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.volume-collapse-toggle:hover {
+  background: var(--card-bg-hover);
+  color: var(--text);
+}
+.volume-collapse-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.volume-chart-collapsed-stats {
+  font-size: 12px;
+  color: var(--text-faint);
+}
+
+.volume-chart-plot {
+  position: relative;
+  height: 96px;
+}
+.volume-chart-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 100%;
+  border-bottom: 1px solid var(--border);
+}
+.volume-bar {
+  flex: 1 1 0;
+  min-width: 2px;
+  background: var(--accent);
+  border-radius: 2px 2px 0 0;
+  opacity: 0.85;
+  transition: opacity 0.1s ease;
+}
+.volume-bar.empty {
+  background: rgba(255, 255, 255, 0.06);
+  opacity: 1;
+}
+.volume-bar.hovered {
+  opacity: 1;
+}
+.volume-tooltip {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  transform: translateX(-50%);
+  background: rgba(10, 14, 22, 0.95);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  padding: 6px 10px;
+  font-size: 12px;
+  white-space: nowrap;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  pointer-events: none;
+  z-index: 10;
+}
+.volume-tooltip-time {
+  color: var(--text-dim);
+}
+.volume-chart-axis {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--text-faint);
+}
+.volume-chart-axis span {
+  flex: 1;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.volume-chart-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+  font-size: 12px;
+  color: var(--text-dim);
+}
+.volume-chart-hint {
+  color: var(--text-faint);
+}
+.skeleton-chart {
+  height: 96px;
+}
+
+/* ---- Stacked volume chart ---- */
+.volume-bar-stack {
+  flex: 1 1 0;
+  min-width: 2px;
+  height: 100%;
+  display: flex;
+  flex-direction: column-reverse;
+  border-radius: 2px 2px 0 0;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.06);
+  opacity: 0.9;
+  transition: opacity 0.1s ease;
+}
+.volume-bar-stack.empty {
+  height: 2px;
+}
+.volume-bar-stack.hovered {
+  opacity: 1;
+}
+.volume-bar-segment {
+  width: 100%;
+}
+.volume-legend-wrap {
+  position: relative;
+  margin-top: var(--space-1);
+}
+.volume-legend-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-family: inherit;
+  color: var(--text-dim);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 2px 10px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.volume-legend-toggle:hover {
+  background: var(--card-bg-hover);
+  color: var(--text);
+}
+.volume-legend-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.volume-legend-caret {
+  display: inline-block;
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid currentColor;
+  transform: rotate(-90deg);
+  transition: transform 0.15s ease;
+}
+.volume-legend-caret.open {
+  transform: rotate(0deg);
+}
+.volume-legend-filtered-badge {
+  font-size: 11px;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-radius: 999px;
+  padding: 0 6px;
+}
+.volume-legend-body {
+  margin-top: var(--space-1);
+}
+.volume-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+}
+.volume-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-family: inherit;
+  color: var(--text-dim);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 2px 10px 2px 6px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease,
+    opacity 0.15s ease;
+}
+.volume-legend-item:hover {
+  background: var(--card-bg-hover);
+  border-color: var(--border);
+  color: var(--text);
+}
+.volume-legend-item:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.volume-legend-item.selected {
+  background: var(--accent-soft);
+  border-color: var(--accent-dim);
+  color: var(--text);
+}
+.volume-legend-item.dimmed {
+  opacity: 0.4;
+}
+.volume-legend-clear {
+  position: absolute;
+  bottom: -4px;
+  right: 0;
+  font-size: 12px;
+  font-family: inherit;
+  color: var(--accent);
+  background: var(--bg-1);
+  border: 1px solid var(--accent-dim);
+  border-radius: 999px;
+  padding: 2px 10px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.volume-legend-clear:hover {
+  background: var(--accent-soft);
+}
+.volume-legend-swatch,
+.volume-tooltip-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  display: inline-block;
+  flex-shrink: 0;
+}
+.volume-tooltip-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.volume-tooltip-more {
+  color: var(--text-faint);
+}
+
+/* ---- Volume chart controls ---- */
+.volume-chart-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+.volume-resolution {
+  background: var(--bg-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-family: inherit;
+  font-size: 12px;
+  padding: 3px 8px;
+  cursor: pointer;
+}
+.volume-resolution:hover {
+  border-color: var(--border-strong);
+}
+.volume-resolution:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
